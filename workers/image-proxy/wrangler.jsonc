@@ -1,0 +1,15 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "image-proxy",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-01-01",
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "personal-images"
+    }
+  ]
+  // 自定义域名：在 Dashboard → image-proxy → 域和路由 中添加，
+  // 或取消注释并改为你的图片域名：
+  // "routes": [{ "pattern": "img.example.com", "custom_domain": true }]
+}

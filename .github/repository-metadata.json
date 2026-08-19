@@ -1,0 +1,15 @@
+{
+  "description": "Self-hosted image hosting on Cloudflare Pages, R2, and Workers — Nuxt admin UI, referer protection, Twikoo/EasyImage compatible.",
+  "homepage": "https://github.com/O96u/PicHost#readme",
+  "topics": [
+    "cloudflare",
+    "cloudflare-workers",
+    "cloudflare-r2",
+    "image-hosting",
+    "nuxt",
+    "nuxt4",
+    "twikoo",
+    "easyimage",
+    "typescript"
+  ]
+}

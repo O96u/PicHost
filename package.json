@@ -1,0 +1,52 @@
+{
+  "name": "pichost",
+  "description": "Self-hosted image hosting on Cloudflare Pages, R2, and Workers — Nuxt admin UI, referer protection, Twikoo/EasyImage compatible.",
+  "homepage": "https://github.com/O96u/PicHost#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/O96u/PicHost.git"
+  },
+  "bugs": {
+    "url": "https://github.com/O96u/PicHost/issues"
+  },
+  "keywords": [
+    "image-hosting",
+    "cloudflare",
+    "cloudflare-workers",
+    "cloudflare-r2",
+    "nuxt",
+    "twikoo",
+    "easyimage"
+  ],
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.12.1",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "typecheck": "nuxt typecheck",
+    "deploy:pages": "nuxt build && wrangler pages deploy dist --project-name pic-host",
+    "worker:dev": "npm run dev --prefix workers/image-proxy",
+    "worker:deploy": "npm run deploy --prefix workers/image-proxy"
+  },
+  "dependencies": {
+    "@iconify-json/lucide": "^1.2.114",
+    "@nuxt/ui": "^4.9.0",
+    "jose": "^6.0.11",
+    "nuxt": "^4.4.8",
+    "tailwindcss": "^4.3.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260710.1",
+    "@nuxt/eslint": "^1.16.0",
+    "eslint": "^10.6.0",
+    "typescript": "^6.0.3",
+    "@types/node": "^22.15.0",
+    "vue-tsc": "^3.3.5",
+    "wrangler": "^4.24.0"
+  }
+}

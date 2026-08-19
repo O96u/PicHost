@@ -1,0 +1,90 @@
+name: Deploy to Cloudflare
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cloudflare-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install npm 11 (lockfile generated with npm 11)
+        run: |
+          npm install -g npm@11.12.1
+          npm --version
+
+      - name: Verify Cloudflare secrets
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::GitHub Secret CLOUDFLARE_API_TOKEN is not set"
+            exit 1
+          fi
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::GitHub Secret CLOUDFLARE_ACCOUNT_ID is not set"
+            exit 1
+          fi
+
+      - name: Install dependencies (Pages)
+        run: npm ci
+
+      - name: Verify Cloudflare API access
+        run: |
+          if ! echo "$CLOUDFLARE_ACCOUNT_ID" | grep -qE '^[a-f0-9]{32}$'; then
+            echo "::error::CLOUDFLARE_ACCOUNT_ID must be the 32-character Account ID (hex). Do not use Zone ID or API Key."
+            exit 1
+          fi
+          npx wrangler whoami
+          echo "--- Pages projects ---"
+          npx wrangler pages project list
+
+      - name: Ensure Pages project pic-host exists
+        run: |
+          if ! npx wrangler pages project list | grep -qE '(^|[[:space:]])pic-host([[:space:]]|$)'; then
+            echo "Creating Pages project pic-host..."
+            npx wrangler pages project create pic-host --production-branch=main
+          fi
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build Pages
+        run: npm run build
+
+      - name: Deploy Pages (pic-host)
+        run: >-
+          npx wrangler pages deploy dist
+          --project-name=pic-host
+          --branch=main
+          --commit-dirty=true
+
+      - name: Install dependencies (image-proxy)
+        working-directory: workers/image-proxy
+        run: npm ci
+
+      - name: Deploy Worker (image-proxy)
+        working-directory: workers/image-proxy
+        run: npx wrangler deploy --config wrangler.jsonc
