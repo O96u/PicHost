@@ -58,12 +58,17 @@
 ### Docker (recommended)
 
 ```bash
-git clone https://github.com/O96u/PicHost.git
-cd PicHost
-docker compose up -d
+docker run -d \
+  --name pichost \
+  -p 6892:6892 \
+  -v ./data:/data \
+  --restart unless-stopped \
+  muxui/pichost:latest
 ```
 
-Default port: **6892**. Complete the setup wizard in the browser. Image: `muxui/pichost:latest`.
+Default port: **6892**. Open `http://<host>:6892` in your browser and complete the setup wizard.
+
+If you cloned the repo, you can also use `docker compose up -d` (see `docker-compose.yml`).
 
 ### Local development
 

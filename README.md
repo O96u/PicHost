@@ -58,12 +58,17 @@
 ### Docker（推荐）
 
 ```bash
-git clone https://github.com/O96u/PicHost.git
-cd PicHost
-docker compose up -d
+docker run -d \
+  --name pichost \
+  -p 6892:6892 \
+  -v ./data:/data \
+  --restart unless-stopped \
+  muxui/pichost:latest
 ```
 
-默认端口 **6892**。浏览器打开后按引导创建管理员即可。镜像：`muxui/pichost:latest`。
+默认端口 **6892**。浏览器打开 `http://<主机IP>:6892`，按引导创建管理员即可。
+
+已克隆仓库时也可用 `docker compose up -d`（见仓库内 `docker-compose.yml`）。
 
 ### 本地开发
 
