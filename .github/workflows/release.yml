@@ -1,0 +1,59 @@
+name: GitHub Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要发布 Release 的标签（如 v1.0.1）'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          VERSION="${TAG#v}"
+          BODY_FILE="${RUNNER_TEMP}/release-notes.md"
+          awk -v ver="$VERSION" '
+            /^## \[/ {
+              if (found) exit
+              if ($0 ~ "\\[" ver "\\]") found = 1
+              next
+            }
+            found { print }
+          ' CHANGELOG.md > "$BODY_FILE"
+          if [ ! -s "$BODY_FILE" ]; then
+            echo "未在 CHANGELOG.md 找到版本 ${VERSION}，使用自动生成说明。" >&2
+            echo "## PicHost ${TAG}" > "$BODY_FILE"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "body_path=${BODY_FILE}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.notes.outputs.tag }}
+          name: PicHost ${{ steps.notes.outputs.tag }}
+          body_path: ${{ steps.notes.outputs.body_path }}
+          draft: false
+          prerelease: false
+          make_latest: true
