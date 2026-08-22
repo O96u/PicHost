@@ -329,6 +329,7 @@ watch(isAuthenticated, async (authed) => {
             />
             <span>
               API Token · {{ tokenSourceText(settings.tokenSource) }}
+              <span class="text-dimmed">· v{{ settings.appVersion }}</span>
               <template v-if="hasServerChanges">
                 · <span class="text-warning">有未保存的更改</span>
               </template>

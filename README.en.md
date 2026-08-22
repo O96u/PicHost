@@ -180,7 +180,8 @@ npm test             # Unit tests
 
 | Version | Plan |
 |---------|------|
-| **v1.0.0** | Local storage, multi-user, API, Twikoo (current) |
+| **v1.0.1** | Settings version display, mobile upload preferences layout fix (current) |
+| **v1.0.0** | Local storage, multi-user, API, Twikoo |
 | **v1.1.0** | S3, Cloudflare R2, and more object storage backends |
 
 ## License

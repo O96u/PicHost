@@ -56,9 +56,11 @@ onMounted(() => {
 
 <template>
   <div
-    class="flex flex-col overflow-hidden"
+    class="flex flex-col overflow-hidden max-sm:overflow-visible"
     :class="
-      embedded ? '' : 'upload-card-surface upload-card-surface--panel h-full'
+      embedded
+        ? ''
+        : 'upload-card-surface upload-card-surface--panel max-sm:min-h-0 sm:h-full'
     "
   >
     <div

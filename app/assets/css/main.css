@@ -26,6 +26,34 @@
   transform: rotateY(180deg);
 }
 
+@media (max-width: 639px) {
+  .upload-card-flip.is-flipped {
+    perspective: none;
+  }
+
+  .upload-card-flip.is-flipped .upload-card-flip-inner {
+    transform: none;
+  }
+
+  .upload-card-flip .upload-card-face--back {
+    display: none;
+  }
+
+  .upload-card-flip.is-flipped .upload-card-face--front {
+    display: none;
+  }
+
+  .upload-card-flip.is-flipped .upload-card-face--back {
+    display: block;
+    position: static;
+    transform: none;
+  }
+
+  .upload-card-flip.is-flipped .upload-card-surface {
+    min-height: 0;
+  }
+}
+
 .upload-card-surface {
   min-height: 20.5rem;
   border-radius: 1rem;
