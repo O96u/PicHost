@@ -63,7 +63,7 @@ cd PicHost
 docker compose up -d
 ```
 
-默认端口 **6892**。浏览器打开后按引导创建管理员即可。镜像：`muxui/pichost:latest`（备用 `ghcr.io/o96u/pichost:latest`）。
+默认端口 **6892**。浏览器打开后按引导创建管理员即可。镜像：`muxui/pichost:latest`。
 
 ### 本地开发
 

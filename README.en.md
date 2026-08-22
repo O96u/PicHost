@@ -63,7 +63,7 @@ cd PicHost
 docker compose up -d
 ```
 
-Default port: **6892**. Complete the setup wizard in the browser. Image: `muxui/pichost:latest` (fallback: `ghcr.io/o96u/pichost:latest`).
+Default port: **6892**. Complete the setup wizard in the browser. Image: `muxui/pichost:latest`.
 
 ### Local development
 

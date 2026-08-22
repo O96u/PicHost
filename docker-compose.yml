@@ -4,8 +4,6 @@ services:
     # 飞牛 Docker 对 Docker Hub 的「更新镜像」支持更好
     image: muxui/pichost:latest
     pull_policy: always
-    # 备用：GitHub Container Registry
-    # image: ghcr.io/O96u/pichost:latest
     container_name: pichost
     restart: unless-stopped
     ports:
