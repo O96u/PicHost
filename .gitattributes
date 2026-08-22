@@ -1,0 +1,2 @@
+* text=auto eol=lf
+*.{ts,vue,js,mjs,cjs,json,jsonc,yml,yaml,md,css} text eol=lf

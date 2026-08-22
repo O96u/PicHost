@@ -1,0 +1,38 @@
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Node dependencies
+node_modules
+
+# Logs
+logs
+*.log
+!server/api/logs/
+!server/api/logs/**
+
+# Misc
+.DS_Store
+.fleet
+.idea
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# 本地图片存储目录
+data
+
+# Wrangler（main 分支遗留的本地缓存）
+.wrangler
+
+# Cursor 本地规则（不上传，避免进仓库）
+.cursor/
+
+# 本地 Git hooks 模板（仅安装在 .git/hooks/，不进仓库）
+git-hooks/

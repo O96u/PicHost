@@ -1,0 +1,53 @@
+{
+  "name": "pichost",
+  "version": "1.0.0",
+  "description": "Self-hosted image hosting for your NAS / home server — Nuxt admin UI, local disk storage, server-side WebP compression, referer protection, Twikoo/EasyImage compatible.",
+  "homepage": "https://github.com/O96u/PicHost#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/O96u/PicHost.git"
+  },
+  "bugs": {
+    "url": "https://github.com/O96u/PicHost/issues"
+  },
+  "keywords": [
+    "image-hosting",
+    "self-hosted",
+    "nas",
+    "docker",
+    "nuxt",
+    "twikoo",
+    "easyimage"
+  ],
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.12.1",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "typecheck": "nuxt typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "node .output/server/index.mjs"
+  },
+  "dependencies": {
+    "@iconify-json/lucide": "^1.2.114",
+    "@nuxt/ui": "^4.9.0",
+    "jose": "^6.0.11",
+    "nuxt": "^4.4.8",
+    "sharp": "^0.35.3",
+    "tailwindcss": "^4.3.1"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^1.16.0",
+    "@types/node": "^22.15.0",
+    "eslint": "^10.6.0",
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.4",
+    "vue-tsc": "^3.3.5"
+  }
+}

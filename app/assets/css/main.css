@@ -1,0 +1,63 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+.upload-card-flip {
+  perspective: 1200px;
+}
+
+.upload-card-flip-inner {
+  position: relative;
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.upload-card-flip.is-flipped .upload-card-flip-inner {
+  transform: rotateY(180deg);
+}
+
+.upload-card-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.upload-card-face--back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+}
+
+.upload-card-surface {
+  min-height: 20.5rem;
+  border-radius: 1rem;
+  border-width: 2px;
+  border-style: dashed;
+  border-color: var(--ui-border);
+  background-color: color-mix(in oklab, var(--ui-bg-elevated) 50%, transparent);
+  padding: 2.5rem;
+}
+
+.upload-card-surface--panel {
+  border-style: solid;
+  background-color: var(--ui-bg-elevated);
+  box-shadow: var(--ui-shadow-sm);
+  padding: 0;
+}
+
+@media (min-width: 640px) {
+  .upload-card-surface {
+    min-height: 22rem;
+    padding: 3rem;
+  }
+
+  .upload-card-surface--panel {
+    padding: 0;
+  }
+}
+
+.upload-settings-btn .upload-settings-icon {
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.upload-settings-btn:hover .upload-settings-icon {
+  transform: rotate(90deg);
+}

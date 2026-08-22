@@ -1,0 +1,339 @@
+import type { H3Event } from 'h3'
+import {
+  getSetting,
+  setSetting,
+  SETTINGS_ALLOWED_REFERER_HOSTS,
+  SETTINGS_API_UPLOAD_TOKEN,
+  SETTINGS_AUTO_DELETE_DAYS,
+  SETTINGS_AUTO_DELETE_ENABLED_AT,
+  SETTINGS_IMAGE_BASE_URL,
+  SETTINGS_WEBP_QUALITY,
+  isAllowRegistration
+} from './db'
+
+export function getRuntimeEnv(
+  event: H3Event,
+  envKey: string,
+  configKey?: string
+): string {
+  try {
+    const fromProcess = process.env[envKey]
+    if (fromProcess) {
+      return fromProcess
+    }
+  } catch {
+    // process.env may be unavailable in some runtimes
+  }
+
+  if (configKey) {
+    const config = useRuntimeConfig(event) as Record<string, unknown>
+    const fromConfig = config[configKey]
+    if (typeof fromConfig === 'string' && fromConfig.length > 0) {
+      return fromConfig
+    }
+  }
+
+  return ''
+}
+
+export function isAdminSecretConfigured(event: H3Event): boolean {
+  return getAdminSecret(event).length > 0
+}
+
+export function getAdminSecret(event: H3Event): string {
+  return getRuntimeEnv(event, 'ADMIN_SECRET', 'adminSecret')
+    || getRuntimeEnv(event, 'NUXT_ADMIN_SECRET', 'adminSecret')
+}
+
+export type SettingSource = 'env' | 'db' | 'none'
+
+export function normalizeImageBaseUrl(raw: string): string {
+  return raw.trim().replace(/\/$/, '')
+}
+
+export function getImageBaseUrlFromEnv(event: H3Event): string {
+  return normalizeImageBaseUrl(
+    getRuntimeEnv(event, 'IMAGE_BASE_URL', 'imageBaseUrl')
+  )
+}
+
+export function isImageBaseUrlEnvConfigured(event: H3Event): boolean {
+  return getImageBaseUrlFromEnv(event).length > 0
+}
+
+export function getImageBaseUrlSource(event: H3Event): SettingSource {
+  if (getSetting(SETTINGS_IMAGE_BASE_URL) !== null) return 'db'
+  if (isImageBaseUrlEnvConfigured(event)) return 'env'
+  return 'none'
+}
+
+export function getImageBaseUrlConfigured(event: H3Event): string {
+  const dbRaw = getSetting(SETTINGS_IMAGE_BASE_URL)
+  if (dbRaw !== null) return normalizeImageBaseUrl(dbRaw)
+  return getImageBaseUrlFromEnv(event)
+}
+
+export function getImageBaseUrl(event: H3Event): string {
+  const dbRaw = getSetting(SETTINGS_IMAGE_BASE_URL)
+  if (dbRaw !== null) {
+    const configured = normalizeImageBaseUrl(dbRaw)
+    if (configured) return configured
+  } else {
+    const fromEnv = getImageBaseUrlFromEnv(event)
+    if (fromEnv) return fromEnv
+  }
+
+  // 单域名部署：未配置时用当前请求的域名（支持反代转发头）
+  const requestUrl = getRequestURL(event, {
+    xForwardedHost: true,
+    xForwardedProto: true
+  })
+  return requestUrl.origin
+}
+
+export function getApiUploadTokenFromEnv(event: H3Event): string {
+  return (
+    getRuntimeEnv(event, 'API_UPLOAD_TOKEN', 'apiUploadToken')
+    || getRuntimeEnv(event, 'NUXT_API_UPLOAD_TOKEN', 'apiUploadToken')
+  )
+}
+
+export function isApiUploadTokenEnvConfigured(event: H3Event): boolean {
+  return getApiUploadTokenFromEnv(event).length > 0
+}
+
+export type ApiUploadTokenSource = SettingSource
+
+export function getApiUploadTokenSource(event: H3Event): ApiUploadTokenSource {
+  if (getApiUploadTokenFromEnv(event)) return 'env'
+  if (getSetting(SETTINGS_API_UPLOAD_TOKEN)) return 'db'
+  return 'none'
+}
+
+export function isApiUploadTokenConfigured(event: H3Event): boolean {
+  return getApiUploadToken(event).length > 0
+}
+
+/** 优先级：环境变量 → SQLite settings → runtimeConfig */
+export function getApiUploadToken(event: H3Event): string {
+  const fromEnv = getApiUploadTokenFromEnv(event)
+  if (fromEnv) return fromEnv
+
+  const fromDb = getSetting(SETTINGS_API_UPLOAD_TOKEN)
+  if (fromDb) return fromDb
+
+  return ''
+}
+
+export const DEFAULT_WEBP_QUALITY = 80
+
+export type WebpQualitySource = 'env' | 'db' | 'default'
+
+export function parseWebpQuality(raw: string): number | null {
+  const value = Number(raw)
+  if (Number.isFinite(value) && value >= 1 && value <= 100) {
+    return Math.round(value)
+  }
+  return null
+}
+
+export function getWebpQualityFromEnv(): string {
+  try {
+    return process.env.WEBP_QUALITY?.trim() ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function isWebpQualityEnvConfigured(): boolean {
+  return parseWebpQuality(getWebpQualityFromEnv()) !== null
+}
+
+export function getWebpQualitySource(): WebpQualitySource {
+  if (getSetting(SETTINGS_WEBP_QUALITY) !== null) return 'db'
+  if (isWebpQualityEnvConfigured()) return 'env'
+  return 'default'
+}
+
+/** 优先级：SQLite settings → 环境变量 → 默认 80 */
+export function getWebpQuality(_event?: H3Event): number {
+  const dbRaw = getSetting(SETTINGS_WEBP_QUALITY)
+  if (dbRaw !== null) {
+    const fromDb = parseWebpQuality(dbRaw)
+    if (fromDb !== null) return fromDb
+  }
+
+  const fromEnv = parseWebpQuality(getWebpQualityFromEnv())
+  if (fromEnv !== null) return fromEnv
+
+  return DEFAULT_WEBP_QUALITY
+}
+
+export function normalizeRefererHosts(raw: string): string {
+  const seen = new Set<string>()
+  const hosts: string[] = []
+  for (const part of raw.split(',')) {
+    const host = part.trim().toLowerCase()
+    if (!host || seen.has(host)) continue
+    seen.add(host)
+    hosts.push(host)
+  }
+  return hosts.join(',')
+}
+
+export function getRefererHostsFromEnv(): string {
+  try {
+    return normalizeRefererHosts(process.env.ALLOWED_REFERER_HOSTS ?? '')
+  } catch {
+    return ''
+  }
+}
+
+export function isRefererEnvConfigured(): boolean {
+  return getRefererHostsFromEnv().length > 0
+}
+
+export function getRefererSource(): SettingSource {
+  if (getSetting(SETTINGS_ALLOWED_REFERER_HOSTS) !== null) return 'db'
+  if (isRefererEnvConfigured()) return 'env'
+  return 'none'
+}
+
+/** 优先级：SQLite settings → 环境变量；均可不配置 */
+export function getAllowedRefererHostsRaw(_event?: H3Event): string {
+  const dbRaw = getSetting(SETTINGS_ALLOWED_REFERER_HOSTS)
+  if (dbRaw !== null) return normalizeRefererHosts(dbRaw)
+  return getRefererHostsFromEnv()
+}
+
+export function isRefererConfigured(event?: H3Event): boolean {
+  return getAllowedRefererHostsRaw(event).length > 0
+}
+
+export const DEFAULT_AUTO_DELETE_DAYS = 0
+export const MAX_AUTO_DELETE_DAYS = 3650
+
+export type AutoDeleteDaysSource = 'env' | 'db' | 'default'
+
+export function parseAutoDeleteDays(raw: string): number | null {
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+
+  const value = Number(trimmed)
+  if (!Number.isFinite(value) || value < 0 || !Number.isInteger(value)) {
+    return null
+  }
+  if (value > MAX_AUTO_DELETE_DAYS) {
+    return null
+  }
+  return value
+}
+
+export function getAutoDeleteDaysFromEnv(): string {
+  try {
+    return process.env.AUTO_DELETE_DAYS?.trim() ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function isAutoDeleteDaysEnvConfigured(): boolean {
+  return parseAutoDeleteDays(getAutoDeleteDaysFromEnv()) !== null
+}
+
+export function getAutoDeleteDaysSource(): AutoDeleteDaysSource {
+  if (getSetting(SETTINGS_AUTO_DELETE_DAYS) !== null) return 'db'
+  if (isAutoDeleteDaysEnvConfigured()) return 'env'
+  return 'default'
+}
+
+/** 优先级：SQLite settings → 环境变量 → 默认 0（关闭） */
+export function getAutoDeleteDays(_event?: H3Event): number {
+  const dbRaw = getSetting(SETTINGS_AUTO_DELETE_DAYS)
+  if (dbRaw !== null) {
+    const fromDb = parseAutoDeleteDays(dbRaw)
+    if (fromDb !== null) return fromDb
+  }
+
+  const fromEnv = parseAutoDeleteDays(getAutoDeleteDaysFromEnv())
+  if (fromEnv !== null) return fromEnv
+
+  return DEFAULT_AUTO_DELETE_DAYS
+}
+
+export function getGlobalAutoDeleteEnabledAt(): string | null {
+  const raw = getSetting(SETTINGS_AUTO_DELETE_ENABLED_AT)
+  return raw?.trim() ? raw : null
+}
+
+export function getGlobalAutoDeletePolicy(): { days: number, enabledAt: string | null } {
+  return {
+    days: getAutoDeleteDays(),
+    enabledAt: getGlobalAutoDeleteEnabledAt()
+  }
+}
+
+export function setGlobalAutoDeletePolicy(days: number): void {
+  const dbRaw = getSetting(SETTINGS_AUTO_DELETE_DAYS)
+  const currentDays = dbRaw !== null ? (parseAutoDeleteDays(dbRaw) ?? 0) : 0
+  const currentEnabledAt = getGlobalAutoDeleteEnabledAt()
+  const now = new Date().toISOString()
+  let enabledAt = currentEnabledAt
+
+  if (days > 0 && currentDays === 0) {
+    enabledAt = now
+  } else if (days === 0) {
+    enabledAt = null
+  }
+
+  setSetting(SETTINGS_AUTO_DELETE_DAYS, String(days))
+  setSetting(SETTINGS_AUTO_DELETE_ENABLED_AT, enabledAt ?? '')
+}
+
+export function isValidRefererHost(host: string): boolean {
+  return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/i.test(host)
+}
+
+export function isValidImageBaseUrl(value: string): boolean {
+  if (!value) return true
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+export function getSettingsPayload(event: H3Event) {
+  const config = useRuntimeConfig(event)
+  const webpQuality = getWebpQuality(event)
+  const allowedRefererHosts = getAllowedRefererHostsRaw(event)
+  const imageBaseUrl = getImageBaseUrl(event)
+  const autoDeleteDays = getAutoDeleteDays(event)
+  const appVersion = config.appVersion as string
+
+  return {
+    apiUploadToken: getApiUploadToken(event),
+    tokenSource: getApiUploadTokenSource(event),
+    envTokenOverride: isApiUploadTokenEnvConfigured(event),
+    webpQuality,
+    webpQualitySource: getWebpQualitySource(),
+    allowedRefererHosts,
+    refererSource: getRefererSource(),
+    refererEnvFallback: getRefererHostsFromEnv(),
+    imageBaseUrl,
+    imageBaseUrlConfigured: getImageBaseUrlConfigured(event),
+    imageBaseUrlSource: getImageBaseUrlSource(event),
+    autoDeleteDays,
+    autoDeleteDaysSource: getAutoDeleteDaysSource(),
+    autoDeleteEnvFallback: parseAutoDeleteDays(getAutoDeleteDaysFromEnv()) ?? 0,
+    allowRegistration: isAllowRegistration(),
+    appVersion,
+    env: {
+      webpQuality,
+      refererConfigured: allowedRefererHosts.length > 0,
+      imageBaseUrl,
+      appVersion
+    }
+  }
+}
