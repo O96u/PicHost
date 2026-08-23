@@ -11,7 +11,8 @@ const pkg = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8')) as {
 export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
-    '@nuxt/ui'
+    '@nuxt/ui',
+    '@nuxtjs/i18n'
   ],
 
   devtools: {
@@ -48,6 +49,20 @@ export default defineNuxtConfig({
         commaDangle: 'never',
         braceStyle: '1tbs'
       }
+    }
+  },
+
+  i18n: {
+    locales: [
+      { code: 'zh-CN', name: '简体中文', language: 'zh-CN', file: 'zh-CN.json' },
+      { code: 'en', name: 'English', language: 'en', file: 'en.json' }
+    ],
+    defaultLocale: 'zh-CN',
+    langDir: 'locales',
+    strategy: 'no_prefix',
+    detectBrowserLanguage: {
+      cookieKey: 'pic_locale',
+      fallbackLocale: 'zh-CN'
     }
   }
 })

@@ -1,6 +1,7 @@
 export function useUserAutoDeleteSettings() {
   const { isAuthenticated, handleAuthError } = useAuth()
   const toast = useToast()
+  const { t } = useI18n()
 
   const userSettings = ref<{ autoDeleteDays: number } | null>(null)
   const enabled = ref(false)
@@ -29,7 +30,7 @@ export function useUserAutoDeleteSettings() {
     } catch (error: unknown) {
       handleAuthError(error)
       if (isAuthenticated.value) {
-        toast.add({ title: '加载设置失败', color: 'error' })
+        toast.add({ title: t('userSettings.loadFailed'), color: 'error' })
       }
     }
   }
@@ -51,7 +52,7 @@ export function useUserAutoDeleteSettings() {
     } catch (error: unknown) {
       handleAuthError(error)
       if (isAuthenticated.value) {
-        toast.add({ title: '保存设置失败', color: 'error' })
+        toast.add({ title: t('userSettings.saveFailed'), color: 'error' })
       }
     } finally {
       saving.value = false

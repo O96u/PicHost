@@ -7,7 +7,7 @@ export interface PasswordCriteria {
   hasSpecial: boolean
 }
 
-export type PasswordStrengthLabel = '弱' | '中' | '强'
+export type PasswordStrengthLabel = 'weak' | 'medium' | 'strong'
 
 export function analyzePassword(password: string): {
   criteria: PasswordCriteria
@@ -24,7 +24,7 @@ export function analyzePassword(password: string): {
 
   const score = Object.values(criteria).filter(Boolean).length
   const label: PasswordStrengthLabel
-    = score <= 1 ? '弱' : score <= 3 ? '中' : '强'
+    = score <= 1 ? 'weak' : score <= 3 ? 'medium' : 'strong'
 
   return {
     criteria,

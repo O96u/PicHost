@@ -1,8 +1,10 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 useHead({
-  title: 'PicHost - 个人图床',
+  title: () => t('app.title'),
   meta: [
-    { name: 'description', content: '个人自用的轻量图床系统' }
+    { name: 'description', content: () => t('app.description') }
   ]
 })
 </script>

@@ -6,6 +6,7 @@ import type {
 const PAGE_SIZE = 12
 
 export function useImageList() {
+  const { t } = useI18n()
   const items = ref<ImageItem[]>([])
   const page = ref(1)
   const totalPages = ref(1)
@@ -165,17 +166,15 @@ export function useImageList() {
 
   const listSummary = computed(() => {
     const folder = activeFolder.value.trim() || 'all'
-    const folderLabel = folder === 'all' ? '全部' : folder
+    const folderLabel = folder === 'all' ? t('stats.allFolders') : folder
     if (loadingTotal.value && folderTotal.value === null) {
-      return `${folderLabel} · 统计中…`
+      return `${folderLabel} · ${t('stats.counting')}`
     }
     if (activeSearch.value) {
-      return `${folderLabel} · 搜索「${activeSearch.value}」· 共 ${total.value} 张`
+      return t('stats.summarySearch', { folder: folderLabel, q: activeSearch.value, total: total.value })
     }
-    if (folderTotal.value === null) {
-      return `${folderLabel} · 共 ${total.value} 张`
-    }
-    return `${folderLabel} · 共 ${folderTotal.value} 张`
+    const count = folderTotal.value === null ? total.value : folderTotal.value
+    return t('stats.summaryTotal', { folder: folderLabel, total: count })
   })
 
   return {

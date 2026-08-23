@@ -68,6 +68,15 @@ docker run -d \
 
 Default port: **6892**. Open `http://<host>:6892` in your browser and complete the setup wizard.
 
+**Forgot password** (requires `docker exec` / server access):
+
+```bash
+docker exec pichost reset-password              # admin only, when there is exactly one
+docker exec pichost reset-password <username>   # admin or regular user
+```
+
+A random password is printed. Fails if the user does not exist.
+
 If you cloned the repo, you can also use `docker compose up -d` (see `docker-compose.yml`).
 
 ### Local development
@@ -185,7 +194,8 @@ npm test             # Unit tests
 
 | Version | Plan |
 |---------|------|
-| **v1.0.1** | Settings version display, mobile upload preferences layout fix (current) |
+| **v1.0.2** | i18n, mobile menus, stats/upload UI, Docker password reset (current) |
+| **v1.0.1** | Settings version display, mobile upload preferences layout fix |
 | **v1.0.0** | Local storage, multi-user, API, Twikoo |
 | **v1.1.0** | S3, Cloudflare R2, and more object storage backends |
 

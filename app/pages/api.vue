@@ -22,6 +22,7 @@ interface ApiDocItem {
 
 const { isChecking, isAuthenticated, checkSession, handleAuthError, fetchStatus, isAdmin } = useAuth()
 const toast = useToast()
+const { t } = useI18n()
 
 const settings = ref<SettingsResponse | null>(null)
 const loading = ref(false)
@@ -49,8 +50,8 @@ const authHeaderFlag = computed(() => `-H 'Auth-Token: ${authHeader.value}'`)
 
 const apiDocs = computed<ApiDocItem[]>(() => {
   const uploadDescription = isAdmin.value
-    ? '上传单张或多张图片。字段 image 传图片，folder 指定目录（不存在则自动创建）；仍兼容 file、files、type。'
-    : '上传单张或多张图片。字段 image 传图片；仍兼容 file、files。图片固定存入 images/ 目录。'
+    ? t('api.docs.upload.descAdmin')
+    : t('api.docs.upload.descUser')
   const uploadCurl = isAdmin.value
     ? `curl -X POST "${baseUrl.value}/api/images/upload" \\
   ${authHeaderFlag.value} \\
@@ -66,8 +67,8 @@ curl -X POST "${baseUrl.value}/api/images/upload" \\
   -F "image=@./demo.png"`
 
   const listDescription = isAdmin.value
-    ? '分页列出图库，folder 可筛选目录，limit 默认 20、最大 100。'
-    : '分页列出您的图库，limit 默认 20、最大 100。'
+    ? t('api.docs.list.descAdmin')
+    : t('api.docs.list.descUser')
   const listCurl = isAdmin.value
     ? `curl "${baseUrl.value}/api/images?limit=20&page=1" \\
   ${authHeaderFlag.value}
@@ -83,7 +84,7 @@ curl "${baseUrl.value}/api/images?folder=blog&limit=20&page=1" \\
       index: 1,
       method: 'POST',
       path: '/api/images/upload',
-      title: '上传图片',
+      title: t('api.docs.upload.title'),
       description: uploadDescription,
       curl: uploadCurl
     },
@@ -91,7 +92,7 @@ curl "${baseUrl.value}/api/images?folder=blog&limit=20&page=1" \\
       index: 2,
       method: 'GET',
       path: '/api/images',
-      title: '获取图片列表',
+      title: t('api.docs.list.title'),
       description: listDescription,
       curl: listCurl
     },
@@ -99,8 +100,8 @@ curl "${baseUrl.value}/api/images?folder=blog&limit=20&page=1" \\
       index: 3,
       method: 'GET',
       path: '/api/images/search',
-      title: '搜索图片',
-      description: '按文件名或路径关键词搜索，参数 q 必填。',
+      title: t('api.docs.search.title'),
+      description: t('api.docs.search.desc'),
       curl: `curl "${baseUrl.value}/api/images/search?q=demo&limit=20&page=1" \\
   ${authHeaderFlag.value}`
     },
@@ -108,8 +109,8 @@ curl "${baseUrl.value}/api/images?folder=blog&limit=20&page=1" \\
       index: 4,
       method: 'DELETE',
       path: '/api/images',
-      title: '删除图片',
-      description: '通过 key 删除单张图片，key 为存储路径（如 images/2026/08/xxx.webp）。',
+      title: t('api.docs.delete.title'),
+      description: t('api.docs.delete.desc'),
       curl: `curl -X DELETE "${baseUrl.value}/api/images?key=images/2026/08/xxxx.webp" \\
   ${authHeaderFlag.value}`
     },
@@ -117,8 +118,8 @@ curl "${baseUrl.value}/api/images?folder=blog&limit=20&page=1" \\
       index: 5,
       method: 'POST',
       path: '/api/images/batch-delete',
-      title: '批量删除',
-      description: '一次删除多张图片，请求体为 keys 数组。',
+      title: t('api.docs.batchDelete.title'),
+      description: t('api.docs.batchDelete.desc'),
       curl: `curl -X POST "${baseUrl.value}/api/images/batch-delete" \\
   ${authHeaderFlag.value} \\
   -H "Content-Type: application/json" \\
@@ -130,8 +131,8 @@ curl "${baseUrl.value}/api/images?folder=blog&limit=20&page=1" \\
 const twikooDoc = computed(() => ({
   method: 'POST' as const,
   path: '/api/index.php',
-  title: 'twikoo 兼容上传',
-  description: '兼容 Twikoo / EasyImage 2.0 协议，图片存入 twikoo/ 目录；字段 image + token。',
+  title: t('api.docs.twikoo.title'),
+  description: t('api.docs.twikoo.desc'),
   curl: `curl -X POST "${baseUrl.value}/api/index.php" \\
   -F "token=${authHeader.value}" \\
   -F "image=@./demo.png"`
@@ -140,11 +141,11 @@ const twikooDoc = computed(() => ({
 function tokenSourceLabel(source: SettingsResponse['tokenSource']) {
   switch (source) {
     case 'env':
-      return '来源：环境变量 API_UPLOAD_TOKEN'
+      return t('api.tokenSourceEnv')
     case 'db':
-      return '来源：后台生成（可重新生成）'
+      return t('api.tokenSourceDb')
     default:
-      return '来源：未配置'
+      return t('api.tokenSourceNone')
   }
 }
 
@@ -169,7 +170,7 @@ async function loadSettings() {
   } catch (error: unknown) {
     handleAuthError(error)
     if (isAuthenticated.value) {
-      toast.add({ title: '加载 API 设置失败', color: 'error' })
+      toast.add({ title: t('api.loadFailed'), color: 'error' })
     }
   } finally {
     loading.value = false
@@ -203,11 +204,11 @@ async function confirmRegenerate() {
         : 0
       if (status === 409) {
         toast.add({
-          title: '环境变量已配置 Token，无法在后台重新生成',
+          title: t('api.regenerateEnvBlocked'),
           color: 'warning'
         })
       } else {
-        toast.add({ title: '重新生成 Token 失败', color: 'error' })
+        toast.add({ title: t('api.regenerateFailed'), color: 'error' })
       }
     }
   } finally {
@@ -218,9 +219,9 @@ async function confirmRegenerate() {
 async function copyCurl(text: string) {
   try {
     await navigator.clipboard.writeText(text)
-    toast.add({ title: '已复制 cURL 示例', color: 'success' })
+    toast.add({ title: t('copy.curl'), color: 'success' })
   } catch {
-    toast.add({ title: '复制失败', color: 'error' })
+    toast.add({ title: t('copy.failed'), color: 'error' })
   }
 }
 
@@ -263,7 +264,7 @@ watch(isAuthenticated, async (authed) => {
           class="size-8 animate-spin"
         />
         <p class="text-sm">
-          正在验证登录状态…
+          {{ t('common.loadingSession') }}
         </p>
       </div>
     </div>
@@ -278,7 +279,7 @@ watch(isAuthenticated, async (authed) => {
             class="size-5 text-primary"
           />
           <h2 class="text-base font-semibold">
-            API Token
+            {{ t('api.tokenTitle') }}
           </h2>
         </div>
 
@@ -288,8 +289,8 @@ watch(isAuthenticated, async (authed) => {
             color="warning"
             variant="subtle"
             icon="i-lucide-triangle-alert"
-            title="Token 由环境变量覆盖"
-            description="修改 API_UPLOAD_TOKEN 后需重启服务；后台无法重新生成。"
+            :title="t('api.envOverrideTitle')"
+            :description="t('api.envOverrideDesc')"
           />
 
           <UAlert
@@ -297,8 +298,8 @@ watch(isAuthenticated, async (authed) => {
             color="info"
             variant="subtle"
             icon="i-lucide-info"
-            title="个人 API Token"
-            description="此 Token 仅用于您自己的脚本上传，上传的图片归属您的账号。"
+            :title="t('api.personalTitle')"
+            :description="t('api.personalDesc')"
           />
 
           <UAlert
@@ -306,25 +307,25 @@ watch(isAuthenticated, async (authed) => {
             color="info"
             variant="subtle"
             icon="i-lucide-info"
-            title="尚未配置 Token"
-            description="点击「重新生成」创建 Token，用于下方所有接口的 Auth-Token 鉴权。"
+            :title="t('api.notConfiguredTitle')"
+            :description="t('api.notConfiguredDesc')"
           />
 
           <div class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
             <UInput
-              :model-value="hasToken ? tokenDisplay : '（未配置）'"
+              :model-value="hasToken ? tokenDisplay : t('common.notConfigured')"
               readonly
               class="min-w-0 flex-1 font-mono text-xs sm:text-sm"
               :loading="loading"
             />
             <div class="flex gap-2">
               <CopyButton
-                label="复制"
+                :label="t('common.copy')"
                 :value="tokenDisplay"
               />
               <UButton
                 icon="i-lucide-refresh-cw"
-                label="重新生成"
+                :label="t('api.regenerate')"
                 color="warning"
                 variant="soft"
                 :loading="regenerating"
@@ -339,10 +340,10 @@ watch(isAuthenticated, async (authed) => {
             class="text-xs text-muted"
           >
             {{ tokenSourceLabel(settings.tokenSource) }}
-            · 请求头：
+            · {{ t('api.tokenHeader') }}
             <code class="font-mono">Auth-Token: &lt;token&gt;</code>
             <template v-if="hasToken && !settings.envTokenOverride">
-              · 重新生成后旧 Token 立即失效
+              · {{ t('api.tokenInvalidate') }}
             </template>
           </p>
         </div>
@@ -355,7 +356,7 @@ watch(isAuthenticated, async (authed) => {
             class="size-5 text-primary"
           />
           <h2 class="text-base font-semibold">
-            API 文档
+            {{ t('api.docsTitle') }}
           </h2>
         </div>
 
@@ -395,12 +396,12 @@ watch(isAuthenticated, async (authed) => {
 
             <div>
               <p class="mb-2 text-xs font-medium text-muted">
-                cURL 示例
+                {{ t('api.curlExample') }}
               </p>
               <div class="relative overflow-hidden rounded-xl bg-neutral-950">
                 <UButton
                   icon="i-lucide-copy"
-                  label="复制"
+                  :label="t('common.copy')"
                   size="xs"
                   variant="ghost"
                   color="neutral"
@@ -445,12 +446,12 @@ watch(isAuthenticated, async (authed) => {
 
           <div>
             <p class="mb-2 text-xs font-medium text-muted">
-              cURL 示例
+              {{ t('api.curlExample') }}
             </p>
             <div class="relative overflow-hidden rounded-xl bg-neutral-950">
               <UButton
                 icon="i-lucide-copy"
-                label="复制"
+                :label="t('common.copy')"
                 size="xs"
                 variant="ghost"
                 color="neutral"
@@ -466,20 +467,20 @@ watch(isAuthenticated, async (authed) => {
 
     <UModal
       :open="confirmRegenerateOpen"
-      title="确认重新生成 Token？"
-      description="旧 Token 将立即失效，使用旧 Token 的脚本与自动化任务将无法继续调用接口，直到你更新为新 Token。"
+      :title="t('api.confirmRegenerateTitle')"
+      :description="t('api.confirmRegenerateDesc')"
       @update:open="confirmRegenerateOpen = $event"
     >
       <template #footer>
         <div class="flex justify-end gap-2">
           <UButton
-            label="取消"
+            :label="t('common.cancel')"
             color="neutral"
             variant="outline"
             @click="closeConfirmRegenerate"
           />
           <UButton
-            label="确认重新生成"
+            :label="t('api.confirmRegenerate')"
             color="warning"
             :loading="regenerating"
             @click="confirmRegenerate"
@@ -490,8 +491,8 @@ watch(isAuthenticated, async (authed) => {
 
     <UModal
       :open="regenerateResultOpen"
-      title="新 Token 已生成"
-      description="请立即复制保存。关闭弹窗后仍可在上方输入框复制，但请尽快更新到你的脚本配置中。"
+      :title="t('api.newTokenTitle')"
+      :description="t('api.newTokenDesc')"
       @update:open="regenerateResultOpen = $event"
     >
       <template #body>
@@ -504,11 +505,11 @@ watch(isAuthenticated, async (authed) => {
       <template #footer>
         <div class="flex w-full flex-wrap justify-end gap-2">
           <CopyButton
-            label="复制 Token"
+            :label="t('api.copyToken')"
             :value="newToken"
           />
           <UButton
-            label="我已保存"
+            :label="t('api.saved')"
             @click="closeRegenerateResult"
           />
         </div>

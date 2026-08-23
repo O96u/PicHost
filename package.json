@@ -1,6 +1,6 @@
 {
   "name": "pichost",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Self-hosted image hosting for your NAS / home server — Nuxt admin UI, local disk storage, server-side WebP compression, referer protection, Twikoo/EasyImage compatible.",
   "homepage": "https://github.com/O96u/PicHost#readme",
   "repository": {
@@ -32,11 +32,13 @@
     "typecheck": "nuxt typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
-    "start": "node .output/server/index.mjs"
+    "start": "node .output/server/index.mjs",
+    "reset-password": "node server/cli/reset-password.mjs"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.114",
     "@nuxt/ui": "^4.9.0",
+    "@nuxtjs/i18n": "^10.6.0",
     "jose": "^6.0.11",
     "nuxt": "^4.4.8",
     "sharp": "^0.35.3",

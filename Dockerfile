@@ -20,8 +20,11 @@ ENV NODE_ENV=production \
     DATA_DIR=/data
 
 COPY --from=build /app/.output ./.output
+COPY server/cli/reset-password.mjs ./server/cli/reset-password.mjs
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 EXPOSE 6892
 VOLUME /data
 
-CMD ["node", ".output/server/index.mjs"]
+ENTRYPOINT ["/docker-entrypoint.sh"]

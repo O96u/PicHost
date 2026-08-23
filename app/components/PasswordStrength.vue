@@ -5,15 +5,17 @@ const props = defineProps<{
   password: string
 }>()
 
+const { t } = useI18n()
+
 const analysis = computed(() => analyzePassword(props.password))
 
 const show = computed(() => props.password.length > 0)
 
 const labelColor = computed(() => {
   switch (analysis.value.label) {
-    case '强':
+    case 'strong':
       return 'text-success'
-    case '中':
+    case 'medium':
       return 'text-warning'
     default:
       return 'text-error'
@@ -22,9 +24,9 @@ const labelColor = computed(() => {
 
 const barColor = computed(() => {
   switch (analysis.value.label) {
-    case '强':
+    case 'strong':
       return 'bg-success'
-    case '中':
+    case 'medium':
       return 'bg-warning'
     default:
       return 'bg-error/80'
@@ -32,10 +34,10 @@ const barColor = computed(() => {
 })
 
 const rules = computed(() => [
-  { key: 'minLength', label: `至少 ${PASSWORD_MIN_LENGTH} 个字符` },
-  { key: 'mixedCase', label: '包含大小写字母' },
-  { key: 'hasNumber', label: '包含数字' },
-  { key: 'hasSpecial', label: '包含特殊字符' }
+  { key: 'minLength', label: t('password.ruleMinLength', { n: PASSWORD_MIN_LENGTH }) },
+  { key: 'mixedCase', label: t('password.ruleMixedCase') },
+  { key: 'hasNumber', label: t('password.ruleNumber') },
+  { key: 'hasSpecial', label: t('password.ruleSpecial') }
 ] as const)
 </script>
 
@@ -45,12 +47,12 @@ const rules = computed(() => [
     class="space-y-3 rounded-lg border border-default bg-muted/20 px-3 py-3"
   >
     <div class="flex items-center justify-between text-sm">
-      <span class="text-muted">密码强度</span>
+      <span class="text-muted">{{ t('password.strength') }}</span>
       <span
         class="font-medium"
         :class="labelColor"
       >
-        {{ analysis.label }}
+        {{ t(`password.${analysis.label}`) }}
       </span>
     </div>
 

@@ -13,6 +13,7 @@ const emit = defineEmits<{
 }>()
 
 const toast = useToast()
+const { t } = useI18n()
 const copying = ref(false)
 
 function copyWithFallback(text: string): boolean {
@@ -40,7 +41,7 @@ function copyWithFallback(text: string): boolean {
 
 function notifySuccess() {
   toast.add({
-    title: props.successTitle ?? (props.label ? `已复制 ${props.label}` : '已复制到剪贴板'),
+    title: props.successTitle ?? (props.label ? t('copy.copiedLabel', { label: props.label }) : t('copy.copied')),
     color: 'success'
   })
   emit('copied')
@@ -64,7 +65,7 @@ async function copy() {
     if (copyWithFallback(props.value)) {
       notifySuccess()
     } else {
-      toast.add({ title: '复制失败，请手动选中链接复制', color: 'error' })
+      toast.add({ title: t('copy.failedManual'), color: 'error' })
     }
   } finally {
     copying.value = false

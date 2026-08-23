@@ -21,6 +21,7 @@ interface SettingsResponse {
 const { isChecking, isAuthenticated, checkSession, handleAuthError, fetchStatus, isAdmin } = useAuth()
 const { defaultFolder, loadPreferences } = useUploadPreferences()
 const toast = useToast()
+const { t } = useI18n()
 
 const settings = ref<SettingsResponse | null>(null)
 const folderOptions = ref<string[]>(['images'])
@@ -44,24 +45,24 @@ const hasServerChanges = computed(() => {
 function sourceBadge(source: SettingSource | WebpQualitySource) {
   switch (source) {
     case 'env':
-      return { label: '.env', color: 'warning' as const }
+      return { label: t('settings.badgeEnv'), color: 'warning' as const }
     case 'db':
-      return { label: '已保存', color: 'success' as const }
+      return { label: t('settings.badgeSaved'), color: 'success' as const }
     case 'default':
-      return { label: '默认', color: 'neutral' as const }
+      return { label: t('settings.badgeDefault'), color: 'neutral' as const }
     default:
-      return { label: '未设置', color: 'neutral' as const }
+      return { label: t('settings.badgeUnset'), color: 'neutral' as const }
   }
 }
 
 function tokenSourceText(source: SettingSource) {
   switch (source) {
     case 'env':
-      return '环境变量'
+      return t('settings.tokenEnv')
     case 'db':
-      return '后台生成'
+      return t('settings.tokenDb')
     default:
-      return '未配置'
+      return t('settings.tokenNone')
   }
 }
 
@@ -93,7 +94,7 @@ function handlePatchError(error: unknown, fallback: string) {
   handleAuthError(error)
   if (!isAuthenticated.value) return
   if (errorStatus(error) === 409) {
-    toast.add({ title: '该项已由环境变量覆盖，无法在后台修改', color: 'warning' })
+    toast.add({ title: t('settings.envOverride'), color: 'warning' })
     void loadSettings()
     return
   }
@@ -110,9 +111,9 @@ async function saveServerSettings() {
       imageBaseUrl: imageBaseUrlDraft.value,
       allowRegistration: allowRegistrationDraft.value
     })
-    toast.add({ title: '服务器配置已保存', color: 'success' })
+    toast.add({ title: t('settings.saved'), color: 'success' })
   } catch (error: unknown) {
-    handlePatchError(error, '保存服务器配置失败')
+    handlePatchError(error, t('settings.saveFailed'))
   } finally {
     savingServer.value = false
   }
@@ -137,7 +138,7 @@ async function loadSettings() {
   } catch (error: unknown) {
     handleAuthError(error)
     if (isAuthenticated.value) {
-      toast.add({ title: '加载设置失败', color: 'error' })
+      toast.add({ title: t('settings.loadFailed'), color: 'error' })
     }
   }
 }
@@ -189,7 +190,7 @@ watch(isAuthenticated, async (authed) => {
           class="size-8 animate-spin"
         />
         <p class="text-sm">
-          正在验证登录状态…
+          {{ t('common.loadingSession') }}
         </p>
       </div>
     </div>
@@ -209,10 +210,10 @@ watch(isAuthenticated, async (authed) => {
           />
           <div class="min-w-0">
             <h1 class="text-base font-semibold">
-              系统设置
+              {{ t('settings.title') }}
             </h1>
             <p class="mt-0.5 text-xs text-muted">
-              保存后写入数据库；环境变量优先级更高
+              {{ t('settings.subtitle') }}
             </p>
           </div>
         </div>
@@ -224,13 +225,13 @@ watch(isAuthenticated, async (authed) => {
           <div class="grid gap-5 sm:grid-cols-3 sm:gap-6">
             <div class="space-y-4">
               <h3 class="text-sm font-semibold">
-                上传与账号
+                {{ t('settings.uploadAccount') }}
               </h3>
 
               <div class="space-y-2">
-                <label class="text-sm">默认上传目录</label>
+                <label class="text-sm">{{ t('settings.defaultFolder') }}</label>
                 <p class="text-xs leading-relaxed text-muted">
-                  保存在本机浏览器，仅影响您的上传目标目录
+                  {{ t('settings.defaultFolderHint') }}
                 </p>
                 <USelect
                   v-model="defaultFolder"
@@ -245,9 +246,9 @@ watch(isAuthenticated, async (authed) => {
                   class="mt-0.5"
                 />
                 <span>
-                  <span class="block text-sm">开放用户注册</span>
+                  <span class="block text-sm">{{ t('settings.allowRegistration') }}</span>
                   <span class="mt-1 block text-xs leading-relaxed text-muted">
-                    允许新用户自行注册（普通用户仅可见自己的图片）
+                    {{ t('settings.allowRegistrationHint') }}
                   </span>
                 </span>
               </label>
@@ -256,7 +257,7 @@ watch(isAuthenticated, async (authed) => {
             <div class="space-y-4">
               <div class="flex items-center justify-between gap-2">
                 <h3 class="text-sm font-semibold">
-                  访问控制
+                  {{ t('settings.accessControl') }}
                 </h3>
                 <UBadge
                   :color="sourceBadge(settings.refererSource).color"
@@ -267,11 +268,11 @@ watch(isAuthenticated, async (authed) => {
                 </UBadge>
               </div>
               <p class="text-xs leading-relaxed text-muted">
-                Referer 防盗链，逗号分隔允许引用的域名，留空不限制
+                {{ t('settings.refererHint') }}
               </p>
               <UTextarea
                 v-model="refererDraft"
-                placeholder="example.com, www.example.com"
+                :placeholder="t('settings.refererPlaceholder')"
                 :rows="4"
                 class="w-full font-mono text-sm"
               />
@@ -280,7 +281,7 @@ watch(isAuthenticated, async (authed) => {
             <div class="space-y-4">
               <div class="flex items-center justify-between gap-2">
                 <h3 class="text-sm font-semibold">
-                  链接生成
+                  {{ t('settings.linkGeneration') }}
                 </h3>
                 <UBadge
                   :color="sourceBadge(settings.imageBaseUrlSource).color"
@@ -291,18 +292,18 @@ watch(isAuthenticated, async (authed) => {
                 </UBadge>
               </div>
               <p class="text-xs leading-relaxed text-muted">
-                生成图片链接的 URL 前缀，内网访问建议填公网域名
+                {{ t('settings.imageBaseUrlHint') }}
               </p>
               <UInput
                 v-model="imageBaseUrlDraft"
-                placeholder="https://pic.example.com"
+                :placeholder="t('settings.imageBaseUrlPlaceholder')"
                 class="w-full font-mono text-sm"
               />
               <p
                 v-if="settings.imageBaseUrl"
                 class="text-xs text-muted"
               >
-                当前生效：<span class="font-mono break-all">{{ settings.imageBaseUrl }}</span>
+                {{ t('settings.imageBaseUrlActive', { url: settings.imageBaseUrl }) }}
               </p>
             </div>
           </div>
@@ -328,16 +329,15 @@ watch(isAuthenticated, async (authed) => {
               class="size-3.5 shrink-0"
             />
             <span>
-              API Token · {{ tokenSourceText(settings.tokenSource) }}
-              <span class="text-dimmed">· v{{ settings.appVersion }}</span>
+              {{ t('settings.apiTokenLine', { source: tokenSourceText(settings.tokenSource), version: settings.appVersion }) }}
               <template v-if="hasServerChanges">
-                · <span class="text-warning">有未保存的更改</span>
+                · <span class="text-warning">{{ t('settings.unsavedChanges') }}</span>
               </template>
             </span>
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <UButton
-              label="管理 Token"
+              :label="t('settings.manageToken')"
               icon="i-lucide-external-link"
               variant="outline"
               color="neutral"
@@ -345,7 +345,7 @@ watch(isAuthenticated, async (authed) => {
               to="/api"
             />
             <UButton
-              label="保存"
+              :label="t('common.save')"
               icon="i-lucide-save"
               size="sm"
               :loading="savingServer"

@@ -68,6 +68,20 @@ docker run -d \
 
 默认端口 **6892**。浏览器打开 `http://<主机IP>:6892`，按引导创建管理员即可。
 
+**忘记密码**（需能执行 `docker exec`，相当于服务器权限）：
+
+```bash
+# 无参数：重置管理员（仅当系统中只有一个管理员时）
+docker exec pichost reset-password
+
+# 指定用户名：可重置管理员或普通用户
+docker exec pichost reset-password 用户名
+```
+
+终端会打印随机新密码；用户不存在时会报错。登录后请到「修改密码」更换。
+
+本地：`npm run reset-password` 或 `npm run reset-password -- 用户名`
+
 已克隆仓库时也可用 `docker compose up -d`（见仓库内 `docker-compose.yml`）。
 
 ### 本地开发
@@ -185,7 +199,8 @@ npm test             # 单元测试
 
 | 版本 | 计划 |
 |------|------|
-| **v1.0.1** | 设置页版本展示、移动端上传偏好布局修复（当前） |
+| **v1.0.2** | 中英文、移动端菜单、统计/上传 UI、Docker 重置密码（当前） |
+| **v1.0.1** | 设置页版本展示、移动端上传偏好布局修复 |
 | **v1.0.0** | 本地存储、多用户、API、Twikoo |
 | **v1.1.0** | S3、Cloudflare R2 等对象存储后端 |
 

@@ -9,9 +9,11 @@ const props = withDefaults(defineProps<{
   deleting?: boolean
   selectable?: boolean
   showKey?: boolean
+  compact?: boolean
 }>(), {
   selectable: true,
-  showKey: true
+  showKey: true,
+  compact: false
 })
 
 const emit = defineEmits<{
@@ -20,18 +22,19 @@ const emit = defineEmits<{
 }>()
 
 const { formatFileSize } = useFileSize()
+const { t, locale } = useI18n()
 const imageError = ref(false)
 const copyFormat = ref<CopyFormat>('url')
 
-const copyFormatItems = [
-  { label: '直链', value: 'url' as const },
-  { label: 'Markdown', value: 'markdown' as const },
-  { label: 'HTML', value: 'html' as const }
-]
+const copyFormatItems = computed(() => [
+  { label: t('copy.url'), value: 'url' as const },
+  { label: t('copy.markdown'), value: 'markdown' as const },
+  { label: t('copy.html'), value: 'html' as const }
+])
 
 const uploadedLabel = computed(() => {
   try {
-    return new Date(props.image.uploadedAt).toLocaleString('zh-CN', { hour12: false })
+    return new Date(props.image.uploadedAt).toLocaleString(locale.value, { hour12: false })
   } catch {
     return props.image.uploadedAt
   }
@@ -51,11 +54,11 @@ const previewValue = computed(() => {
 const copySuccessTitle = computed(() => {
   switch (copyFormat.value) {
     case 'markdown':
-      return '已复制 Markdown'
+      return t('copy.copiedMarkdown')
     case 'html':
-      return '已复制 HTML'
+      return t('copy.copiedHtml')
     default:
-      return '已复制直链'
+      return t('copy.copiedUrl')
   }
 })
 
@@ -79,7 +82,7 @@ function toggleSelected(value: boolean | 'indeterminate') {
         v-else
         class="flex h-full items-center justify-center text-sm text-muted"
       >
-        预览失败
+        {{ t('image.previewFailed') }}
       </div>
       <div
         v-if="selectable"
@@ -96,7 +99,7 @@ function toggleSelected(value: boolean | 'indeterminate') {
           color="error"
           variant="solid"
           icon="i-lucide-trash-2"
-          aria-label="删除"
+          :aria-label="t('common.delete')"
           :loading="deleting"
           @click="emit('delete')"
         />
@@ -107,7 +110,7 @@ function toggleSelected(value: boolean | 'indeterminate') {
       >
         <span
           class="inline-flex max-w-full items-center gap-1 rounded-md bg-black/65 px-2 py-0.5 text-xs font-medium text-white shadow-sm backdrop-blur-sm"
-          :title="`上传者：${image.owner.username}`"
+          :title="t('image.uploader', { name: image.owner.username })"
         >
           <UIcon
             name="i-lucide-user"
@@ -118,7 +121,34 @@ function toggleSelected(value: boolean | 'indeterminate') {
       </div>
     </div>
 
-    <div class="flex flex-1 flex-col gap-2 p-3">
+    <div
+      v-if="compact"
+      class="flex items-center gap-1.5 p-2 sm:hidden"
+    >
+      <div class="min-w-0 flex-1">
+        <p
+          class="truncate text-xs font-medium"
+          :title="image.originalName"
+        >
+          {{ image.originalName }}
+        </p>
+        <p class="text-[11px] text-muted">
+          {{ formatFileSize(image.size) }}
+        </p>
+      </div>
+      <CopyButton
+        icon="i-lucide-copy"
+        icon-only
+        :label="t('common.copy')"
+        :value="image.url"
+        :success-title="t('copy.copiedUrl')"
+      />
+    </div>
+
+    <div
+      class="flex flex-1 flex-col gap-2 p-3"
+      :class="{ 'hidden sm:flex': compact }"
+    >
       <p
         class="truncate text-sm font-medium"
         :title="image.originalName"
@@ -151,7 +181,7 @@ function toggleSelected(value: boolean | 'indeterminate') {
         />
         <CopyButton
           icon="i-lucide-copy"
-          label="复制"
+          :label="t('common.copy')"
           :value="previewValue"
           :success-title="copySuccessTitle"
         />

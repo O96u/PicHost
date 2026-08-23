@@ -2,6 +2,20 @@
 
 本仓库自 **v1.0.0** 起作为正式版维护；此前历史提交已归档重置。
 
+## [1.0.2] - 2026-08-23
+
+### 新增
+
+- 中英文界面（`@nuxtjs/i18n`），语言切换与主题切换独立菜单
+- 移动端导航：汉堡菜单 + 分组用户菜单（语言 / 外观 / 账户）
+- Docker 忘记密码：`docker exec pichost reset-password`（随机密码，见 `server/cli/`）
+
+### 改进
+
+- 统计页工具栏与图库布局（桌面单行、移动端适配）
+- 上传卡片视觉优化（背景图、插图、悬停边框动效）
+- Logo 与上传区图片压缩，减小体积
+
 ## [1.0.1] - 2026-08-22
 
 ### 修复
@@ -33,5 +47,6 @@
 
 - **v1.1.0**（计划中）：S3、Cloudflare R2 及更多对象存储后端
 
+[1.0.2]: https://github.com/O96u/PicHost/releases/tag/v1.0.2
 [1.0.1]: https://github.com/O96u/PicHost/releases/tag/v1.0.1
 [1.0.0]: https://github.com/O96u/PicHost/releases/tag/v1.0.0

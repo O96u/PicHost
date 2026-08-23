@@ -13,6 +13,7 @@ const {
 const { isChecking, isAuthenticated, checkSession, handleAuthError, fetchStatus, isAdmin }
   = useAuth()
 const toast = useToast()
+const { t } = useI18n()
 const folderOptions = ref<string[]>(['images'])
 const sessionItems = ref<ImageItem[]>([])
 const deletingKeys = ref<Set<string>>(new Set())
@@ -76,11 +77,11 @@ watch(isAuthenticated, async (authed, prev) => {
 function copyFormatLabel() {
   switch (copyFormat.value) {
     case 'url':
-      return '直链'
+      return t('copy.url')
     case 'html':
-      return 'HTML'
+      return t('copy.html')
     default:
-      return 'Markdown'
+      return t('copy.markdown')
   }
 }
 
@@ -98,15 +99,15 @@ async function copyUploadLink(text: string) {
       document.execCommand('copy')
       document.body.removeChild(textarea)
     }
-    toast.add({ title: `已复制 ${copyFormatLabel()}`, color: 'success' })
+    toast.add({ title: t('copy.copiedFormat', { format: copyFormatLabel() }), color: 'success' })
   } catch {
-    toast.add({ title: '复制失败', color: 'error' })
+    toast.add({ title: t('copy.failed'), color: 'error' })
   }
 }
 
 async function handleUpload(files: File[]) {
   if (!isAuthenticated.value) {
-    toast.add({ title: '请先登录', color: 'warning' })
+    toast.add({ title: t('upload.loginRequired'), color: 'warning' })
     return
   }
 
@@ -149,10 +150,10 @@ async function handleDelete(key: string) {
       query: { key }
     })
     sessionItems.value = sessionItems.value.filter(item => item.key !== key)
-    toast.add({ title: '已删除', color: 'success' })
+    toast.add({ title: t('stats.deletedSingle'), color: 'success' })
   } catch (error: unknown) {
     handleAuthError(error)
-    toast.add({ title: '删除失败', color: 'error' })
+    toast.add({ title: t('stats.deleteFailed'), color: 'error' })
   } finally {
     deletingKeys.value.delete(key)
     deletingKeys.value = new Set(deletingKeys.value)
@@ -172,7 +173,7 @@ async function handleDelete(key: string) {
           class="size-8 animate-spin"
         />
         <p class="text-sm">
-          正在验证登录状态…
+          {{ t('common.loadingSession') }}
         </p>
       </div>
     </div>
@@ -196,7 +197,7 @@ async function handleDelete(key: string) {
       >
         <div class="flex items-center justify-between gap-2">
           <h2 class="text-lg font-medium">
-            本次上传
+            {{ t('upload.sessionTitle') }}
             <span class="ml-1 text-sm font-normal text-muted">({{ sessionItems.length }})</span>
           </h2>
         </div>
@@ -207,7 +208,7 @@ async function handleDelete(key: string) {
           :deleting-keys="deletingKeys"
           :selectable="false"
           :show-key="false"
-          empty-text="暂无本次上传"
+          :empty-text="t('upload.sessionEmpty')"
           @update:selected-keys="() => {}"
           @delete="handleDelete"
         />

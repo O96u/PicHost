@@ -26,13 +26,15 @@ export function isUnauthorizedError(error: unknown): boolean {
 export const AUTH_USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,32}$/
 export const AUTH_MIN_PASSWORD_LENGTH = 8
 
-export function validateAuthInput(username: string, password: string): string | null {
+export type AuthValidationErrorKey = 'invalidUsername' | 'invalidPassword'
+
+export function validateAuthInput(username: string, password: string): AuthValidationErrorKey | null {
   const trimmed = username.trim()
   if (!AUTH_USERNAME_PATTERN.test(trimmed)) {
-    return '用户名需为 3–32 位字母、数字或下划线'
+    return 'invalidUsername'
   }
   if (password.length < AUTH_MIN_PASSWORD_LENGTH) {
-    return '密码至少 8 位'
+    return 'invalidPassword'
   }
   return null
 }
@@ -65,6 +67,7 @@ export function getFetchErrorMessage(error: unknown, fallback: string): string {
 export type AuthActionResult = { ok: true } | { ok: false, error: string }
 
 export function useAuth() {
+  const { t } = useI18n()
   const status = useState<AuthStatus>('auth-status', () => 'checking')
   const user = useState<AuthUser | null>('auth-user', () => null)
   const authStatus = useState<AuthStatusResponse | null>('auth-status-response', () => null)
@@ -131,7 +134,7 @@ export function useAuth() {
     } catch (error: unknown) {
       return {
         ok: false,
-        error: getFetchErrorMessage(error, '登录失败，请检查用户名和密码')
+        error: getFetchErrorMessage(error, t('auth.loginFailed'))
       }
     }
   }
@@ -142,7 +145,7 @@ export function useAuth() {
   ): Promise<AuthActionResult> {
     const validationError = validateAuthInput(username, password)
     if (validationError) {
-      return { ok: false, error: validationError }
+      return { ok: false, error: t(`auth.errors.${validationError}`) }
     }
 
     try {
@@ -161,7 +164,7 @@ export function useAuth() {
     } catch (error: unknown) {
       return {
         ok: false,
-        error: getFetchErrorMessage(error, '注册失败，请检查输入')
+        error: getFetchErrorMessage(error, t('auth.registerFailed'))
       }
     }
   }
@@ -173,7 +176,7 @@ export function useAuth() {
   }): Promise<AuthActionResult> {
     const validationError = validateAuthInput(input.username, input.password)
     if (validationError) {
-      return { ok: false, error: validationError }
+      return { ok: false, error: t(`auth.errors.${validationError}`) }
     }
 
     try {
@@ -196,7 +199,7 @@ export function useAuth() {
     } catch (error: unknown) {
       return {
         ok: false,
-        error: getFetchErrorMessage(error, '初始化失败，请检查输入')
+        error: getFetchErrorMessage(error, t('auth.setupFailed'))
       }
     }
   }
@@ -208,7 +211,7 @@ export function useAuth() {
   }): Promise<AuthActionResult> {
     const validationError = validateAuthInput(input.username, input.password)
     if (validationError) {
-      return { ok: false, error: validationError }
+      return { ok: false, error: t(`auth.errors.${validationError}`) }
     }
 
     try {
@@ -231,7 +234,7 @@ export function useAuth() {
     } catch (error: unknown) {
       return {
         ok: false,
-        error: getFetchErrorMessage(error, '迁移失败，请检查输入')
+        error: getFetchErrorMessage(error, t('auth.migrateFailed'))
       }
     }
   }
@@ -241,7 +244,7 @@ export function useAuth() {
     newPassword: string
   ): Promise<AuthActionResult> {
     if (newPassword.length < AUTH_MIN_PASSWORD_LENGTH) {
-      return { ok: false, error: '新密码至少 8 位' }
+      return { ok: false, error: t('password.tooShort') }
     }
 
     try {
@@ -254,7 +257,7 @@ export function useAuth() {
     } catch (error: unknown) {
       return {
         ok: false,
-        error: getFetchErrorMessage(error, '修改密码失败')
+        error: getFetchErrorMessage(error, t('password.changeFailed'))
       }
     }
   }

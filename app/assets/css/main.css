@@ -59,14 +59,31 @@
   border-radius: 1rem;
   border-width: 2px;
   border-style: dashed;
-  border-color: var(--ui-border);
-  background-color: color-mix(in oklab, var(--ui-bg-elevated) 50%, transparent);
+  background-color: color-mix(in oklab, var(--ui-bg-elevated) 72%, transparent);
   padding: 2.5rem;
+  transition:
+    border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.upload-card-surface:not(.upload-card-surface--panel) {
+  border-color: var(--ui-border);
+}
+
+.upload-card-surface:not(.upload-card-surface--panel):hover,
+.upload-card-surface:not(.upload-card-surface--panel).upload-card-surface--active {
+  border-color: var(--ui-primary);
+  background-color: color-mix(in oklab, var(--ui-primary) 10%, var(--ui-bg-elevated) 72%);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--ui-primary) 25%, transparent),
+    0 8px 24px color-mix(in oklab, var(--ui-primary) 18%, transparent);
 }
 
 .upload-card-surface--panel {
   border-style: solid;
+  border-color: var(--ui-border);
   background-color: var(--ui-bg-elevated);
+  background-image: none;
   box-shadow: var(--ui-shadow-sm);
   padding: 0;
 }

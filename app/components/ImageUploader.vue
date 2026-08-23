@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import uploadCardBg from '~/assets/image/upload-card-bg.webp'
+import uploadCardHero from '~/assets/image/upload-card-hero.webp'
+
 const props = defineProps<{
   disabled?: boolean
 }>()
@@ -10,11 +13,9 @@ const emit = defineEmits<{
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const dragging = ref(false)
-const hovering = ref(false)
 
+const { t } = useI18n()
 const { bindPaste } = useClipboardImage(ref(null))
-
-const isActive = computed(() => dragging.value || hovering.value)
 
 bindPaste((files) => {
   if (!props.disabled) emit('upload', files)
@@ -51,31 +52,33 @@ function onDragLeave() {
   dragging.value = false
 }
 
-function onMouseEnter() {
-  if (!props.disabled) hovering.value = true
-}
-
-function onMouseLeave() {
-  hovering.value = false
-}
-
-function openSettings() {
+function openSettings(event: Event) {
+  event.stopPropagation()
   if (props.disabled) return
   emit('open-settings')
+}
+
+function onKeydown(event: KeyboardEvent) {
+  if (props.disabled) return
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    openFilePicker()
+  }
 }
 </script>
 
 <template>
   <div
-    class="upload-card-surface group/upload relative text-center transition-all duration-300 ease-out"
-    :class="isActive
-      ? 'scale-[1.01] border-primary bg-primary/5 shadow-md shadow-primary/10'
-      : 'hover:border-primary/50 hover:bg-primary/[0.04] hover:shadow-sm'"
+    role="button"
+    tabindex="0"
+    class="upload-card-surface group/upload relative cursor-pointer overflow-hidden text-center outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+    :class="{ 'upload-card-surface--active': dragging }"
+    :aria-disabled="disabled"
+    @click="openFilePicker"
+    @keydown="onKeydown"
     @drop="onDrop"
     @dragover="onDragOver"
     @dragleave="onDragLeave"
-    @mouseenter="onMouseEnter"
-    @mouseleave="onMouseLeave"
   >
     <input
       ref="fileInput"
@@ -87,11 +90,20 @@ function openSettings() {
       @change="onFileChange"
     >
 
-    <div class="absolute top-3 right-3 z-10">
+    <img
+      :src="uploadCardBg"
+      alt=""
+      aria-hidden="true"
+      class="pointer-events-none absolute inset-0 size-full object-cover opacity-100 dark:opacity-[0.12]"
+      decoding="async"
+      draggable="false"
+    >
+
+    <div class="absolute top-3 right-3 z-20">
       <button
         type="button"
-        class="upload-settings-btn inline-flex size-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-elevated hover:text-highlighted disabled:pointer-events-none disabled:opacity-40"
-        aria-label="上传设置"
+        class="upload-settings-btn inline-flex size-8 items-center justify-center rounded-md bg-default/70 text-muted backdrop-blur-sm transition-colors hover:bg-elevated hover:text-highlighted disabled:pointer-events-none disabled:opacity-40"
+        :aria-label="t('upload.settings')"
         :disabled="disabled"
         @click="openSettings"
       >
@@ -102,39 +114,31 @@ function openSettings() {
       </button>
     </div>
 
-    <div class="mx-auto max-w-lg space-y-4">
-      <div
-        class="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary/10 transition-transform duration-300 ease-out"
-        :class="isActive ? 'scale-110' : 'group-hover/upload:scale-105'"
-      >
-        <UIcon
-          name="i-lucide-cloud-upload"
-          class="size-8 text-primary transition-transform duration-300"
-          :class="isActive ? '-translate-y-0.5' : ''"
-        />
+    <div class="relative z-10 mx-auto flex max-w-lg flex-col items-center">
+      <div class="flex flex-col items-center">
+        <img
+          :src="uploadCardHero"
+          alt=""
+          aria-hidden="true"
+          class="h-24 w-auto -mb-3 select-none transition-transform duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] sm:-mb-4 sm:h-28 md:h-32"
+          :class="dragging ? 'scale-105' : 'group-hover/upload:scale-[1.02]'"
+          decoding="async"
+          draggable="false"
+        >
+
+        <div class="space-y-2">
+          <p class="text-xl font-semibold tracking-tight text-highlighted sm:text-2xl">
+            {{ t('upload.title') }}
+          </p>
+          <p class="text-sm text-muted sm:text-base">
+            {{ t('upload.hint', { ctrl: 'Ctrl', v: 'V' }) }}
+          </p>
+        </div>
       </div>
-      <div class="space-y-2">
-        <p class="text-xl font-semibold tracking-tight">
-          拖拽图片到此处上传
-        </p>
-        <p class="text-sm text-muted">
-          或点击选择文件，按
-          <kbd class="mx-1 rounded border border-default bg-muted/50 px-1.5 py-0.5 font-mono text-xs">Ctrl</kbd>
-          +
-          <kbd class="mx-1 rounded border border-default bg-muted/50 px-1.5 py-0.5 font-mono text-xs">V</kbd>
-          粘贴图片
-        </p>
-      </div>
-      <p class="text-xs text-dimmed">
-        支持 JPEG / PNG / WebP / GIF / SVG / ICO，单张最大 10 MB，每次最多 10 张
+
+      <p class="mt-4 max-w-md text-xs leading-relaxed text-dimmed sm:text-sm">
+        {{ t('upload.formats') }}
       </p>
-      <UButton
-        label="选择图片"
-        icon="i-lucide-upload"
-        size="lg"
-        :disabled="disabled"
-        @click="openFilePicker"
-      />
     </div>
   </div>
 </template>

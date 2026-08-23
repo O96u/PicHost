@@ -35,7 +35,9 @@ const {
   activeSearch,
   listSummary,
   refreshList,
-  initializeList,
+  fetchList,
+  fetchSearch,
+  fetchTotal,
   setActiveFolder,
   submitSearch,
   goToPage,
@@ -45,9 +47,11 @@ const {
 const { formatFileSize } = useFileSize()
 const { isChecking, isAuthenticated, checkSession, handleAuthError, fetchStatus, isAdmin } = useAuth()
 const toast = useToast()
+const { t } = useI18n()
 
 const stats = ref<StatsResponse | null>(null)
 const statsLoading = ref(false)
+const pageRefreshing = computed(() => statsLoading.value || galleryLoading.value)
 
 const selectedKeys = ref<Set<string>>(new Set())
 const deletingKeys = ref<Set<string>>(new Set())
@@ -59,7 +63,7 @@ const currentFolder = ref('all')
 const folderOptions = ref<string[]>(['images'])
 
 const folderSelectItems = computed(() => [
-  { label: '全部', value: 'all' },
+  { label: t('stats.allFolders'), value: 'all' },
   ...folderOptions.value.map(folder => ({ label: folder, value: folder }))
 ])
 
@@ -104,16 +108,16 @@ const uploadChartTotal = computed(() =>
 const statCards = computed(() => {
   const s = stats.value
   const base = [
-    { label: '今日上传', value: s?.uploadToday ?? '—' },
-    { label: '本月上传', value: s?.uploadMonth ?? '—' },
-    { label: '累计上传', value: s?.uploadTotal ?? '—' },
-    { label: '当前库存', value: s?.storedCount ?? '—' },
-    { label: '今日删除', value: s?.deleteToday ?? '—' },
-    { label: '本月删除', value: s?.deleteMonth ?? '—' },
+    { label: t('stats.uploadToday'), value: s?.uploadToday ?? '—' },
+    { label: t('stats.uploadMonth'), value: s?.uploadMonth ?? '—' },
+    { label: t('stats.uploadTotal'), value: s?.uploadTotal ?? '—' },
+    { label: t('stats.storedCount'), value: s?.storedCount ?? '—' },
+    { label: t('stats.deleteToday'), value: s?.deleteToday ?? '—' },
+    { label: t('stats.deleteMonth'), value: s?.deleteMonth ?? '—' },
     isAdmin.value
-      ? { label: '注册用户数量', value: s?.userCount ?? '—' }
-      : { label: '累计删除', value: s?.deleteTotal ?? '—' },
-    { label: '累计上传体积', value: s ? formatFileSize(s.uploadBytesTotal) : '—' }
+      ? { label: t('stats.userCount'), value: s?.userCount ?? '—' }
+      : { label: t('stats.deleteTotal'), value: s?.deleteTotal ?? '—' },
+    { label: t('stats.uploadBytes'), value: s ? formatFileSize(s.uploadBytesTotal) : '—' }
   ]
   return base
 })
@@ -150,7 +154,7 @@ async function refreshStats() {
   } catch (error: unknown) {
     handleAuthError(error)
     if (isAuthenticated.value) {
-      toast.add({ title: '加载统计失败', color: 'error' })
+      toast.add({ title: t('stats.loadFailed'), color: 'error' })
     }
   } finally {
     statsLoading.value = false
@@ -167,13 +171,33 @@ async function refreshGallery() {
   }
 }
 
+async function reloadGallery() {
+  if (activeSearch.value) {
+    await fetchSearch(galleryPage.value)
+  } else {
+    await fetchList(galleryPage.value)
+  }
+  await fetchTotal()
+}
+
 async function refreshAll() {
   if (!isAuthenticated.value) return
-  currentFolder.value = 'all'
-  await Promise.all([
-    refreshStats(),
-    initializeList('all').then(() => loadFolders())
-  ])
+  selectedKeys.value = new Set()
+  statsLoading.value = true
+  try {
+    await Promise.all([
+      fetchStats(),
+      reloadGallery(),
+      loadFolders()
+    ])
+  } catch (error: unknown) {
+    handleAuthError(error)
+    if (isAuthenticated.value) {
+      toast.add({ title: t('stats.loadFailed'), color: 'error' })
+    }
+  } finally {
+    statsLoading.value = false
+  }
 }
 
 async function handleFolderChange(folder: string) {
@@ -212,7 +236,7 @@ function requestDelete(key: string) {
 function requestBatchDelete() {
   if (!isAuthenticated.value) return
   if (!selectedCount.value) {
-    toast.add({ title: '请先选择图片', color: 'warning' })
+    toast.add({ title: t('stats.selectFirst'), color: 'warning' })
     return
   }
   deleteTargetKeys.value = Array.from(selectedKeys.value)
@@ -249,7 +273,7 @@ async function confirmDelete() {
       }
       selectedKeys.value = new Set(selectedKeys.value)
       toast.add({
-        title: `已删除 ${deleted.length} 张图片`,
+        title: t('stats.deleted', { n: deleted.length }),
         color: 'success'
       })
       await refreshStats()
@@ -257,7 +281,7 @@ async function confirmDelete() {
 
     if (failed.length) {
       toast.add({
-        title: `${failed.length} 张图片删除失败`,
+        title: t('stats.deletePartialFail', { n: failed.length }),
         color: 'error'
       })
     }
@@ -267,7 +291,7 @@ async function confirmDelete() {
   } catch (error: unknown) {
     handleAuthError(error)
     if (isAuthenticated.value) {
-      toast.add({ title: '删除失败', color: 'error' })
+      toast.add({ title: t('stats.deleteFailed'), color: 'error' })
     }
   } finally {
     batchDeleting.value = false
@@ -322,7 +346,7 @@ watch(isAuthenticated, async (authed, prev) => {
           class="size-8 animate-spin"
         />
         <p class="text-sm">
-          正在验证登录状态…
+          {{ t('common.loadingSession') }}
         </p>
       </div>
     </div>
@@ -330,21 +354,24 @@ watch(isAuthenticated, async (authed, prev) => {
     <AdminLoginGate v-else-if="!isAuthenticated" />
 
     <AppShell v-else>
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
           <h1 class="text-2xl font-semibold tracking-tight">
-            统计
+            {{ t('stats.title') }}
           </h1>
           <p class="text-sm text-muted">
-            数据概览与图库记录
+            {{ t('stats.subtitle') }}
           </p>
         </div>
 
         <UButton
           icon="i-lucide-refresh-cw"
-          label="刷新"
-          variant="outline"
-          :loading="statsLoading || galleryLoading"
+          variant="ghost"
+          color="neutral"
+          size="sm"
+          class="mt-0.5 shrink-0"
+          :aria-label="t('common.refresh')"
+          :loading="pageRefreshing"
           @click="refreshAll"
         />
       </div>
@@ -367,13 +394,13 @@ watch(isAuthenticated, async (authed, prev) => {
       <section class="grid gap-4 lg:grid-cols-2">
         <div class="rounded-xl border border-default bg-elevated p-4">
           <h2 class="mb-3 text-sm font-medium text-muted">
-            上传目录分布
+            {{ t('stats.folderDistribution') }}
           </h2>
           <div
             v-if="!uploadChartTotal"
             class="py-6 text-center text-xs text-muted"
           >
-            暂无数据
+            {{ t('stats.noData') }}
           </div>
           <StatsDonut
             v-else
@@ -384,13 +411,13 @@ watch(isAuthenticated, async (authed, prev) => {
 
         <div class="rounded-xl border border-default bg-elevated p-4">
           <h2 class="mb-3 text-sm font-medium text-muted">
-            目录占用
+            {{ t('stats.folderUsage') }}
           </h2>
           <div
             v-if="!folderStats.length"
             class="py-6 text-center text-xs text-muted"
           >
-            暂无数据
+            {{ t('stats.noData') }}
           </div>
           <ul
             v-else
@@ -403,7 +430,7 @@ watch(isAuthenticated, async (authed, prev) => {
               <div class="mb-1 flex items-center justify-between gap-2 text-xs">
                 <span class="font-medium">{{ item.folder }}</span>
                 <span class="tabular-nums text-muted">
-                  {{ item.count }} 张 · {{ formatFileSize(item.bytes) }}
+                  {{ t('stats.folderCount', { count: item.count, size: formatFileSize(item.bytes) }) }}
                 </span>
               </div>
               <div class="h-1.5 overflow-hidden rounded-full bg-muted/50">
@@ -418,86 +445,85 @@ watch(isAuthenticated, async (authed, prev) => {
       </section>
 
       <section class="space-y-4">
-        <form
-          class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-          @submit.prevent="handleSearch"
-        >
-          <div class="min-w-0 shrink-0">
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div class="min-w-0">
             <h2 class="text-lg font-medium">
-              图库记录
+              {{ t('stats.gallery') }}
             </h2>
             <p
               v-if="!galleryLoading"
-              class="text-sm text-muted"
+              class="mt-0.5 text-sm text-muted"
             >
               {{ listSummary }}
             </p>
           </div>
 
-          <div class="flex flex-wrap items-center justify-end gap-2">
-            <div class="flex items-center gap-1.5">
-              <span class="text-xs text-muted shrink-0">目录</span>
-              <USelect
-                v-model="currentFolder"
-                :items="folderSelectItems"
-                class="w-28"
-                @update:model-value="handleFolderChange"
-              />
-            </div>
-
-            <UInput
-              v-model="searchQuery"
-              icon="i-lucide-search"
-              placeholder="搜索文件名"
-              class="w-40 sm:w-48"
-              size="sm"
-              :disabled="galleryLoading"
-            />
-
-            <UButton
-              type="submit"
-              label="搜索"
-              size="sm"
-              :loading="galleryLoading"
-            />
-            <UButton
-              v-if="activeSearch"
-              type="button"
-              label="清除"
-              size="sm"
-              variant="ghost"
-              color="neutral"
-              @click="clearSearch"
-            />
-
-            <UButton
-              type="button"
-              icon="i-lucide-refresh-cw"
-              label="刷新"
-              variant="outline"
-              size="sm"
-              :loading="galleryLoading"
-              @click="refreshGallery"
-            />
+          <form
+            class="flex flex-wrap items-center justify-end gap-2"
+            @submit.prevent="handleSearch"
+          >
             <UBadge
               v-if="selectedCount"
               color="primary"
               variant="subtle"
+              class="shrink-0"
             >
-              已选 {{ selectedCount }}
+              {{ t('stats.selected', { n: selectedCount }) }}
             </UBadge>
+            <USelect
+              v-model="currentFolder"
+              :items="folderSelectItems"
+              class="w-[5.5rem] shrink-0 sm:w-32"
+              size="sm"
+              :aria-label="t('stats.folder')"
+              @update:model-value="handleFolderChange"
+            />
+            <UInput
+              v-model="searchQuery"
+              icon="i-lucide-search"
+              :placeholder="t('stats.searchPlaceholder')"
+              class="w-36 shrink-0 sm:w-44"
+              size="sm"
+              :disabled="galleryLoading"
+            />
+            <UButton
+              type="submit"
+              icon="i-lucide-search"
+              size="sm"
+              class="shrink-0"
+              :aria-label="t('common.search')"
+              :loading="galleryLoading"
+            >
+              <span class="hidden sm:inline">{{ t('common.search') }}</span>
+            </UButton>
+            <UButton
+              v-if="activeSearch"
+              type="button"
+              icon="i-lucide-x"
+              size="sm"
+              variant="ghost"
+              color="neutral"
+              class="shrink-0"
+              :aria-label="t('stats.clear')"
+              @click="clearSearch"
+            >
+              <span class="hidden sm:inline">{{ t('stats.clear') }}</span>
+            </UButton>
             <UButton
               type="button"
               icon="i-lucide-trash-2"
-              label="批量删除"
               color="error"
               variant="soft"
               size="sm"
+              class="shrink-0"
+              :aria-label="t('stats.batchDelete')"
               :disabled="!selectedCount"
               @click="requestBatchDelete"
-            />
-          </div>
-        </form>
+            >
+              <span class="hidden sm:inline">{{ t('stats.batchDelete') }}</span>
+            </UButton>
+          </form>
+        </div>
 
         <div
           v-if="galleryLoading"
@@ -512,6 +538,7 @@ watch(isAuthenticated, async (authed, prev) => {
 
         <ImageGrid
           v-else
+          :show-key="false"
           :items="items"
           :selected-keys="selectedKeys"
           :deleting-keys="deletingKeys"
@@ -524,7 +551,7 @@ watch(isAuthenticated, async (authed, prev) => {
           :page="galleryPage"
           :total-pages="galleryTotalPages"
           :total="galleryTotal"
-          unit="张"
+          :unit="t('common.imagesUnit')"
           :loading="galleryLoading"
           @update:page="handleGalleryPageChange"
         />
@@ -540,7 +567,7 @@ watch(isAuthenticated, async (authed, prev) => {
       <UButton
         v-show="showScrollTop"
         icon="i-lucide-arrow-up"
-        aria-label="回到顶部"
+        :aria-label="t('stats.scrollTop')"
         color="primary"
         class="fixed bottom-6 right-6 z-50 shadow-lg"
         size="lg"

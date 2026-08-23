@@ -4,6 +4,21 @@ import type { UploadProgressItem } from '~/types/image'
 defineProps<{
   items: UploadProgressItem[]
 }>()
+
+const { t } = useI18n()
+
+function statusLabel(status: UploadProgressItem['status']) {
+  switch (status) {
+    case 'pending':
+      return t('upload.statusPending')
+    case 'uploading':
+      return t('upload.statusUploading')
+    case 'success':
+      return t('upload.statusSuccess')
+    default:
+      return t('upload.statusError')
+  }
+}
 </script>
 
 <template>
@@ -12,7 +27,7 @@ defineProps<{
     class="space-y-2 rounded-lg border border-default p-4"
   >
     <p class="text-sm font-medium text-muted">
-      上传进度
+      {{ t('upload.progress') }}
     </p>
     <div
       v-for="item in items"
@@ -26,7 +41,7 @@ defineProps<{
           variant="subtle"
           size="xs"
         >
-          {{ item.status === 'pending' ? '等待' : item.status === 'uploading' ? '上传中' : item.status === 'success' ? '成功' : '失败' }}
+          {{ statusLabel(item.status) }}
         </UBadge>
       </div>
       <UProgress

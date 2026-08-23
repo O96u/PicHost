@@ -6,6 +6,7 @@ import { isPasswordValid } from '~/utils/password-strength'
 const router = useRouter()
 const { register, fetchStatus } = useAuth()
 const toast = useToast()
+const { t } = useI18n()
 
 const username = ref('')
 const password = ref('')
@@ -34,7 +35,7 @@ async function submit() {
   if (!canSubmit.value || loading.value) return
 
   if (password.value !== confirmPassword.value) {
-    toast.add({ title: '两次输入的密码不一致', color: 'error' })
+    toast.add({ title: t('auth.passwordMismatch'), color: 'error' })
     return
   }
 
@@ -42,7 +43,7 @@ async function submit() {
   try {
     const result = await register(username.value.trim(), password.value)
     if (result.ok) {
-      toast.add({ title: '注册成功', color: 'success' })
+      toast.add({ title: t('auth.registerSuccess'), color: 'success' })
       await router.replace('/')
     } else {
       toast.add({ title: result.error, color: 'error' })
@@ -54,7 +55,10 @@ async function submit() {
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-muted/30 p-4 sm:p-6">
+  <div class="relative flex min-h-screen items-center justify-center bg-muted/30 p-4 sm:p-6">
+    <div class="absolute top-4 right-4">
+      <AuthPagePreferences />
+    </div>
     <div class="w-full max-w-sm rounded-2xl border border-default bg-elevated p-6 shadow-lg sm:p-8">
       <div class="mb-8 space-y-3 text-center">
         <div class="mx-auto inline-flex items-center justify-center">
@@ -77,10 +81,10 @@ async function submit() {
         </div>
         <div class="space-y-1">
           <h1 class="text-xl font-bold tracking-tight sm:text-2xl">
-            注册账号
+            {{ t('register.title') }}
           </h1>
           <p class="text-sm text-muted">
-            创建 PicHost 用户账号
+            {{ t('register.subtitle') }}
           </p>
         </div>
       </div>
@@ -94,12 +98,12 @@ async function submit() {
             for="register-username"
             class="block text-sm font-medium text-default"
           >
-            用户名
+            {{ t('auth.username') }}
           </label>
           <UInput
             id="register-username"
             v-model="username"
-            placeholder="3–32 位字母、数字或下划线"
+            :placeholder="t('setup.usernamePlaceholder')"
             autocomplete="username"
             size="lg"
             class="w-full"
@@ -112,13 +116,13 @@ async function submit() {
             for="register-password"
             class="block text-sm font-medium text-default"
           >
-            密码
+            {{ t('auth.password') }}
           </label>
           <UInput
             id="register-password"
             v-model="password"
             type="password"
-            placeholder="设置登录密码"
+            :placeholder="t('setup.passwordPlaceholder')"
             autocomplete="new-password"
             size="lg"
             class="w-full"
@@ -132,13 +136,13 @@ async function submit() {
             for="register-confirm"
             class="block text-sm font-medium text-default"
           >
-            确认密码
+            {{ t('auth.confirmPassword') }}
           </label>
           <UInput
             id="register-confirm"
             v-model="confirmPassword"
             type="password"
-            placeholder="再次输入密码"
+            :placeholder="t('setup.confirmPlaceholder')"
             autocomplete="new-password"
             size="lg"
             class="w-full"
@@ -148,7 +152,7 @@ async function submit() {
 
         <UButton
           type="submit"
-          label="注册"
+          :label="t('auth.register')"
           icon="i-lucide-user-plus"
           size="lg"
           block
@@ -158,12 +162,12 @@ async function submit() {
         />
 
         <p class="text-center text-sm text-muted">
-          已有账号？
+          {{ t('auth.hasAccount') }}
           <NuxtLink
             to="/"
             class="text-primary hover:underline"
           >
-            返回登录
+            {{ t('auth.backToLogin') }}
           </NuxtLink>
         </p>
       </form>

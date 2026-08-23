@@ -8,16 +8,23 @@ const props = withDefaults(defineProps<{
   selectable?: boolean
   showKey?: boolean
   emptyText?: string
+  dense?: boolean
+  compact?: boolean
 }>(), {
   selectable: true,
   showKey: true,
-  emptyText: '暂无图片'
+  dense: false,
+  compact: false
 })
 
 const emit = defineEmits<{
   'update:selectedKeys': [value: Set<string>]
   'delete': [key: string]
 }>()
+
+const { t } = useI18n()
+
+const displayEmptyText = computed(() => props.emptyText ?? t('image.empty'))
 
 function updateSelection(key: string, selected: boolean) {
   const next = new Set(props.selectedKeys)
@@ -30,7 +37,8 @@ function updateSelection(key: string, selected: boolean) {
 <template>
   <div
     v-if="items.length"
-    class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+    class="grid items-start sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+    :class="dense ? 'grid-cols-2 gap-3' : 'grid-cols-1 gap-4'"
   >
     <ImageCard
       v-for="image in items"
@@ -40,6 +48,7 @@ function updateSelection(key: string, selected: boolean) {
       :deleting="deletingKeys.has(image.key)"
       :selectable="selectable"
       :show-key="showKey"
+      :compact="compact"
       @update:selected="updateSelection(image.key, $event)"
       @delete="emit('delete', image.key)"
     />
@@ -48,6 +57,6 @@ function updateSelection(key: string, selected: boolean) {
     v-else
     class="rounded-xl border border-dashed border-default py-16 text-center text-sm text-muted"
   >
-    {{ emptyText }}
+    {{ displayEmptyText }}
   </div>
 </template>

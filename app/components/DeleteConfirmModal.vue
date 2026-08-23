@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   open: boolean
   count: number
   loading?: boolean
@@ -9,6 +9,10 @@ const emit = defineEmits<{
   'update:open': [value: boolean]
   'confirm': []
 }>()
+
+const { t } = useI18n()
+
+const description = computed(() => t('delete.confirmDesc', { count: props.count }))
 
 function close() {
   emit('update:open', false)
@@ -22,20 +26,20 @@ function confirm() {
 <template>
   <UModal
     :open="open"
-    title="确认删除"
-    :description="`确定要删除选中的 ${count} 张图片吗？此操作不可恢复。`"
+    :title="t('delete.confirmTitle')"
+    :description="description"
     @update:open="emit('update:open', $event)"
   >
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton
-          label="取消"
+          :label="t('common.cancel')"
           color="neutral"
           variant="outline"
           @click="close"
         />
         <UButton
-          label="确认删除"
+          :label="t('delete.confirm')"
           color="error"
           :loading="loading"
           @click="confirm"

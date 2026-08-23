@@ -7,6 +7,7 @@ const route = useRoute()
 const router = useRouter()
 const { setup, migrate, fetchStatus } = useAuth()
 const toast = useToast()
+const { t } = useI18n()
 
 const isMigrate = computed(() => route.query.migrate === '1')
 
@@ -34,7 +35,7 @@ async function submit() {
   if (!canSubmit.value || loading.value) return
 
   if (password.value !== confirmPassword.value) {
-    toast.add({ title: '两次输入的密码不一致', color: 'error' })
+    toast.add({ title: t('auth.passwordMismatch'), color: 'error' })
     return
   }
 
@@ -51,7 +52,7 @@ async function submit() {
 
     if (result.ok) {
       toast.add({
-        title: isMigrate.value ? '账号迁移完成' : '初始化完成',
+        title: isMigrate.value ? t('setup.migrateSuccess') : t('setup.initSuccess'),
         color: 'success'
       })
       await router.replace('/')
@@ -65,7 +66,10 @@ async function submit() {
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-muted/30 p-4 sm:p-6">
+  <div class="relative flex min-h-screen items-center justify-center bg-muted/30 p-4 sm:p-6">
+    <div class="absolute top-4 right-4">
+      <AuthPagePreferences />
+    </div>
     <div class="w-full max-w-sm rounded-2xl border border-default bg-elevated p-6 shadow-lg sm:p-8">
       <div class="mb-8 space-y-3 text-center">
         <div class="mx-auto inline-flex items-center justify-center">
@@ -91,7 +95,7 @@ async function submit() {
             <span class="text-highlighted">Pic</span><span class="text-primary">Host</span>
           </h1>
           <p class="text-sm text-muted">
-            {{ isMigrate ? '迁移到账号密码登录' : '首次使用，创建管理员账号' }}
+            {{ isMigrate ? t('setup.migrateTitle') : t('setup.initTitle') }}
           </p>
         </div>
       </div>
@@ -105,12 +109,12 @@ async function submit() {
             for="setup-username"
             class="block text-sm font-medium text-default"
           >
-            用户名
+            {{ t('auth.username') }}
           </label>
           <UInput
             id="setup-username"
             v-model="username"
-            placeholder="3–32 位字母、数字或下划线"
+            :placeholder="t('setup.usernamePlaceholder')"
             autocomplete="username"
             size="lg"
             class="w-full"
@@ -123,13 +127,13 @@ async function submit() {
             for="setup-password"
             class="block text-sm font-medium text-default"
           >
-            密码
+            {{ t('auth.password') }}
           </label>
           <UInput
             id="setup-password"
             v-model="password"
             type="password"
-            placeholder="设置登录密码"
+            :placeholder="t('setup.passwordPlaceholder')"
             autocomplete="new-password"
             size="lg"
             class="w-full"
@@ -143,13 +147,13 @@ async function submit() {
             for="setup-confirm"
             class="block text-sm font-medium text-default"
           >
-            确认密码
+            {{ t('auth.confirmPassword') }}
           </label>
           <UInput
             id="setup-confirm"
             v-model="confirmPassword"
             type="password"
-            placeholder="再次输入密码"
+            :placeholder="t('setup.confirmPlaceholder')"
             autocomplete="new-password"
             size="lg"
             class="w-full"
@@ -159,12 +163,12 @@ async function submit() {
 
         <label class="flex cursor-pointer items-center gap-2 text-sm text-default">
           <UCheckbox v-model="allowRegistration" />
-          允许其他用户注册
+          {{ t('setup.allowRegistration') }}
         </label>
 
         <UButton
           type="submit"
-          :label="isMigrate ? '完成迁移' : '创建并进入'"
+          :label="isMigrate ? t('setup.migrateSubmit') : t('setup.initSubmit')"
           icon="i-lucide-user-plus"
           size="lg"
           block

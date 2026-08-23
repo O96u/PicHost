@@ -10,6 +10,7 @@ const {
   changePassword
 } = useAuth()
 const toast = useToast()
+const { t } = useI18n()
 
 const currentPassword = ref('')
 const newPassword = ref('')
@@ -37,7 +38,7 @@ async function submit() {
   if (!canSubmit.value || loading.value) return
 
   if (newPassword.value !== confirmPassword.value) {
-    toast.add({ title: '两次输入的新密码不一致', color: 'error' })
+    toast.add({ title: t('password.mismatch'), color: 'error' })
     return
   }
 
@@ -48,7 +49,7 @@ async function submit() {
       currentPassword.value = ''
       newPassword.value = ''
       confirmPassword.value = ''
-      toast.add({ title: '密码已修改', color: 'success' })
+      toast.add({ title: t('password.changed'), color: 'success' })
       await router.replace('/')
     } else {
       toast.add({ title: result.error, color: 'error' })
@@ -71,7 +72,7 @@ async function submit() {
           class="size-8 animate-spin"
         />
         <p class="text-sm">
-          正在验证登录状态…
+          {{ t('common.loadingSession') }}
         </p>
       </div>
     </div>
@@ -82,10 +83,10 @@ async function submit() {
       <section class="mx-auto max-w-md overflow-hidden rounded-2xl border border-default bg-elevated shadow-sm">
         <div class="border-b border-default px-5 py-4 sm:px-6">
           <h1 class="text-lg font-semibold tracking-tight">
-            修改密码
+            {{ t('password.title') }}
           </h1>
           <p class="mt-1 text-sm text-muted">
-            修改您的登录密码
+            {{ t('password.subtitle') }}
           </p>
         </div>
 
@@ -98,7 +99,7 @@ async function submit() {
               for="current-password"
               class="block text-sm font-medium"
             >
-              当前密码
+              {{ t('password.current') }}
             </label>
             <UInput
               id="current-password"
@@ -116,13 +117,13 @@ async function submit() {
               for="new-password"
               class="block text-sm font-medium"
             >
-              新密码
+              {{ t('password.new') }}
             </label>
             <UInput
               id="new-password"
               v-model="newPassword"
               type="password"
-              placeholder="设置新密码"
+              :placeholder="t('password.newPlaceholder')"
               autocomplete="new-password"
               size="lg"
               class="w-full"
@@ -136,7 +137,7 @@ async function submit() {
               for="confirm-new-password"
               class="block text-sm font-medium"
             >
-              确认新密码
+              {{ t('password.confirmNew') }}
             </label>
             <UInput
               id="confirm-new-password"
@@ -152,13 +153,13 @@ async function submit() {
           <div class="flex gap-2 pt-1">
             <UButton
               type="submit"
-              label="保存"
+              :label="t('common.save')"
               icon="i-lucide-save"
               :loading="loading"
               :disabled="!canSubmit"
             />
             <UButton
-              label="取消"
+              :label="t('common.cancel')"
               variant="ghost"
               color="neutral"
               to="/"

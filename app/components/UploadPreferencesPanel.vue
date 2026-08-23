@@ -20,6 +20,8 @@ const {
   loadPreferences
 } = useUploadPreferences()
 
+const { t } = useI18n()
+
 const {
   userSettings,
   enabled: userAutoDeleteEnabled,
@@ -27,16 +29,16 @@ const {
   load: loadUserSettings
 } = useUserAutoDeleteSettings()
 
-const copyFormatItems = [
-  { label: '直链', value: 'url' as const },
-  { label: 'Markdown', value: 'markdown' as const },
-  { label: 'HTML', value: 'html' as const }
-]
+const copyFormatItems = computed(() => [
+  { label: t('copy.url'), value: 'url' as const },
+  { label: t('copy.markdown'), value: 'markdown' as const },
+  { label: t('copy.html'), value: 'html' as const }
+])
 
 const clientQualityLevel = computed(() => {
-  if (clientWebpQuality.value >= 85) return '高质量'
-  if (clientWebpQuality.value >= 60) return '中等质量'
-  return '有损压缩'
+  if (clientWebpQuality.value >= 85) return t('preferences.qualityHigh')
+  if (clientWebpQuality.value >= 60) return t('preferences.qualityMedium')
+  return t('preferences.qualityLow')
 })
 
 function setCopyFormat(value: 'url' | 'markdown' | 'html') {
@@ -73,22 +75,22 @@ onMounted(() => {
         />
         <div class="min-w-0">
           <h2 class="text-base font-semibold">
-            上传偏好
+            {{ t('preferences.title') }}
           </h2>
           <p class="mt-0.5 text-xs text-muted">
-            浏览器本地与账号设置，仅影响您的上传体验
+            {{ t('preferences.subtitle') }}
           </p>
         </div>
       </div>
       <UButton
         v-if="!embedded"
-        label="返回"
+        :label="t('common.back')"
         icon="i-lucide-arrow-left"
         variant="ghost"
         color="neutral"
         size="sm"
         class="shrink-0"
-        aria-label="返回上传"
+        :aria-label="t('preferences.back')"
         @click="emit('back')"
       />
     </div>
@@ -100,7 +102,7 @@ onMounted(() => {
       <div class="grid gap-5 sm:grid-cols-3 sm:gap-6">
         <div class="space-y-4">
           <h3 class="text-sm font-semibold">
-            图片处理
+            {{ t('preferences.processing') }}
           </h3>
 
           <label class="flex cursor-pointer items-start gap-2.5">
@@ -109,9 +111,9 @@ onMounted(() => {
               class="mt-0.5"
             />
             <span>
-              <span class="block text-sm">客户端预压缩</span>
+              <span class="block text-sm">{{ t('preferences.clientCompress') }}</span>
               <span class="mt-1 block text-xs leading-relaxed text-muted">
-                上传前在浏览器端压缩（服务端仍会转 WebP）
+                {{ t('preferences.clientCompressHint') }}
               </span>
             </span>
           </label>
@@ -129,7 +131,7 @@ onMounted(() => {
                 <span
                   class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm"
                 >
-                  <span>自动删除超过</span>
+                  <span>{{ t('preferences.autoDeletePrefix') }}</span>
                   <UInput
                     v-model.number="userAutoDeleteDaysDraft"
                     type="number"
@@ -143,10 +145,10 @@ onMounted(() => {
                         : 'pointer-events-none opacity-40'
                     "
                   />
-                  <span>天的图片</span>
+                  <span>{{ t('preferences.autoDeleteSuffix') }}</span>
                 </span>
                 <span class="mt-1 block text-xs leading-relaxed text-muted">
-                  仅清理开启后上传的图片，不影响此前已存的图片
+                  {{ t('preferences.autoDeleteHint') }}
                 </span>
               </span>
             </label>
@@ -164,15 +166,15 @@ onMounted(() => {
 
         <div class="space-y-4">
           <h3 class="text-sm font-semibold">
-            WebP 压缩质量
+            {{ t('preferences.webpQuality') }}
           </h3>
           <p class="text-xs leading-relaxed text-muted">
-            客户端预压缩质量（1–100），需开启「客户端预压缩」
+            {{ t('preferences.webpQualityHint') }}
           </p>
           <div
             class="flex items-center justify-between gap-2 text-sm text-muted"
           >
-            <span>当前：{{ clientWebpQuality }}</span>
+            <span>{{ t('preferences.current', { n: clientWebpQuality }) }}</span>
             <span>{{ clientQualityLevel }}</span>
           </div>
           <input
@@ -187,7 +189,7 @@ onMounted(() => {
 
         <div class="space-y-4">
           <h3 class="text-sm font-semibold">
-            便捷功能
+            {{ t('preferences.convenience') }}
           </h3>
           <label class="flex cursor-pointer items-start gap-2.5">
             <UCheckbox
@@ -195,9 +197,9 @@ onMounted(() => {
               class="mt-0.5"
             />
             <span>
-              <span class="block text-sm">上传成功自动复制链接</span>
+              <span class="block text-sm">{{ t('preferences.autoCopy') }}</span>
               <span class="mt-1 block text-xs leading-relaxed text-muted">
-                按所选格式复制到剪贴板
+                {{ t('preferences.autoCopyHint') }}
               </span>
             </span>
           </label>

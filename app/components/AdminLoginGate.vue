@@ -9,6 +9,7 @@ const emit = defineEmits<{
 const router = useRouter()
 const { login, fetchStatus, authStatus } = useAuth()
 const toast = useToast()
+const { t } = useI18n()
 
 const username = ref('')
 const password = ref('')
@@ -47,10 +48,10 @@ async function submit() {
       password.value = ''
       secret.value = ''
       emit('success')
-      toast.add({ title: '登录成功', color: 'success' })
+      toast.add({ title: t('auth.loginSuccess'), color: 'success' })
     } else {
       toast.add({
-        title: result.error ?? (legacyMode.value ? '登录失败，请检查密钥' : '用户名或密码错误'),
+        title: result.error ?? (legacyMode.value ? t('auth.loginFailedSecret') : t('auth.loginFailedCredentials')),
         color: 'error'
       })
     }
@@ -61,7 +62,10 @@ async function submit() {
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-muted/30 p-4 sm:p-6">
+  <div class="relative flex min-h-screen items-center justify-center bg-muted/30 p-4 sm:p-6">
+    <div class="absolute top-4 right-4">
+      <AuthPagePreferences />
+    </div>
     <div class="w-full max-w-sm rounded-2xl border border-default bg-elevated p-6 shadow-lg sm:p-8">
       <div class="mb-8 space-y-3 text-center">
         <div class="mx-auto inline-flex items-center justify-center">
@@ -87,7 +91,7 @@ async function submit() {
             <span class="text-highlighted">Pic</span><span class="text-primary">Host</span>
           </h1>
           <p class="text-sm text-muted">
-            个人轻量图床
+            {{ t('app.tagline') }}
           </p>
         </div>
       </div>
@@ -102,13 +106,13 @@ async function submit() {
               for="admin-secret"
               class="block text-sm font-medium text-default"
             >
-              管理密钥
+              {{ t('auth.adminSecret') }}
             </label>
             <UInput
               id="admin-secret"
               v-model="secret"
               type="password"
-              placeholder="输入 ADMIN_SECRET"
+              :placeholder="t('auth.adminSecretPlaceholder')"
               autocomplete="current-password"
               size="lg"
               class="w-full"
@@ -116,7 +120,7 @@ async function submit() {
               @keyup.enter="submit"
             />
             <p class="text-xs leading-relaxed text-muted">
-              遗留部署：使用密钥登录后将引导创建账号
+              {{ t('auth.legacyHint') }}
             </p>
           </div>
         </template>
@@ -127,12 +131,12 @@ async function submit() {
               for="login-username"
               class="block text-sm font-medium text-default"
             >
-              用户名
+              {{ t('auth.username') }}
             </label>
             <UInput
               id="login-username"
               v-model="username"
-              placeholder="用户名"
+              :placeholder="t('auth.username')"
               autocomplete="username"
               size="lg"
               class="w-full"
@@ -145,13 +149,13 @@ async function submit() {
               for="login-password"
               class="block text-sm font-medium text-default"
             >
-              密码
+              {{ t('auth.password') }}
             </label>
             <UInput
               id="login-password"
               v-model="password"
               type="password"
-              placeholder="密码"
+              :placeholder="t('auth.password')"
               autocomplete="current-password"
               size="lg"
               class="w-full"
@@ -163,7 +167,7 @@ async function submit() {
 
         <UButton
           type="submit"
-          label="登录"
+          :label="t('auth.login')"
           icon="i-lucide-log-in"
           size="lg"
           block
@@ -176,18 +180,18 @@ async function submit() {
           v-if="allowRegistration"
           class="text-center text-sm text-muted"
         >
-          没有账号？
+          {{ t('auth.noAccount') }}
           <NuxtLink
             to="/register"
             class="text-primary hover:underline"
           >
-            注册
+            {{ t('auth.register') }}
           </NuxtLink>
         </p>
       </form>
 
       <p class="mt-6 text-center text-xs leading-relaxed text-dimmed">
-        未登录时无法访问上传和管理功能
+        {{ t('auth.loginFooter') }}
       </p>
     </div>
   </div>

@@ -11,7 +11,9 @@ const emit = defineEmits<{
   'update:page': [page: number]
 }>()
 
-const unitLabel = computed(() => props.unit ?? '条')
+const { t } = useI18n()
+
+const unitLabel = computed(() => props.unit ?? t('common.itemsUnit'))
 
 function goTo(target: number) {
   if (target < 1 || target > props.totalPages || target === props.page || props.loading) {
@@ -30,13 +32,13 @@ function goTo(target: number) {
       v-if="totalPages > 1"
       class="text-sm text-muted"
     >
-      第 {{ page }} / {{ totalPages }} 页 · 共 {{ total }} {{ unitLabel }}
+      {{ t('pagination.pageOf', { page, totalPages, total, unit: unitLabel }) }}
     </p>
     <p
       v-else
       class="text-sm text-muted"
     >
-      共 {{ total }} {{ unitLabel }}
+      {{ t('pagination.totalOnly', { total, unit: unitLabel }) }}
     </p>
 
     <div
@@ -47,7 +49,7 @@ function goTo(target: number) {
         icon="i-lucide-chevrons-left"
         variant="outline"
         size="sm"
-        aria-label="第一页"
+        :aria-label="t('pagination.first')"
         :disabled="page <= 1 || loading"
         @click="goTo(1)"
       />
@@ -55,7 +57,7 @@ function goTo(target: number) {
         icon="i-lucide-chevron-left"
         variant="outline"
         size="sm"
-        aria-label="上一页"
+        :aria-label="t('pagination.prev')"
         :disabled="page <= 1 || loading"
         @click="goTo(page - 1)"
       />
@@ -63,7 +65,7 @@ function goTo(target: number) {
         icon="i-lucide-chevron-right"
         variant="outline"
         size="sm"
-        aria-label="下一页"
+        :aria-label="t('pagination.next')"
         :disabled="page >= totalPages || loading"
         @click="goTo(page + 1)"
       />
@@ -71,7 +73,7 @@ function goTo(target: number) {
         icon="i-lucide-chevrons-right"
         variant="outline"
         size="sm"
-        aria-label="最后一页"
+        :aria-label="t('pagination.last')"
         :disabled="page >= totalPages || loading"
         @click="goTo(totalPages)"
       />

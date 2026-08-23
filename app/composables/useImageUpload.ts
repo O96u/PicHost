@@ -9,6 +9,7 @@ const MAX_FILES = 10
 
 export function useImageUpload() {
   const toast = useToast()
+  const { t } = useI18n()
   const { compressEnabled, clientWebpQuality } = useUploadPreferences()
   const uploading = ref(false)
   const progressItems = ref<UploadProgressItem[]>([])
@@ -22,13 +23,13 @@ export function useImageUpload() {
     if (uploading.value) return
 
     if (!files.length) {
-      toast.add({ title: '请选择图片', color: 'warning' })
+      toast.add({ title: t('upload.selectImages'), color: 'warning' })
       return
     }
 
     if (files.length > MAX_FILES) {
       toast.add({
-        title: `每次最多上传 ${MAX_FILES} 张图片`,
+        title: t('upload.maxFiles', { n: MAX_FILES }),
         color: 'warning'
       })
       return
@@ -80,14 +81,14 @@ export function useImageUpload() {
 
       if (response.items.length && options?.notify !== false) {
         toast.add({
-          title: `成功上传 ${response.items.length} 张图片`,
+          title: t('upload.uploadSuccess', { n: response.items.length }),
           color: 'success'
         })
       }
 
       if (response.errors.length) {
         toast.add({
-          title: `${response.errors.length} 张图片上传失败`,
+          title: t('upload.uploadPartialFail', { n: response.errors.length }),
           color: 'warning'
         })
       }
@@ -97,7 +98,7 @@ export function useImageUpload() {
       if (isUnauthorizedError(error)) {
         throw error
       }
-      const message = error instanceof Error ? error.message : '上传失败'
+      const message = error instanceof Error ? error.message : t('upload.uploadFailed')
       progressItems.value = progressItems.value.map(item => ({
         ...item,
         status: 'error',
