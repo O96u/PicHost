@@ -2,6 +2,14 @@
 
 本仓库自 **v1.0.0** 起作为正式版维护；此前历史提交已归档重置。
 
+## [1.0.3] - 2026-08-23
+
+### 修复
+
+- 修复 CI typecheck 失败（移动端菜单、i18n、统计页图库刷新）
+- Docker 构建：arm64 改用原生 ARM Runner，避免 QEMU 下 `npm ci` 极慢
+- Docker 构建：启用 npm 缓存挂载，加快依赖安装
+
 ## [1.0.2] - 2026-08-23
 
 ### 新增
@@ -47,6 +55,7 @@
 
 - **v1.1.0**（计划中）：S3、Cloudflare R2 及更多对象存储后端
 
+[1.0.3]: https://github.com/O96u/PicHost/releases/tag/v1.0.3
 [1.0.2]: https://github.com/O96u/PicHost/releases/tag/v1.0.2
 [1.0.1]: https://github.com/O96u/PicHost/releases/tag/v1.0.1
 [1.0.0]: https://github.com/O96u/PicHost/releases/tag/v1.0.0

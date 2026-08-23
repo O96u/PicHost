@@ -188,6 +188,7 @@ export function useImageList() {
     activeSearch,
     listSummary,
     fetchList,
+    fetchSearch,
     fetchTotal,
     refreshList,
     initializeList,

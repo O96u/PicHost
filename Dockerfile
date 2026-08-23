@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+
 FROM node:22-alpine AS build
 
 WORKDIR /app
@@ -6,7 +8,8 @@ WORKDIR /app
 RUN npm install -g npm@11.12.1
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 COPY . .
 RUN npm run build

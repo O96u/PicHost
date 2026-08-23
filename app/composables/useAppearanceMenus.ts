@@ -83,7 +83,9 @@ export function useAppearanceMenus() {
   }
 
   async function setLocalePreference(code: string) {
-    await setLocale(code)
+    if (code === 'zh-CN' || code === 'en') {
+      await setLocale(code)
+    }
   }
 
   return {

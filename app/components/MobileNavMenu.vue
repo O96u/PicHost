@@ -36,6 +36,10 @@ watch(open, (isOpen) => {
 onUnmounted(() => {
   document.removeEventListener('click', onDocumentClick, true)
 })
+
+function toggleOpen() {
+  open.value = !open.value
+}
 </script>
 
 <template>
@@ -50,7 +54,7 @@ onUnmounted(() => {
       icon="i-lucide-menu"
       :aria-label="t('nav.menu')"
       :aria-expanded="open"
-      @click.stop="open = !open"
+      @click.stop="toggleOpen"
     />
 
     <div

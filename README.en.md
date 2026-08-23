@@ -194,7 +194,8 @@ npm test             # Unit tests
 
 | Version | Plan |
 |---------|------|
-| **v1.0.2** | i18n, mobile menus, stats/upload UI, Docker password reset (current) |
+| **v1.0.3** | CI and Docker multi-arch build fixes (current) |
+| **v1.0.2** | i18n, mobile menus, stats/upload UI, Docker password reset |
 | **v1.0.1** | Settings version display, mobile upload preferences layout fix |
 | **v1.0.0** | Local storage, multi-user, API, Twikoo |
 | **v1.1.0** | S3, Cloudflare R2, and more object storage backends |
