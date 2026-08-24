@@ -29,17 +29,17 @@
 
 ## 界面预览
 
-| 登录 | 上传 |
-|:---:|:---:|
+|                登录                 |                 上传                 |
+| :---------------------------------: | :----------------------------------: |
 | ![登录](docs/screenshots/login.png) | ![上传](docs/screenshots/upload.png) |
 
-| 上传偏好 | 统计与图库 |
-|:---:|:---:|
+|                   上传偏好                    |             统计与图库              |
+| :-------------------------------------------: | :---------------------------------: |
 | ![上传偏好](docs/screenshots/preferences.png) | ![统计](docs/screenshots/stats.png) |
 
-| 系统设置 | |
-|:---:|:---:|
-| ![设置](docs/screenshots/settings.png) | |
+|                系统设置                |     |
+| :------------------------------------: | :-: |
+| ![设置](docs/screenshots/settings.png) |     |
 
 ## 特性
 
@@ -100,41 +100,41 @@ npm run dev
 
 ## 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| 前端 | Nuxt 4、Vue 3、Nuxt UI 4、Tailwind CSS 4 |
-| 后端 | Nitro（Node.js）、SQLite |
-| 图片处理 | sharp（WebP 转码与压缩） |
-| 鉴权 | Session Cookie、scrypt 密码哈希、API Token |
-| 存储 | 本地磁盘（`DATA_DIR`） |
-| 部署 | Docker（amd64 / arm64）、docker compose |
-| 测试 | Vitest |
+| 层级     | 技术                                       |
+| -------- | ------------------------------------------ |
+| 前端     | Nuxt 4、Vue 3、Nuxt UI 4、Tailwind CSS 4   |
+| 后端     | Nitro（Node.js）、SQLite                   |
+| 图片处理 | sharp（WebP 转码与压缩）                   |
+| 鉴权     | Session Cookie、scrypt 密码哈希、API Token |
+| 存储     | 本地磁盘（`DATA_DIR`）                     |
+| 部署     | Docker（amd64 / arm64）、docker compose    |
+| 测试     | Vitest                                     |
 
 ## 环境变量
 
-| 变量 | 说明 |
-|------|------|
-| `API_UPLOAD_TOKEN` | 全局上传 Token（`Auth-Token` 头）；未配置可在后台 API 页生成 |
-| `ALLOWED_REFERER_HOSTS` | 防盗链白名单（逗号分隔 hostname） |
-| `IMAGE_BASE_URL` | 图片直链公网域名（反代时建议填写） |
-| `WEBP_QUALITY` | 服务端 WebP 质量 1–100，默认 80 |
-| `AUTO_DELETE_DAYS` | 全局自动删除天数（0 关闭）；仅影响管理员及无归属历史图 |
-| `DATA_DIR` | 数据目录，默认 `/data`（容器）或 `./data`（本地） |
-| `ADMIN_SECRET` | 仅遗留 v1.0 迁移，新安装不需要 |
-| `DEV_BYPASS_ACCESS` | 开发用，跳过登录（生产勿开） |
+| 变量                    | 说明                                                         |
+| ----------------------- | ------------------------------------------------------------ |
+| `API_UPLOAD_TOKEN`      | 全局上传 Token（`Auth-Token` 头）；未配置可在后台 API 页生成 |
+| `ALLOWED_REFERER_HOSTS` | 防盗链白名单（逗号分隔 hostname）                            |
+| `IMAGE_BASE_URL`        | 图片直链公网域名（反代时建议填写）                           |
+| `WEBP_QUALITY`          | 服务端 WebP 质量 1–100，默认 80                              |
+| `AUTO_DELETE_DAYS`      | 全局自动删除天数（0 关闭）；仅影响管理员及无归属历史图       |
+| `DATA_DIR`              | 数据目录，默认 `/data`（容器）或 `./data`（本地）            |
+| `ADMIN_SECRET`          | 仅遗留 v1.0 迁移，新安装不需要                               |
+| `DEV_BYPASS_ACCESS`     | 开发用，跳过登录（生产勿开）                                 |
 
 环境变量优先级高于后台设置。详见 [`.env.example`](.env.example)。
 
 ## 用户与权限
 
-| 场景 | 鉴权 | 图片归属 / 可见范围 |
-|------|------|---------------------|
-| 网页上传 | Session | 当前登录用户 |
-| API 上传 + **个人 Token** | `Auth-Token` | 该 Token 所属用户 |
-| API 上传 + **全局 Token** | `Auth-Token` | 管理员（`userId` 为空） |
-| Twikoo `/api/index.php` | 表单 `token` | 与全局 Token 相同 |
-| 图库列表 / 搜索 / 删除 | Session 或 Token | 普通用户仅自己；管理员全部 |
-| 图片直链 `GET /images/...` | 无（Referer 防盗链） | 知道 URL 即可访问 |
+| 场景                       | 鉴权                 | 图片归属 / 可见范围        |
+| -------------------------- | -------------------- | -------------------------- |
+| 网页上传                   | Session              | 当前登录用户               |
+| API 上传 + **个人 Token**  | `Auth-Token`         | 该 Token 所属用户          |
+| API 上传 + **全局 Token**  | `Auth-Token`         | 管理员（`userId` 为空）    |
+| Twikoo `/api/index.php`    | 表单 `token`         | 与全局 Token 相同          |
+| 图库列表 / 搜索 / 删除     | Session 或 Token     | 普通用户仅自己；管理员全部 |
+| 图片直链 `GET /images/...` | 无（Referer 防盗链） | 知道 URL 即可访问          |
 
 普通用户上传目录固定为 `images/`；自定义 `folder` 仅管理员或全局 Token 可用。
 
@@ -152,12 +152,12 @@ npm run dev
 
 ## API 概览
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/images/upload` | 上传图片 |
-| GET | `/api/images` | 分页列表 |
-| DELETE | `/api/images` | 删除单张（`key`） |
-| POST | `/api/index.php` | Twikoo / EasyImage 2.0 |
+| 方法   | 路径                 | 说明                   |
+| ------ | -------------------- | ---------------------- |
+| POST   | `/api/images/upload` | 上传图片               |
+| GET    | `/api/images`        | 分页列表               |
+| DELETE | `/api/images`        | 删除单张（`key`）      |
+| POST   | `/api/index.php`     | Twikoo / EasyImage 2.0 |
 
 上传示例：
 
@@ -172,11 +172,11 @@ curl -X POST "https://pic.example.com/api/images/upload" \
 
 ## Twikoo
 
-| 配置项 | 值 |
-|--------|-----|
-| `IMAGE_CDN` | `easyimage` |
-| `IMAGE_CDN_URL` | `https://你的域名/api/index.php` |
-| `IMAGE_CDN_TOKEN` | 与 `API_UPLOAD_TOKEN` 相同 |
+| 配置项            | 值                               |
+| ----------------- | -------------------------------- |
+| `IMAGE_CDN`       | `easyimage`                      |
+| `IMAGE_CDN_URL`   | `https://你的域名/api/index.php` |
+| `IMAGE_CDN_TOKEN` | 与 `API_UPLOAD_TOKEN` 相同       |
 
 ## 反向代理
 
@@ -197,14 +197,18 @@ npm test             # 单元测试
 
 ## 路线图
 
-| 版本 | 计划 |
-|------|------|
-| **v1.0.3** | CI 与 Docker 多架构构建修复（当前） |
+| 版本       | 计划                                              |
+| ---------- | ------------------------------------------------- |
+| **v1.0.3** | CI 与 Docker 多架构构建修复（当前）               |
 | **v1.0.2** | 中英文、移动端菜单、统计/上传 UI、Docker 重置密码 |
-| **v1.0.1** | 设置页版本展示、移动端上传偏好布局修复 |
-| **v1.0.0** | 本地存储、多用户、API、Twikoo |
-| **v1.1.0** | S3、Cloudflare R2 等对象存储后端 |
+| **v1.0.1** | 设置页版本展示、移动端上传偏好布局修复            |
+| **v1.0.0** | 本地存储、多用户、API、Twikoo                     |
+| **v1.1.0** | S3、Cloudflare R2 等对象存储后端                  |
 
 ## License
 
 [MIT](LICENSE)
+
+## 友链
+
+[LINUX DO](https://linux.do/)

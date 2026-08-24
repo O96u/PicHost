@@ -29,17 +29,17 @@
 
 ## Screenshots
 
-| Login | Upload |
-|:---:|:---:|
+|                Login                 |                 Upload                 |
+| :----------------------------------: | :------------------------------------: |
 | ![Login](docs/screenshots/login.png) | ![Upload](docs/screenshots/upload.png) |
 
-| Upload preferences | Stats & gallery |
-|:---:|:---:|
+|                Upload preferences                |           Stats & gallery            |
+| :----------------------------------------------: | :----------------------------------: |
 | ![Preferences](docs/screenshots/preferences.png) | ![Stats](docs/screenshots/stats.png) |
 
-| Settings | |
-|:---:|:---:|
-| ![Settings](docs/screenshots/settings.png) | |
+|                  Settings                  |     |
+| :----------------------------------------: | :-: |
+| ![Settings](docs/screenshots/settings.png) |     |
 
 ## Features
 
@@ -95,41 +95,41 @@ If you only had `ADMIN_SECRET` and no user table, log in with the secret once an
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | Nuxt 4, Vue 3, Nuxt UI 4, Tailwind CSS 4 |
-| Backend | Nitro (Node.js), SQLite |
-| Images | sharp (WebP transcoding & compression) |
-| Auth | Session cookie, scrypt password hashing, API tokens |
-| Storage | Local disk (`DATA_DIR`) |
-| Deploy | Docker (amd64 / arm64), docker compose |
-| Tests | Vitest |
+| Layer    | Technology                                          |
+| -------- | --------------------------------------------------- |
+| Frontend | Nuxt 4, Vue 3, Nuxt UI 4, Tailwind CSS 4            |
+| Backend  | Nitro (Node.js), SQLite                             |
+| Images   | sharp (WebP transcoding & compression)              |
+| Auth     | Session cookie, scrypt password hashing, API tokens |
+| Storage  | Local disk (`DATA_DIR`)                             |
+| Deploy   | Docker (amd64 / arm64), docker compose              |
+| Tests    | Vitest                                              |
 
 ## Environment variables
 
-| Variable | Description |
-|----------|-------------|
-| `API_UPLOAD_TOKEN` | Global upload token (`Auth-Token` header); can be generated in the API page |
-| `ALLOWED_REFERER_HOSTS` | Hotlink allowlist (comma-separated hostnames) |
-| `IMAGE_BASE_URL` | Public base URL for image links |
-| `WEBP_QUALITY` | Server WebP quality 1–100, default 80 |
-| `AUTO_DELETE_DAYS` | Global auto-delete days (0 = off); admin + orphan images only |
-| `DATA_DIR` | Data directory, default `/data` (container) or `./data` (local) |
-| `ADMIN_SECRET` | Legacy v1.0 migration only |
-| `DEV_BYPASS_ACCESS` | Dev only — bypass auth (never in production) |
+| Variable                | Description                                                                 |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `API_UPLOAD_TOKEN`      | Global upload token (`Auth-Token` header); can be generated in the API page |
+| `ALLOWED_REFERER_HOSTS` | Hotlink allowlist (comma-separated hostnames)                               |
+| `IMAGE_BASE_URL`        | Public base URL for image links                                             |
+| `WEBP_QUALITY`          | Server WebP quality 1–100, default 80                                       |
+| `AUTO_DELETE_DAYS`      | Global auto-delete days (0 = off); admin + orphan images only               |
+| `DATA_DIR`              | Data directory, default `/data` (container) or `./data` (local)             |
+| `ADMIN_SECRET`          | Legacy v1.0 migration only                                                  |
+| `DEV_BYPASS_ACCESS`     | Dev only — bypass auth (never in production)                                |
 
 Environment variables override database settings. See [`.env.example`](.env.example).
 
 ## Users & permissions
 
-| Scenario | Auth | Ownership / visibility |
-|----------|------|------------------------|
-| Web upload | Session | Current user |
-| API upload + **user token** | `Auth-Token` | Token owner |
-| API upload + **global token** | `Auth-Token` | Admin (`userId` null) |
-| Twikoo `/api/index.php` | form `token` | Same as global token |
-| Gallery list / search / delete | Session or token | Users: own only; admin: all |
-| Direct link `GET /images/...` | None (Referer rules) | Public if URL is known |
+| Scenario                       | Auth                 | Ownership / visibility      |
+| ------------------------------ | -------------------- | --------------------------- |
+| Web upload                     | Session              | Current user                |
+| API upload + **user token**    | `Auth-Token`         | Token owner                 |
+| API upload + **global token**  | `Auth-Token`         | Admin (`userId` null)       |
+| Twikoo `/api/index.php`        | form `token`         | Same as global token        |
+| Gallery list / search / delete | Session or token     | Users: own only; admin: all |
+| Direct link `GET /images/...`  | None (Referer rules) | Public if URL is known      |
 
 Regular users are limited to the `images/` folder; custom `folder` requires admin or global token.
 
@@ -147,12 +147,12 @@ Pattern: `folder/YYYY/MM/randomId.webp` + `.meta.json`. Back up the entire `/dat
 
 ## API overview
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/images/upload` | Upload image |
-| GET | `/api/images` | Paginated list |
-| DELETE | `/api/images` | Delete one (`key`) |
-| POST | `/api/index.php` | Twikoo / EasyImage 2.0 |
+| Method | Path                 | Description            |
+| ------ | -------------------- | ---------------------- |
+| POST   | `/api/images/upload` | Upload image           |
+| GET    | `/api/images`        | Paginated list         |
+| DELETE | `/api/images`        | Delete one (`key`)     |
+| POST   | `/api/index.php`     | Twikoo / EasyImage 2.0 |
 
 Upload example:
 
@@ -167,11 +167,11 @@ Full docs and copyable cURL snippets are on the **API** page after deployment.
 
 ## Twikoo
 
-| Setting | Value |
-|---------|-------|
-| `IMAGE_CDN` | `easyimage` |
-| `IMAGE_CDN_URL` | `https://your-domain/api/index.php` |
-| `IMAGE_CDN_TOKEN` | Same as `API_UPLOAD_TOKEN` |
+| Setting           | Value                               |
+| ----------------- | ----------------------------------- |
+| `IMAGE_CDN`       | `easyimage`                         |
+| `IMAGE_CDN_URL`   | `https://your-domain/api/index.php` |
+| `IMAGE_CDN_TOKEN` | Same as `API_UPLOAD_TOKEN`          |
 
 ## Reverse proxy
 
@@ -192,14 +192,18 @@ npm test             # Unit tests
 
 ## Roadmap
 
-| Version | Plan |
-|---------|------|
-| **v1.0.3** | CI and Docker multi-arch build fixes (current) |
-| **v1.0.2** | i18n, mobile menus, stats/upload UI, Docker password reset |
+| Version    | Plan                                                           |
+| ---------- | -------------------------------------------------------------- |
+| **v1.0.3** | CI and Docker multi-arch build fixes (current)                 |
+| **v1.0.2** | i18n, mobile menus, stats/upload UI, Docker password reset     |
 | **v1.0.1** | Settings version display, mobile upload preferences layout fix |
-| **v1.0.0** | Local storage, multi-user, API, Twikoo |
-| **v1.1.0** | S3, Cloudflare R2, and more object storage backends |
+| **v1.0.0** | Local storage, multi-user, API, Twikoo                         |
+| **v1.1.0** | S3, Cloudflare R2, and more object storage backends            |
 
 ## License
 
 [MIT](LICENSE)
+
+## Friend links
+
+[LINUX DO](https://linux.do/)
