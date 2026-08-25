@@ -64,6 +64,8 @@
     "setupFailed": "初始化失败，请检查输入",
     "migrateFailed": "迁移失败，请检查输入",
     "passwordMismatch": "两次输入的密码不一致",
+    "showPassword": "显示密码",
+    "hidePassword": "隐藏密码",
     "registerSuccess": "注册成功",
     "errors": {
       "invalidUsername": "用户名需为 3–32 位字母、数字或下划线",
@@ -93,7 +95,6 @@
     "new": "新密码",
     "confirmNew": "确认新密码",
     "newPlaceholder": "设置新密码",
-    "mismatch": "两次输入的新密码不一致",
     "changed": "密码已修改",
     "tooShort": "新密码至少 8 位",
     "changeFailed": "修改密码失败",

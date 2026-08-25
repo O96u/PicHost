@@ -22,7 +22,7 @@ const canSubmit = computed(() =>
 
 onMounted(async () => {
   const status = await fetchStatus()
-  if (!status.initialized) {
+  if (!status.initialized && !status.legacyMode) {
     await router.replace('/setup')
     return
   }
@@ -118,15 +118,11 @@ async function submit() {
           >
             {{ t('auth.password') }}
           </label>
-          <UInput
+          <PasswordInput
             id="register-password"
             v-model="password"
-            type="password"
             :placeholder="t('setup.passwordPlaceholder')"
             autocomplete="new-password"
-            size="lg"
-            class="w-full"
-            :ui="{ root: 'w-full' }"
           />
           <PasswordStrength :password="password" />
         </div>
@@ -138,15 +134,11 @@ async function submit() {
           >
             {{ t('auth.confirmPassword') }}
           </label>
-          <UInput
+          <PasswordInput
             id="register-confirm"
             v-model="confirmPassword"
-            type="password"
             :placeholder="t('setup.confirmPlaceholder')"
             autocomplete="new-password"
-            size="lg"
-            class="w-full"
-            :ui="{ root: 'w-full' }"
           />
         </div>
 

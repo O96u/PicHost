@@ -9,7 +9,8 @@ const { setup, migrate, fetchStatus } = useAuth()
 const toast = useToast()
 const { t } = useI18n()
 
-const isMigrate = computed(() => route.query.migrate === '1')
+const needsMigration = ref(false)
+const isMigrate = computed(() => needsMigration.value || route.query.migrate === '1')
 
 const username = ref('')
 const password = ref('')
@@ -26,6 +27,11 @@ const canSubmit = computed(() =>
 
 onMounted(async () => {
   const status = await fetchStatus()
+  needsMigration.value = status.needsMigration
+  if (status.legacyMode && !status.needsMigration) {
+    await router.replace('/')
+    return
+  }
   if (status.initialized && !status.needsMigration) {
     await router.replace('/')
   }
@@ -129,15 +135,11 @@ async function submit() {
           >
             {{ t('auth.password') }}
           </label>
-          <UInput
+          <PasswordInput
             id="setup-password"
             v-model="password"
-            type="password"
             :placeholder="t('setup.passwordPlaceholder')"
             autocomplete="new-password"
-            size="lg"
-            class="w-full"
-            :ui="{ root: 'w-full' }"
           />
           <PasswordStrength :password="password" />
         </div>
@@ -149,15 +151,11 @@ async function submit() {
           >
             {{ t('auth.confirmPassword') }}
           </label>
-          <UInput
+          <PasswordInput
             id="setup-confirm"
             v-model="confirmPassword"
-            type="password"
             :placeholder="t('setup.confirmPlaceholder')"
             autocomplete="new-password"
-            size="lg"
-            class="w-full"
-            :ui="{ root: 'w-full' }"
           />
         </div>
 

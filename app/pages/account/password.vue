@@ -38,7 +38,7 @@ async function submit() {
   if (!canSubmit.value || loading.value) return
 
   if (newPassword.value !== confirmPassword.value) {
-    toast.add({ title: t('password.mismatch'), color: 'error' })
+    toast.add({ title: t('auth.passwordMismatch'), color: 'error' })
     return
   }
 
@@ -101,14 +101,10 @@ async function submit() {
             >
               {{ t('password.current') }}
             </label>
-            <UInput
+            <PasswordInput
               id="current-password"
               v-model="currentPassword"
-              type="password"
               autocomplete="current-password"
-              size="lg"
-              class="w-full"
-              :ui="{ root: 'w-full' }"
             />
           </div>
 
@@ -119,15 +115,11 @@ async function submit() {
             >
               {{ t('password.new') }}
             </label>
-            <UInput
+            <PasswordInput
               id="new-password"
               v-model="newPassword"
-              type="password"
               :placeholder="t('password.newPlaceholder')"
               autocomplete="new-password"
-              size="lg"
-              class="w-full"
-              :ui="{ root: 'w-full' }"
             />
             <PasswordStrength :password="newPassword" />
           </div>
@@ -139,14 +131,10 @@ async function submit() {
             >
               {{ t('password.confirmNew') }}
             </label>
-            <UInput
+            <PasswordInput
               id="confirm-new-password"
               v-model="confirmPassword"
-              type="password"
               autocomplete="new-password"
-              size="lg"
-              class="w-full"
-              :ui="{ root: 'w-full' }"
             />
           </div>
 

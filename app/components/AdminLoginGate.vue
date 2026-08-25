@@ -2,10 +2,6 @@
 import logoLight from '~/assets/image/logo-light.png'
 import logoDark from '~/assets/image/logo-dark.png'
 
-const emit = defineEmits<{
-  success: []
-}>()
-
 const router = useRouter()
 const { login, fetchStatus, authStatus } = useAuth()
 const toast = useToast()
@@ -47,7 +43,6 @@ async function submit() {
       username.value = ''
       password.value = ''
       secret.value = ''
-      emit('success')
       toast.add({ title: t('auth.loginSuccess'), color: 'success' })
     } else {
       toast.add({
@@ -108,15 +103,11 @@ async function submit() {
             >
               {{ t('auth.adminSecret') }}
             </label>
-            <UInput
+            <PasswordInput
               id="admin-secret"
               v-model="secret"
-              type="password"
               :placeholder="t('auth.adminSecretPlaceholder')"
               autocomplete="current-password"
-              size="lg"
-              class="w-full"
-              :ui="{ root: 'w-full' }"
               @keyup.enter="submit"
             />
             <p class="text-xs leading-relaxed text-muted">
@@ -151,15 +142,11 @@ async function submit() {
             >
               {{ t('auth.password') }}
             </label>
-            <UInput
+            <PasswordInput
               id="login-password"
               v-model="password"
-              type="password"
               :placeholder="t('auth.password')"
               autocomplete="current-password"
-              size="lg"
-              class="w-full"
-              :ui="{ root: 'w-full' }"
               @keyup.enter="submit"
             />
           </div>
