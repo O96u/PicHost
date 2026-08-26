@@ -161,11 +161,15 @@ onMounted(async () => {
   await checkSession()
   if (isAuthenticated.value && !isAdmin.value) {
     await navigateTo('/')
+    return
+  }
+  if (isAuthenticated.value && isAdmin.value) {
+    await loadPage()
   }
 })
 
-watch(isAuthenticated, async (authed) => {
-  if (authed) {
+watch(isAuthenticated, async (authed, prev) => {
+  if (authed && prev === false) {
     if (!isAdmin.value) {
       await navigateTo('/')
       return

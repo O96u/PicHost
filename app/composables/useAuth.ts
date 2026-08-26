@@ -71,8 +71,10 @@ export function useAuth() {
   const status = useState<AuthStatus>('auth-status', () => 'checking')
   const user = useState<AuthUser | null>('auth-user', () => null)
   const authStatus = useState<AuthStatusResponse | null>('auth-status-response', () => null)
+  /** 是否已完成至少一次会话校验（用于避免路由切换时反复全屏 loading） */
+  const hasValidatedOnce = useState('auth-validated-once', () => false)
 
-  const isChecking = computed(() => status.value === 'checking')
+  const isChecking = computed(() => status.value === 'checking' && !hasValidatedOnce.value)
   const isAuthenticated = computed(() => status.value === 'authenticated')
   const isAdmin = computed(() => user.value?.role === 'admin')
 
@@ -84,10 +86,14 @@ export function useAuth() {
     return data
   }
 
-  async function checkSession() {
-    status.value = 'checking'
+  async function checkSession(options?: { force?: boolean }) {
+    const silent = !options?.force && hasValidatedOnce.value
+    if (!silent) {
+      status.value = 'checking'
+    }
     try {
       const data = await fetchStatus()
+      hasValidatedOnce.value = true
       if (data.user) {
         user.value = data.user
         status.value = 'authenticated'
@@ -97,6 +103,7 @@ export function useAuth() {
       status.value = 'unauthenticated'
       return false
     } catch {
+      hasValidatedOnce.value = true
       user.value = null
       status.value = 'unauthenticated'
       return false
@@ -129,6 +136,7 @@ export function useAuth() {
         user.value = result.user
       }
       status.value = 'authenticated'
+      hasValidatedOnce.value = true
       await fetchStatus()
       return { ok: true }
     } catch (error: unknown) {
@@ -159,6 +167,7 @@ export function useAuth() {
       )
       user.value = result.user
       status.value = 'authenticated'
+      hasValidatedOnce.value = true
       await fetchStatus()
       return { ok: true }
     } catch (error: unknown) {
@@ -194,6 +203,7 @@ export function useAuth() {
       )
       user.value = result.user
       status.value = 'authenticated'
+      hasValidatedOnce.value = true
       await fetchStatus()
       return { ok: true }
     } catch (error: unknown) {
@@ -229,6 +239,7 @@ export function useAuth() {
       )
       user.value = result.user
       status.value = 'authenticated'
+      hasValidatedOnce.value = true
       await fetchStatus()
       return { ok: true }
     } catch (error: unknown) {
@@ -271,6 +282,7 @@ export function useAuth() {
       status.value = 'unauthenticated'
       user.value = null
       authStatus.value = null
+      hasValidatedOnce.value = true
     }
   }
 

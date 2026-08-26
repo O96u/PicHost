@@ -1,5 +1,6 @@
 import { requireAdminAuth } from '../../utils/access'
 import { createApiError } from '../../utils/api-error'
+import { logException } from '../../utils/logger'
 import {
   listActivityLogs,
   type LogAction,
@@ -58,7 +59,7 @@ export default defineEventHandler(async (event) => {
       totalPages: result.totalPages
     }
   } catch (error) {
-    console.error('[logs] list failed', error)
+    logException('activity logs list failed', error)
     createApiError(event, 'INVALID_REQUEST', '读取操作记录失败', 500)
   }
 })

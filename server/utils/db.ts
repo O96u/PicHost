@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { getDataDir } from './data-dir'
+import { logException } from './logger'
 
 export type LogAction = 'upload' | 'delete'
 export type LogSource = 'web' | 'api' | 'twikoo'
@@ -404,7 +405,10 @@ export function insertActivityLog(input: ActivityLogInput): void {
       createdAt
     )
   } catch (error) {
-    console.error('[activity-log] insert failed', error)
+    logException('activity-log insert failed', error, {
+      action: input.action,
+      key: input.key
+    })
   }
 }
 

@@ -240,10 +240,13 @@ onMounted(async () => {
     return
   }
   await checkSession()
+  if (isAuthenticated.value) {
+    await loadSettings()
+  }
 })
 
-watch(isAuthenticated, async (authed) => {
-  if (authed) {
+watch(isAuthenticated, async (authed, prev) => {
+  if (authed && prev === false) {
     await nextTick()
     await loadSettings()
   } else {

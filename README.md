@@ -32,7 +32,7 @@
 
 | 分支 | 说明 |
 | ---- | ---- |
-| [**main**](https://github.com/O96u/PicHost/tree/main)（默认） | **v1.1.0** 主线：本地磁盘 + 多对象存储后端（R2 / COS / OSS / AWS）、[`/storage`](docs/README.md) 存储管理、混合直链 |
+| [**main**](https://github.com/O96u/PicHost/tree/main)（默认） | **v1.1.1** 主线：本地磁盘 + 多对象存储后端（R2 / COS / OSS / AWS）、[`/storage`](docs/README.md) 存储管理、混合直链 |
 | [**cloudflare**](https://github.com/O96u/PicHost/tree/cloudflare) | **Cloudflare R2 专用线**：面向「只用 R2」的部署，预设与配置更聚焦 R2 |
 
 日常使用、需要管理多种存储后端，请直接用 **main**。
@@ -198,7 +198,8 @@ npm test             # 单元测试
 
 | 版本       | 说明                                              |
 | ---------- | ------------------------------------------------- |
-| **v1.1.0** | S3 / R2 多后端对象存储、混合直链、存储管理页（当前 main） |
+| **v1.1.1** | 会话校验与存储占位修复、Docker 日志增强（当前 main） |
+| **v1.1.0** | S3 / R2 多后端对象存储、混合直链、存储管理页          |
 | **v1.0.4** | 密码显示切换、遗留 ADMIN_SECRET 迁移对齐          |
 | **v1.0.3** | CI 与 Docker 多架构构建修复                       |
 | **v1.0.2** | 中英文、移动端菜单、统计/上传 UI、Docker 重置密码 |

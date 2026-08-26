@@ -2,6 +2,18 @@
 
 本仓库自 **v1.0.0** 起作为正式版维护；此前历史提交已归档重置。
 
+## [1.1.1] - 2026-08-26
+
+### 修复
+
+- 移除启动时自动创建的空白「S3 兼容存储」占位；升级后自动清理旧占位记录
+- 修复管理页切换路由时反复闪现「正在验证登录状态」
+- 修复静默会话校验后设置 / 统计 / API 页不加载数据
+
+### 改进
+
+- Docker 日志：4xx/5xx 分级输出，记录错误原因与堆栈；上传/启动任务失败写入详细错误
+
 ## [1.1.0] - 2026-08-26
 
 ### 新增
@@ -83,8 +95,9 @@
 
 ### 路线图
 
-- **v1.1.0**（当前 `main`）：S3、Cloudflare R2 等多后端对象存储
+- **v1.1.1**（当前 `main`）：会话校验与存储占位修复、Docker 日志增强
 
+[1.1.1]: https://github.com/O96u/PicHost/releases/tag/v1.1.1
 [1.1.0]: https://github.com/O96u/PicHost/releases/tag/v1.1.0
 [1.0.4]: https://github.com/O96u/PicHost/releases/tag/v1.0.4
 [1.0.3]: https://github.com/O96u/PicHost/releases/tag/v1.0.3

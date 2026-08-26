@@ -71,18 +71,37 @@ export function ensureDefaultBackends(): void {
     `).run(LOCAL_BACKEND_ID, '本地磁盘')
   }
 
-  const s3 = db.prepare(`
-    SELECT id FROM storage_backends WHERE id = ?
-  `).get(S3_BACKEND_ID)
+  cleanupPlaceholderS3Backend(db)
+}
 
-  if (!s3) {
-    db.prepare(`
-      INSERT INTO storage_backends
-        (id, name, type, config_json, secret_json, serving_mode, public_url,
-         quota_bytes, enabled, is_default, sort_order)
-      VALUES (?, ?, 's3', '{}', '{}', 'proxy', '', NULL, 0, 0, 1)
-    `).run(S3_BACKEND_ID, 'S3 兼容存储')
+/** 移除早期版本自动种下的空 S3 占位（未配置、未启用、非默认、无图片） */
+function cleanupPlaceholderS3Backend(db: DatabaseSync): void {
+  const row = db.prepare(`
+    SELECT * FROM storage_backends WHERE id = ?
+  `).get(S3_BACKEND_ID) as StorageBackendRow | undefined
+
+  if (!row || row.type !== 's3' || row.is_default === 1) {
+    return
   }
+
+  const config = parseS3Config(row.config_json)
+  const secrets = parseS3Secrets(row.secret_json)
+  const configured = Boolean(
+    config?.bucket?.trim()
+    || config?.endpoint?.trim()
+    || secrets?.accessKeyId?.trim()
+    || secrets?.secretAccessKey?.trim()
+  )
+  if (configured) {
+    return
+  }
+
+  const usage = getBackendUsageStats(S3_BACKEND_ID)
+  if (usage.count > 0) {
+    return
+  }
+
+  db.prepare('DELETE FROM storage_backends WHERE id = ?').run(S3_BACKEND_ID)
 }
 
 function rowToInfo(row: StorageBackendRow, _maskSecrets = true): StorageBackendInfo & {

@@ -316,6 +316,9 @@ onMounted(async () => {
     return
   }
   await checkSession()
+  if (isAuthenticated.value) {
+    await refreshAll()
+  }
 })
 
 onUnmounted(() => {

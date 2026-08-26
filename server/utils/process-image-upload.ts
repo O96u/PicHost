@@ -17,7 +17,7 @@ import { buildImageItem, sanitizeOriginalName } from './image-response'
 import { getWebpQuality } from './env'
 import { insertActivityLog } from './db'
 import { putImage } from './storage'
-import { logInfo, logWarn } from './logger'
+import { logInfo, logException } from './logger'
 
 /** 可转 WebP 的位图格式；SVG（矢量）、ICO、已是 WebP 的原样存储 */
 const WEBP_CONVERTIBLE: readonly AllowedMimeType[] = [
@@ -136,8 +136,8 @@ export async function processSingleImageUpload(
       size: compressed.bytes.byteLength,
       userId: input.userId ?? null
     })
-  } catch {
-    logWarn('upload failed: storage error', {
+  } catch (error) {
+    logException('upload failed: storage error', error, {
       name: originalName,
       source: input.source ?? 'web'
     })

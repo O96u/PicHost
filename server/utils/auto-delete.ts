@@ -2,7 +2,7 @@ import { insertActivityLog, listAdminUserIds, listUserAutoDeletePolicies, type A
 import { getGlobalAutoDeletePolicy } from './env'
 import { deleteImage, type StoredImage } from './storage'
 import { listImageKeysForAutoDelete } from './image-index'
-import { logInfo, logWarn } from './logger'
+import { logInfo, logWarn, serializeError } from './logger'
 
 export interface AutoDeleteResult {
   deleted: number
@@ -95,7 +95,7 @@ export async function runAutoDeleteCleanup(): Promise<AutoDeleteResult> {
       })
       deleted++
     } catch (error) {
-      logWarn('auto-delete failed', { key: image.key, error })
+      logWarn('auto-delete failed', { key: image.key, error: serializeError(error) })
       failed++
     }
   }

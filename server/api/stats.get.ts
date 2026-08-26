@@ -1,5 +1,6 @@
 import { getImageUserFilter, requireUserAuth } from '../utils/access'
 import { createApiError } from '../utils/api-error'
+import { logException } from '../utils/logger'
 import { countUsers, getActivityStats } from '../utils/db'
 import {
   countImages,
@@ -46,7 +47,7 @@ export default defineEventHandler(async (event) => {
       byFolder: scoped.byFolder
     }
   } catch (error) {
-    console.error('[stats] failed', error)
+    logException('stats failed', error)
     createApiError(event, 'INVALID_REQUEST', '读取统计失败', 500)
   }
 })

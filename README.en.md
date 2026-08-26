@@ -32,7 +32,7 @@
 
 | Branch | Notes |
 | ------ | ----- |
-| [**main**](https://github.com/O96u/PicHost/tree/main) (default) | **v1.1.0** — local disk + multi-backend object storage (R2 / COS / OSS / AWS), [`/storage`](docs/README.md) UI, hybrid URLs |
+| [**main**](https://github.com/O96u/PicHost/tree/main) (default) | **v1.1.1** — local disk + multi-backend object storage (R2 / COS / OSS / AWS), [`/storage`](docs/README.md) UI, hybrid URLs |
 | [**cloudflare**](https://github.com/O96u/PicHost/tree/cloudflare) | **Cloudflare R2–only line** — streamlined for deployments that use R2 exclusively |
 
 Use **main** for the full product and multiple cloud backends.
@@ -193,7 +193,8 @@ npm test             # Unit tests
 
 | Version    | Plan                                                           |
 | ---------- | -------------------------------------------------------------- |
-| **v1.1.0** | Multi-backend object storage, hybrid URLs, storage UI (current `main`) |
+| **v1.1.1** | Session check fixes, storage placeholder cleanup, Docker logging (current `main`) |
+| **v1.1.0** | Multi-backend object storage, hybrid URLs, storage UI |
 | **v1.0.4** | Password visibility toggle, legacy ADMIN_SECRET migration      |
 | **v1.0.3** | CI and Docker multi-arch build fixes                           |
 | **v1.0.2** | i18n, mobile menus, stats/upload UI, Docker password reset     |
