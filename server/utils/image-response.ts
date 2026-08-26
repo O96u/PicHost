@@ -3,6 +3,10 @@ import type { ImageItem } from '~/types/image'
 import type { AllowedMimeType } from './constants'
 import type { StoredImage } from './storage'
 import { getImageBaseUrl } from './env'
+import { getActiveBackendRow } from './storage/resolver'
+import { getStorageBackendRow, getStorageBackendFromEnv } from './storage-backends'
+import { buildObjectKey, parseS3Config } from './storage/s3'
+import type { StorageBackendRow } from './storage/types'
 
 export function resolveImageOwner(
   userId: number | null | undefined,
@@ -27,7 +31,8 @@ export function mapStoredImageToItem(
 ): ImageItem {
   const item = buildImageItem({
     key: stored.key,
-    baseUrl: getImageBaseUrl(event),
+    event,
+    backendId: stored.backendId,
     originalName: stored.originalName,
     contentType: stored.contentType,
     size: stored.size,
@@ -45,6 +50,42 @@ export function mapStoredImageToItem(
 export function buildImageUrl(baseUrl: string, key: string): string {
   const normalizedBase = baseUrl.replace(/\/$/, '')
   return `${normalizedBase}/${key}`
+}
+
+export function buildPublicImageUrl(backendRow: StorageBackendRow, key: string): string {
+  const base = backendRow.public_url.replace(/\/$/, '')
+  if (backendRow.type === 's3') {
+    const config = parseS3Config(backendRow.config_json)
+    const objectKey = buildObjectKey(config?.prefix, key)
+    return `${base}/${objectKey}`
+  }
+  return `${base}/${key}`
+}
+
+export function resolveImageUrl(
+  event: H3Event,
+  key: string,
+  backendId?: string
+): string {
+  const envConfig = getStorageBackendFromEnv()
+  if (envConfig && (!backendId || backendId === 's3-primary')) {
+    if (envConfig.servingMode === 'public' && envConfig.publicUrl) {
+      const prefix = envConfig.config.prefix as string | undefined
+      const objectKey = buildObjectKey(prefix, key)
+      return `${envConfig.publicUrl.replace(/\/$/, '')}/${objectKey}`
+    }
+    return buildImageUrl(getImageBaseUrl(event), key)
+  }
+
+  const backendRow = backendId
+    ? getStorageBackendRow(backendId)
+    : getActiveBackendRow()
+
+  if (backendRow?.serving_mode === 'public' && backendRow.public_url) {
+    return buildPublicImageUrl(backendRow, key)
+  }
+
+  return buildImageUrl(getImageBaseUrl(event), key)
 }
 
 export function buildMarkdown(url: string, alt: string): string {
@@ -68,13 +109,17 @@ function escapeHtml(value: string): string {
 
 export function buildImageItem(input: {
   key: string
-  baseUrl: string
+  baseUrl?: string
+  event?: H3Event
+  backendId?: string
   originalName: string
   contentType: AllowedMimeType | string
   size: number
   uploadedAt: string
 }) {
-  const url = buildImageUrl(input.baseUrl, input.key)
+  const url = input.event
+    ? resolveImageUrl(input.event, input.key, input.backendId)
+    : buildImageUrl(input.baseUrl ?? '', input.key)
   const alt = sanitizeOriginalName(input.originalName)
 
   return {

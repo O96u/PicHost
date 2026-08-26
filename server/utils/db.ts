@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { getDataDir } from './storage'
+import { getDataDir } from './data-dir'
 
 export type LogAction = 'upload' | 'delete'
 export type LogSource = 'web' | 'api' | 'twikoo'
@@ -29,7 +29,7 @@ export interface ActivityLogInput {
 
 let db: DatabaseSync | null = null
 
-function getDb(): DatabaseSync {
+export function getDb(): DatabaseSync {
   if (db) return db
 
   const dataDir = getDataDir()

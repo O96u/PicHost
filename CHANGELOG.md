@@ -2,6 +2,21 @@
 
 本仓库自 **v1.0.0** 起作为正式版维护；此前历史提交已归档重置。
 
+## [1.1.0] - 2026-08-26
+
+### 新增
+
+- S3 兼容对象存储后端（R2 / AWS S3 / 腾讯云 COS / 阿里云 OSS）
+- `storage_backends` + `images` 索引表，列表/搜索/统计改查 SQLite
+- 混合直链：`proxy`（默认，PicHost 代理）与 `public`（302 到 CDN）
+- 管理员 `/storage` 存储管理页：多后端卡片、用量条、添加/编辑/删除云存储实例
+- 可选环境变量覆盖存储配置（`STORAGE_BACKEND`、`S3_*`）
+
+### 改进
+
+- 启动时自动将本地磁盘图片扫描迁入 `images` 索引（幂等）
+- 上传/删除/直链/auto-delete 按 `backend_id` 路由到对应后端
+
 ## [1.0.4] - 2026-08-25
 
 ### 新增
@@ -68,8 +83,10 @@
 
 ### 路线图
 
-- **v1.1.0**（计划中）：S3、Cloudflare R2 及更多对象存储后端
+- **v1.1.0**（当前 `main`）：S3、Cloudflare R2 等多后端对象存储
 
+[1.1.0]: https://github.com/O96u/PicHost/releases/tag/v1.1.0
+[1.0.4]: https://github.com/O96u/PicHost/releases/tag/v1.0.4
 [1.0.3]: https://github.com/O96u/PicHost/releases/tag/v1.0.3
 [1.0.2]: https://github.com/O96u/PicHost/releases/tag/v1.0.2
 [1.0.1]: https://github.com/O96u/PicHost/releases/tag/v1.0.1

@@ -1,5 +1,7 @@
-import { getDataDir } from '../utils/storage'
+import { getDataDir } from '../utils/data-dir'
 import { runAutoDeleteCleanup } from '../utils/auto-delete'
+import { migrateLocalImagesToIndex } from '../utils/image-index'
+import { ensureDefaultBackends } from '../utils/storage-backends'
 import { logInfo } from '../utils/logger'
 
 export default defineNitroPlugin(() => {
@@ -9,7 +11,15 @@ export default defineNitroPlugin(() => {
     dataDir: getDataDir(),
     nodeEnv: process.env.NODE_ENV || 'development',
     imageBaseUrl: process.env.IMAGE_BASE_URL || '(request origin)',
+    storageBackend: process.env.STORAGE_BACKEND || 'db',
     logLevel: process.env.LOG_LEVEL || 'info'
+  })
+
+  ensureDefaultBackends()
+  void migrateLocalImagesToIndex().then((count) => {
+    if (count > 0) {
+      logInfo('migrated local images to index', { count })
+    }
   })
 
   void runAutoDeleteCleanup().then((result) => {

@@ -16,44 +16,35 @@ const navItems = computed(() => {
     { label: t('nav.stats'), to: '/stats', icon: 'i-lucide-chart-column' }
   ]
   if (isAdmin.value) {
+    items.push({ label: t('nav.storage'), to: '/storage', icon: 'i-lucide-hard-drive' })
     items.push({ label: t('nav.settings'), to: '/settings', icon: 'i-lucide-settings' })
   }
   return items
 })
 
-const accountMenuItems = computed<DropdownMenuItem[]>(() => {
-  const items: DropdownMenuItem[] = [
-    {
-      label: t('nav.changePassword'),
-      icon: 'i-lucide-key-round',
-      to: '/account/password'
-    }
-  ]
-
-  if (isAdmin.value) {
-    items.push({
-      label: t('nav.systemSettings'),
-      icon: 'i-lucide-settings',
-      to: '/settings'
-    })
-  }
-
-  items.push({
+const accountMenuItems = computed<DropdownMenuItem[]>(() => [
+  {
+    label: t('nav.changePassword'),
+    icon: 'i-lucide-key-round',
+    to: '/account/password'
+  },
+  {
     label: t('nav.logout'),
     icon: 'i-lucide-log-out',
     onSelect() {
       void handleLogout()
     }
-  })
-
-  return items
-})
+  }
+])
 
 const desktopUserMenuItems = computed<DropdownMenuItem[][]>(() => [
   accountMenuItems.value
 ])
 
 function isNavActive(to: string) {
+  if (to === '/settings') {
+    return route.path === '/settings'
+  }
   return route.path.startsWith(to)
 }
 

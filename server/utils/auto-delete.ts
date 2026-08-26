@@ -1,6 +1,7 @@
 import { insertActivityLog, listAdminUserIds, listUserAutoDeletePolicies, type AutoDeletePolicy } from './db'
 import { getGlobalAutoDeletePolicy } from './env'
-import { deleteImage, headImage, listImageKeys, type StoredImage } from './storage'
+import { deleteImage, type StoredImage } from './storage'
+import { listImageKeysForAutoDelete } from './image-index'
 import { logInfo, logWarn } from './logger'
 
 export interface AutoDeleteResult {
@@ -73,23 +74,20 @@ export async function runAutoDeleteCleanup(): Promise<AutoDeleteResult> {
   }
 
   const nowMs = Date.now()
-  const keys = await listImageKeys()
+  const images = await listImageKeysForAutoDelete()
   let deleted = 0
   let failed = 0
 
-  for (const key of keys) {
-    const image = await headImage(key)
-    if (!image) continue
-
+  for (const image of images) {
     if (!shouldAutoDeleteImage(image, globalPolicy, adminUserIds, userPolicies, nowMs)) {
       continue
     }
 
     try {
-      await deleteImage(key)
+      await deleteImage(image.key)
       insertActivityLog({
         action: 'delete',
-        key,
+        key: image.key,
         originalName: image.originalName,
         size: image.size,
         contentType: image.contentType,
@@ -97,7 +95,7 @@ export async function runAutoDeleteCleanup(): Promise<AutoDeleteResult> {
       })
       deleted++
     } catch (error) {
-      logWarn('auto-delete failed', { key, error })
+      logWarn('auto-delete failed', { key: image.key, error })
       failed++
     }
   }

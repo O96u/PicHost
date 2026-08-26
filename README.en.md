@@ -6,7 +6,7 @@
 
 <p align="center"><strong>Lightweight personal image hosting</strong> · Simple uploads, clean management</p>
 
-<p align="center">Self-hosted / Multi-user / Docker / API / Twikoo · Zero-config setup</p>
+<p align="center">Self-hosted / Multi-user / Docker / API / Twikoo · Local disk or object storage</p>
 
 <p align="center">
   <a href="https://github.com/O96u/PicHost/blob/main/package.json"><img src="https://img.shields.io/github/package-json/v/O96u/PicHost?style=flat-square&color=22c55e" alt="version" /></a>
@@ -17,6 +17,7 @@
 </p>
 
 <p align="center">
+  <a href="#branches">Branches</a> ·
   <a href="#quick-start">Quick Start</a> ·
   <a href="#screenshots">Screenshots</a> ·
   <a href="#features">Features</a> ·
@@ -27,26 +28,43 @@
 
 ---
 
+## Branches
+
+| Branch | Notes |
+| ------ | ----- |
+| [**main**](https://github.com/O96u/PicHost/tree/main) (default) | **v1.1.0** — local disk + multi-backend object storage (R2 / COS / OSS / AWS), [`/storage`](docs/README.md) UI, hybrid URLs |
+| [**cloudflare**](https://github.com/O96u/PicHost/tree/cloudflare) | **Cloudflare R2–only line** — streamlined for deployments that use R2 exclusively |
+
+Use **main** for the full product and multiple cloud backends.
+
+If you **only use Cloudflare R2**, check out the dedicated branch:
+
+```bash
+git clone https://github.com/O96u/PicHost.git
+cd PicHost
+git checkout cloudflare
+```
+
+---
+
 ## Screenshots
 
-|                Login                 |                 Upload                 |
-| :----------------------------------: | :------------------------------------: |
-| ![Login](docs/screenshots/login.png) | ![Upload](docs/screenshots/upload.png) |
+|                 Upload                 |              Storage               |
+| :------------------------------------: | :--------------------------------: |
+| ![Upload](docs/screenshots/upload.png) | ![Storage](docs/screenshots/storage.png) |
 
-|                Upload preferences                |           Stats & gallery            |
-| :----------------------------------------------: | :----------------------------------: |
-| ![Preferences](docs/screenshots/preferences.png) | ![Stats](docs/screenshots/stats.png) |
-
-|                  Settings                  |     |
-| :----------------------------------------: | :-: |
-| ![Settings](docs/screenshots/settings.png) |     |
+|           Stats & gallery            |              Settings              |
+| :----------------------------------: | :--------------------------------: |
+| ![Stats](docs/screenshots/stats.png) | ![Settings](docs/screenshots/settings.png) |
 
 ## Features
 
 - **Drag, click, or Ctrl+V paste** to upload; admins can use custom `folder` paths
 - **Server-side WebP** (sharp), Referer hotlink protection, configurable public base URL
 - **Multi-user** — username/password login; optional registration; users see only their images
-- **Upload preferences** (card flip UI): client-side compression, auto-copy links, per-user auto-delete
+- **Upload preferences** (home card flip): client-side compression, auto-copy links, per-user auto-delete
+- **Multi-backend storage**: local disk + S3-compatible (Cloudflare R2 / Tencent COS / Alibaba OSS / AWS S3); admins manage backends at **Storage** (`/storage`)
+- **Hybrid URLs**: `proxy` (same-origin via PicHost) or `public` (302 to CDN / bucket URL)
 - **Gallery** — browse, search, batch delete; admin sees uploader badges
 - **Stats** — upload/delete metrics, folder breakdown; admin sees registered user count
 - **API** — global token (admin) + per-user tokens; in-app cURL snippets
@@ -89,10 +107,6 @@ npm run dev
 
 Open `http://localhost:3000/setup` to create the admin account. Data defaults to `./data`.
 
-### Legacy migration
-
-If you only had `ADMIN_SECRET` and no user table, log in with the secret once and follow the migration wizard.
-
 ## Tech Stack
 
 | Layer    | Technology                                          |
@@ -101,24 +115,9 @@ If you only had `ADMIN_SECRET` and no user table, log in with the secret once an
 | Backend  | Nitro (Node.js), SQLite                             |
 | Images   | sharp (WebP transcoding & compression)              |
 | Auth     | Session cookie, scrypt password hashing, API tokens |
-| Storage  | Local disk (`DATA_DIR`)                             |
+| Storage  | Local disk + S3-compatible backends (R2 / COS / OSS / AWS); `images` index in SQLite |
 | Deploy   | Docker (amd64 / arm64), docker compose              |
 | Tests    | Vitest                                              |
-
-## Environment variables
-
-| Variable                | Description                                                                 |
-| ----------------------- | --------------------------------------------------------------------------- |
-| `API_UPLOAD_TOKEN`      | Global upload token (`Auth-Token` header); can be generated in the API page |
-| `ALLOWED_REFERER_HOSTS` | Hotlink allowlist (comma-separated hostnames)                               |
-| `IMAGE_BASE_URL`        | Public base URL for image links                                             |
-| `WEBP_QUALITY`          | Server WebP quality 1–100, default 80                                       |
-| `AUTO_DELETE_DAYS`      | Global auto-delete days (0 = off); admin + orphan images only               |
-| `DATA_DIR`              | Data directory, default `/data` (container) or `./data` (local)             |
-| `ADMIN_SECRET`          | Legacy v1.0 migration only                                                  |
-| `DEV_BYPASS_ACCESS`     | Dev only — bypass auth (never in production)                                |
-
-Environment variables override database settings. See [`.env.example`](.env.example).
 
 ## Users & permissions
 
@@ -137,13 +136,13 @@ Regular users are limited to the `images/` folder; custom `folder` requires admi
 
 ```
 /data
-├── pichost.db          # SQLite: users, sessions, settings, logs
-├── images/             # Default upload folder
+├── pichost.db          # SQLite: users, sessions, settings, storage_backends, images index
+├── images/             # Default upload folder (when using local backend)
 ├── blog/               # Example custom folder
 └── twikoo/             # Twikoo comment images
 ```
 
-Pattern: `folder/YYYY/MM/randomId.webp` + `.meta.json`. Back up the entire `/data` directory.
+Pattern: `folder/YYYY/MM/randomId.webp` + `.meta.json`. With cloud backends, blobs live in the bucket; SQLite `images` tracks `backend_id` and `key`. Back up all of `/data` plus bucket data.
 
 ## API overview
 
@@ -194,11 +193,12 @@ npm test             # Unit tests
 
 | Version    | Plan                                                           |
 | ---------- | -------------------------------------------------------------- |
-| **v1.0.3** | CI and Docker multi-arch build fixes (current)                 |
+| **v1.1.0** | Multi-backend object storage, hybrid URLs, storage UI (current `main`) |
+| **v1.0.4** | Password visibility toggle, legacy ADMIN_SECRET migration      |
+| **v1.0.3** | CI and Docker multi-arch build fixes                           |
 | **v1.0.2** | i18n, mobile menus, stats/upload UI, Docker password reset     |
 | **v1.0.1** | Settings version display, mobile upload preferences layout fix |
 | **v1.0.0** | Local storage, multi-user, API, Twikoo                         |
-| **v1.1.0** | S3, Cloudflare R2, and more object storage backends            |
 
 ## License
 

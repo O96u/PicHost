@@ -2,7 +2,9 @@ import type { H3Event } from 'h3'
 import { IMAGE_CACHE_CONTROL } from './constants'
 import { getAllowedRefererHostsRaw } from './env'
 import { validateImageKey } from './image-key'
+import { buildPublicImageUrl } from './image-response'
 import { createImageStream, headImage } from './storage'
+import { getBackendRowForKey } from './storage/resolver'
 
 /**
  * 图片直链处理（/{type}/YYYY/MM/file）
@@ -82,6 +84,12 @@ export async function serveImageByKey(event: H3Event, key: string) {
     throw createError({ statusCode: 404, statusMessage: 'Not Found' })
   }
 
+  const backendRow = await getBackendRowForKey(key)
+  if (backendRow.serving_mode === 'public' && backendRow.public_url) {
+    const publicUrl = buildPublicImageUrl(backendRow, key)
+    return sendRedirect(event, publicUrl, 302)
+  }
+
   const etag = `"${stored.size}-${Math.round(stored.mtimeMs)}"`
 
   setHeader(event, 'ETag', etag)
@@ -116,9 +124,9 @@ export async function serveImageByKey(event: H3Event, key: string) {
     setResponseStatus(event, 206)
     setHeader(event, 'Content-Range', `bytes ${range.start}-${range.end}/${stored.size}`)
     setHeader(event, 'Content-Length', range.end - range.start + 1)
-    return sendStream(event, createImageStream(key, range))
+    return sendStream(event, await createImageStream(key, range))
   }
 
   setHeader(event, 'Content-Length', stored.size)
-  return sendStream(event, createImageStream(key))
+  return sendStream(event, await createImageStream(key))
 }

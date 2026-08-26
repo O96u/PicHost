@@ -6,7 +6,7 @@
 
 <p align="center"><strong>个人轻量图床</strong> · 图片放好，管理也要顺手</p>
 
-<p align="center">自托管图床 / 多用户 / Docker / API / Twikoo · 零配置引导</p>
+<p align="center">自托管图床 / 多用户 / Docker / API / Twikoo · 本地磁盘或对象存储</p>
 
 <p align="center">
   <a href="https://github.com/O96u/PicHost/blob/main/package.json"><img src="https://img.shields.io/github/package-json/v/O96u/PicHost?style=flat-square&color=22c55e" alt="version" /></a>
@@ -17,6 +17,7 @@
 </p>
 
 <p align="center">
+  <a href="#分支">分支</a> ·
   <a href="#快速开始">快速开始</a> ·
   <a href="#界面预览">预览</a> ·
   <a href="#特性">特性</a> ·
@@ -27,26 +28,43 @@
 
 ---
 
+## 分支
+
+| 分支 | 说明 |
+| ---- | ---- |
+| [**main**](https://github.com/O96u/PicHost/tree/main)（默认） | **v1.1.0** 主线：本地磁盘 + 多对象存储后端（R2 / COS / OSS / AWS）、[`/storage`](docs/README.md) 存储管理、混合直链 |
+| [**cloudflare**](https://github.com/O96u/PicHost/tree/cloudflare) | **Cloudflare R2 专用线**：面向「只用 R2」的部署，预设与配置更聚焦 R2 |
+
+日常使用、需要管理多种存储后端，请直接用 **main**。
+
+若图床**只接 Cloudflare R2**、希望更简化的 R2 专用版本，可切换分支：
+
+```bash
+git clone https://github.com/O96u/PicHost.git
+cd PicHost
+git checkout cloudflare
+```
+
+---
+
 ## 界面预览
 
-|                登录                 |                 上传                 |
-| :---------------------------------: | :----------------------------------: |
-| ![登录](docs/screenshots/login.png) | ![上传](docs/screenshots/upload.png) |
+|                 上传                  |                存储管理                 |
+| :-----------------------------------: | :-------------------------------------: |
+| ![上传](docs/screenshots/upload.png) | ![存储](docs/screenshots/storage.png) |
 
-|                   上传偏好                    |             统计与图库              |
-| :-------------------------------------------: | :---------------------------------: |
-| ![上传偏好](docs/screenshots/preferences.png) | ![统计](docs/screenshots/stats.png) |
-
-|                系统设置                |     |
-| :------------------------------------: | :-: |
-| ![设置](docs/screenshots/settings.png) |     |
+|             统计与图库              |                系统设置                 |
+| :---------------------------------: | :-------------------------------------: |
+| ![统计](docs/screenshots/stats.png) | ![设置](docs/screenshots/settings.png) |
 
 ## 特性
 
 - **拖拽 / 点击 / Ctrl+V 粘贴**上传；管理员可自定义 `folder` 目录
 - **服务端 WebP 压缩**（sharp）、Referer 防盗链、可配置访问域名
 - **多用户**：账号密码登录；管理员可开放注册；普通用户仅见自己的图片
-- **上传偏好**（卡片翻转设置）：客户端预压缩、自动复制链接、按用户自动删除
+- **上传偏好**（首页卡片翻转）：客户端预压缩、自动复制链接、按用户自动删除
+- **多后端存储**：本地磁盘 + S3 兼容（Cloudflare R2 / 腾讯云 COS / 阿里云 OSS / AWS S3）；管理员在 **存储**（`/storage`）页管理，新上传写入默认后端
+- **混合直链**：`proxy`（PicHost 同源代理）或 `public`（302 到 CDN / 桶公网地址）
 - **图库**：浏览、搜索、批量删除；管理员可查看上传者标签
 - **统计**：上传/删除趋势、目录分布；管理员额外显示注册用户数量
 - **API**：全局 Token（管理员）+ 每用户个人 Token；后台可复制 cURL
@@ -94,10 +112,6 @@ npm run dev
 
 访问 `http://localhost:3000/setup` 创建管理员；数据目录默认 `./data`。
 
-### 遗留部署迁移
-
-若旧版仅配置了 `ADMIN_SECRET`、尚无用户表，可用密钥登录一次，Web 引导迁移为账号密码。
-
 ## 技术栈
 
 | 层级     | 技术                                       |
@@ -106,24 +120,9 @@ npm run dev
 | 后端     | Nitro（Node.js）、SQLite                   |
 | 图片处理 | sharp（WebP 转码与压缩）                   |
 | 鉴权     | Session Cookie、scrypt 密码哈希、API Token |
-| 存储     | 本地磁盘（`DATA_DIR`）                     |
+| 存储     | 本地磁盘 + S3 兼容后端（R2 / COS / OSS / AWS）；`images` 索引在 SQLite |
 | 部署     | Docker（amd64 / arm64）、docker compose    |
 | 测试     | Vitest                                     |
-
-## 环境变量
-
-| 变量                    | 说明                                                         |
-| ----------------------- | ------------------------------------------------------------ |
-| `API_UPLOAD_TOKEN`      | 全局上传 Token（`Auth-Token` 头）；未配置可在后台 API 页生成 |
-| `ALLOWED_REFERER_HOSTS` | 防盗链白名单（逗号分隔 hostname）                            |
-| `IMAGE_BASE_URL`        | 图片直链公网域名（反代时建议填写）                           |
-| `WEBP_QUALITY`          | 服务端 WebP 质量 1–100，默认 80                              |
-| `AUTO_DELETE_DAYS`      | 全局自动删除天数（0 关闭）；仅影响管理员及无归属历史图       |
-| `DATA_DIR`              | 数据目录，默认 `/data`（容器）或 `./data`（本地）            |
-| `ADMIN_SECRET`          | 仅遗留 v1.0 迁移，新安装不需要                               |
-| `DEV_BYPASS_ACCESS`     | 开发用，跳过登录（生产勿开）                                 |
-
-环境变量优先级高于后台设置。详见 [`.env.example`](.env.example)。
 
 ## 用户与权限
 
@@ -142,13 +141,13 @@ npm run dev
 
 ```
 /data
-├── pichost.db          # SQLite：用户、会话、设置、操作日志
-├── images/             # 默认上传目录
+├── pichost.db          # SQLite：用户、会话、设置、storage_backends、images 索引
+├── images/             # 默认上传目录（本地后端时）
 ├── blog/               # 管理员自定义 folder 示例
 └── twikoo/             # Twikoo 评论图片
 ```
 
-路径规则：`目录/年/月/随机ID.webp` + 同名 `.meta.json`。备份整个 `/data` 即可。
+路径规则：`目录/年/月/随机ID.webp` + 同名 `.meta.json`。云存储时文件在对应桶内，SQLite `images` 表记录 `backend_id` 与 `key`。备份请包含整个 `/data` 与云桶数据。
 
 ## API 概览
 
@@ -197,13 +196,14 @@ npm test             # 单元测试
 
 ## 路线图
 
-| 版本       | 计划                                              |
+| 版本       | 说明                                              |
 | ---------- | ------------------------------------------------- |
-| **v1.0.3** | CI 与 Docker 多架构构建修复（当前）               |
+| **v1.1.0** | S3 / R2 多后端对象存储、混合直链、存储管理页（当前 main） |
+| **v1.0.4** | 密码显示切换、遗留 ADMIN_SECRET 迁移对齐          |
+| **v1.0.3** | CI 与 Docker 多架构构建修复                       |
 | **v1.0.2** | 中英文、移动端菜单、统计/上传 UI、Docker 重置密码 |
 | **v1.0.1** | 设置页版本展示、移动端上传偏好布局修复            |
 | **v1.0.0** | 本地存储、多用户、API、Twikoo                     |
-| **v1.1.0** | S3、Cloudflare R2 等对象存储后端                  |
 
 ## License
 
