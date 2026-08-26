@@ -37,7 +37,7 @@ export async function putImage(
   key: string,
   bytes: Uint8Array,
   meta: StoredImageMeta
-): Promise<void> {
+): Promise<string> {
   const backend = await getActiveBackend()
   await backend.put(key, bytes, meta)
   insertImageIndex({
@@ -49,6 +49,7 @@ export async function putImage(
     size: meta.size,
     uploadedAt: meta.uploadedAt
   })
+  return backend.id
 }
 
 export async function headImage(key: string): Promise<StoredImage | null> {
@@ -97,9 +98,10 @@ export async function listImageKeys(): Promise<string[]> {
 
 export async function countImages(
   folder?: string,
-  userFilter?: number | 'admin'
+  userFilter?: number | 'admin',
+  backendId?: string
 ): Promise<number> {
-  return countImagesFromIndex(folder, userFilter)
+  return countImagesFromIndex(folder, userFilter, backendId)
 }
 
 export async function getFolderStorageStats(
@@ -129,6 +131,7 @@ export async function listImages(options: {
   page?: number
   folder?: string
   userFilter?: number | 'admin'
+  backendId?: string
 }): Promise<PaginatedResult<StoredImage>> {
   return listImagesFromIndex(options)
 }
@@ -139,6 +142,7 @@ export async function searchImages(options: {
   page?: number
   folder?: string
   userFilter?: number | 'admin'
+  backendId?: string
 }): Promise<PaginatedResult<StoredImage>> {
   return searchImagesFromIndex(options)
 }

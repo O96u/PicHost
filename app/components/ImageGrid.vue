@@ -7,12 +7,14 @@ const props = withDefaults(defineProps<{
   deletingKeys: Set<string>
   selectable?: boolean
   showKey?: boolean
+  showStorage?: boolean
   emptyText?: string
   dense?: boolean
   compact?: boolean
 }>(), {
   selectable: true,
   showKey: true,
+  showStorage: false,
   dense: false,
   compact: false
 })
@@ -48,6 +50,7 @@ function updateSelection(key: string, selected: boolean) {
       :deleting="deletingKeys.has(image.key)"
       :selectable="selectable"
       :show-key="showKey"
+      :show-storage="showStorage"
       :compact="compact"
       @update:selected="updateSelection(image.key, $event)"
       @delete="emit('delete', image.key)"

@@ -15,6 +15,11 @@ export interface ActivityLogRow {
   size: number
   content_type: string
   source: LogSource
+  user_id: number | null
+  username: string | null
+  backend_id: string | null
+  backend_name: string | null
+  backend_type: string | null
   created_at: string
 }
 
@@ -25,6 +30,8 @@ export interface ActivityLogInput {
   size: number
   contentType: string
   source: LogSource
+  userId?: number | null
+  backendId?: string | null
   createdAt?: string
 }
 
@@ -117,6 +124,23 @@ function migrateSchema(database: DatabaseSync): void {
       INSERT INTO settings (key, value, updated_at)
       VALUES ('auto_delete_enabled_at', ?, ?)
     `).run(now, now)
+  }
+
+  const logColumns = database.prepare('PRAGMA table_info(activity_logs)').all() as Array<{
+    name: string
+  }>
+  if (!logColumns.some(column => column.name === 'user_id')) {
+    database.exec('ALTER TABLE activity_logs ADD COLUMN user_id INTEGER')
+    database.exec(`
+      CREATE INDEX IF NOT EXISTS idx_activity_logs_user_created
+        ON activity_logs(user_id, created_at DESC)
+    `)
+  }
+  const activityLogColumns = database.prepare('PRAGMA table_info(activity_logs)').all() as Array<{
+    name: string
+  }>
+  if (!activityLogColumns.some(column => column.name === 'backend_id')) {
+    database.exec('ALTER TABLE activity_logs ADD COLUMN backend_id TEXT')
   }
 }
 
@@ -393,8 +417,8 @@ export function insertActivityLog(input: ActivityLogInput): void {
     const createdAt = input.createdAt ?? new Date().toISOString()
     getDb().prepare(`
       INSERT INTO activity_logs
-        (action, key, original_name, size, content_type, source, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+        (action, key, original_name, size, content_type, source, user_id, backend_id, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       input.action,
       input.key,
@@ -402,6 +426,8 @@ export function insertActivityLog(input: ActivityLogInput): void {
       input.size,
       input.contentType,
       input.source,
+      input.userId ?? null,
+      input.backendId ?? null,
       createdAt
     )
   } catch (error) {
@@ -418,6 +444,8 @@ export function listActivityLogs(options: {
   action?: LogAction
   source?: LogSource
   folder?: string
+  userId?: number
+  search?: string
 }): {
   items: ActivityLogRow[]
   total: number
@@ -427,26 +455,11 @@ export function listActivityLogs(options: {
 } {
   const database = getDb()
   const pageSize = options.limit
-  const params: Array<string | number> = []
-  const where: string[] = []
+  const { whereSql, params } = buildActivityLogWhere(options)
 
-  if (options.action) {
-    where.push('action = ?')
-    params.push(options.action)
-  }
-  if (options.source) {
-    where.push('source = ?')
-    params.push(options.source)
-  }
-  if (options.folder) {
-    where.push('key LIKE ?')
-    params.push(`${options.folder}/%`)
-  }
-
-  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
   const countRow = database.prepare(`
     SELECT COUNT(*) AS count
-    FROM activity_logs
+    FROM activity_logs al
     ${whereSql}
   `).get(...params) as { count: number }
 
@@ -457,10 +470,25 @@ export function listActivityLogs(options: {
   const offset = (safePage - 1) * pageSize
 
   const rows = database.prepare(`
-    SELECT id, action, key, original_name, size, content_type, source, created_at
-    FROM activity_logs
+    SELECT
+      al.id,
+      al.action,
+      al.key,
+      al.original_name,
+      al.size,
+      al.content_type,
+      al.source,
+      al.user_id,
+      u.username,
+      al.backend_id,
+      sb.name AS backend_name,
+      sb.type AS backend_type,
+      al.created_at
+    FROM activity_logs al
+    LEFT JOIN users u ON u.id = al.user_id
+    LEFT JOIN storage_backends sb ON sb.id = al.backend_id
     ${whereSql}
-    ORDER BY id DESC
+    ORDER BY al.id DESC
     LIMIT ? OFFSET ?
   `).all(...params, pageSize, offset) as unknown as ActivityLogRow[]
 
@@ -470,6 +498,74 @@ export function listActivityLogs(options: {
     page: safePage,
     pageSize,
     totalPages
+  }
+}
+
+export function summarizeActivityLogs(options: {
+  source?: LogSource
+  folder?: string
+  userId?: number
+  search?: string
+}): {
+  total: number
+  upload: number
+  delete: number
+} {
+  const database = getDb()
+  const { whereSql, params } = buildActivityLogWhere(options, { includeAction: false })
+  const row = database.prepare(`
+    SELECT
+      COUNT(*) AS total,
+      COALESCE(SUM(CASE WHEN al.action = 'upload' THEN 1 ELSE 0 END), 0) AS upload_count,
+      COALESCE(SUM(CASE WHEN al.action = 'delete' THEN 1 ELSE 0 END), 0) AS delete_count
+    FROM activity_logs al
+    ${whereSql}
+  `).get(...params) as { total: number, upload_count: number, delete_count: number } | undefined
+
+  return {
+    total: row?.total ?? 0,
+    upload: row?.upload_count ?? 0,
+    delete: row?.delete_count ?? 0
+  }
+}
+
+function buildActivityLogWhere(
+  options: {
+    action?: LogAction
+    source?: LogSource
+    folder?: string
+    userId?: number
+    search?: string
+  },
+  { includeAction = true }: { includeAction?: boolean } = {}
+): { whereSql: string, params: Array<string | number> } {
+  const params: Array<string | number> = []
+  const where: string[] = []
+
+  if (includeAction && options.action) {
+    where.push('al.action = ?')
+    params.push(options.action)
+  }
+  if (options.source) {
+    where.push('al.source = ?')
+    params.push(options.source)
+  }
+  if (options.folder) {
+    where.push('al.key LIKE ?')
+    params.push(`${options.folder}/%`)
+  }
+  if (options.userId !== undefined) {
+    where.push('al.user_id = ?')
+    params.push(options.userId)
+  }
+  if (options.search) {
+    where.push('al.original_name LIKE ?')
+    params.push(`%${options.search}%`)
+  }
+
+  return {
+    whereSql: where.length ? `WHERE ${where.join(' AND ')}` : '',
+    params
   }
 }
 

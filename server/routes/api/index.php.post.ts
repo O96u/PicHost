@@ -1,5 +1,6 @@
 import { readMultipartFormData } from 'h3'
 import { verifyUploadTokenValue } from '../../utils/access'
+import { checkUploadRateLimit } from '../../utils/rate-limit'
 import {
   detectMimeFromSignature,
   isAllowedMimeType
@@ -34,6 +35,7 @@ export default defineEventHandler(async (event) => {
     if (!verifyUploadTokenValue(event, token)) {
       return easyImageError(401, 'token 错误或无效')
     }
+    checkUploadRateLimit(event, token)
   }
 
   const imagePart = formData.find(

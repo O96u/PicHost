@@ -333,7 +333,20 @@ watch(isAuthenticated, async (authed, prev) => {
               class="size-3.5 shrink-0"
             />
             <span>
-              {{ t('settings.apiTokenLine', { source: tokenSourceText(settings.tokenSource), version: settings.appVersion }) }}
+              {{ t('settings.apiTokenLine', { source: tokenSourceText(settings.tokenSource) }) }}
+              <a
+                href="https://github.com/O96u/PicHost/releases"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-0.5 text-primary underline-offset-2 hover:underline"
+                :title="t('settings.viewReleases')"
+              >
+                v{{ settings.appVersion }}
+                <UIcon
+                  name="i-lucide-external-link"
+                  class="size-3 opacity-70"
+                />
+              </a>
               <template v-if="hasServerChanges">
                 · <span class="text-warning">{{ t('settings.unsavedChanges') }}</span>
               </template>

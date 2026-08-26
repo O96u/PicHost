@@ -18,6 +18,7 @@ const savingForm = ref(false)
 
 const deleteOpen = ref(false)
 const deleteTarget = ref<StorageBackendItem | null>(null)
+const deleteConfirmName = ref('')
 const deleting = ref(false)
 
 async function loadStorage() {
@@ -165,14 +166,16 @@ function confirmDelete(backend: StorageBackendItem) {
     return
   }
   deleteTarget.value = backend
+  deleteConfirmName.value = backend.name
   deleteOpen.value = true
 }
 
 async function executeDelete() {
-  if (!deleteTarget.value) return
+  const target = deleteTarget.value
+  if (!target) return
   deleting.value = true
   try {
-    await $fetch(`/api/admin/storage/${deleteTarget.value.id}`, {
+    await $fetch(`/api/admin/storage/${target.id}`, {
       method: 'DELETE',
       credentials: 'include'
     })
@@ -326,7 +329,7 @@ watch(isAuthenticated, async (authed) => {
             {{ t('storage.deleteConfirmTitle') }}
           </h2>
           <p class="mt-2 text-sm text-muted">
-            {{ t('storage.deleteConfirmBody', { name: deleteTarget?.name ?? '' }) }}
+            {{ t('storage.deleteConfirmBody', { name: deleteConfirmName }) }}
           </p>
           <div class="mt-5 flex justify-end gap-2">
             <UButton

@@ -216,7 +216,10 @@ function handleSubmit() {
         />
       </div>
       <div class="space-y-2">
-        <label class="text-sm">{{ t('storage.bucket') }}</label>
+        <label class="text-sm">
+          {{ t('storage.bucket') }}
+          <span class="text-error">*</span>
+        </label>
         <UInput
           v-model="bucket"
           class="w-full font-mono text-sm"
@@ -241,7 +244,13 @@ function handleSubmit() {
 
     <div class="grid gap-3 sm:grid-cols-2">
       <div class="space-y-2">
-        <label class="text-sm">{{ t('storage.accessKey') }}</label>
+        <label class="text-sm">
+          {{ t('storage.accessKey') }}
+          <span
+            v-if="createMode"
+            class="text-error"
+          >*</span>
+        </label>
         <UInput
           v-model="accessKeyId"
           :placeholder="backend?.secretsMasked.accessKeyId || ''"
@@ -250,7 +259,13 @@ function handleSubmit() {
         />
       </div>
       <div class="space-y-2">
-        <label class="text-sm">{{ t('storage.secretKey') }}</label>
+        <label class="text-sm">
+          {{ t('storage.secretKey') }}
+          <span
+            v-if="createMode"
+            class="text-error"
+          >*</span>
+        </label>
         <UInput
           v-model="secretAccessKey"
           type="password"

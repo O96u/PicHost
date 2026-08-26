@@ -17,11 +17,26 @@ export function useImageList() {
   const searchQuery = ref('')
   const activeSearch = ref('')
   const activeFolder = ref('all')
+  const activeStorageBackend = ref('all')
+  const storageBackendOptions = ref<Array<{ id: string, name: string }>>([])
 
   function folderQueryParams(): Record<string, string> {
     const folder = activeFolder.value.trim()
     if (!folder || folder === 'all') return {}
     return { folder }
+  }
+
+  function storageQueryParams(): Record<string, string> {
+    const backendId = activeStorageBackend.value.trim()
+    if (!backendId || backendId === 'all') return {}
+    return { backendId }
+  }
+
+  function listQueryParams(): Record<string, string> {
+    return {
+      ...folderQueryParams(),
+      ...storageQueryParams()
+    }
   }
 
   function matchesActiveFolder(key: string) {
@@ -30,12 +45,34 @@ export function useImageList() {
     return key.startsWith(`${folder}/`)
   }
 
+  function matchesActiveStorage(item: ImageItem) {
+    const backendId = activeStorageBackend.value.trim()
+    if (!backendId || backendId === 'all') return true
+    return item.storage?.id === backendId
+  }
+
+  async function loadStorageBackendOptions() {
+    try {
+      const data = await $fetch<{
+        backends: Array<{ id: string, name: string, type: string }>
+      }>('/api/storage-backends', {
+        credentials: 'include'
+      })
+      storageBackendOptions.value = data.backends.map(backend => ({
+        id: backend.id,
+        name: backend.name
+      }))
+    } catch {
+      storageBackendOptions.value = []
+    }
+  }
+
   async function fetchTotal() {
     loadingTotal.value = true
     try {
       const data = await $fetch<{ total: number }>('/api/images/count', {
         credentials: 'include',
-        query: folderQueryParams()
+        query: listQueryParams()
       })
       folderTotal.value = data.total
     } catch {
@@ -53,7 +90,7 @@ export function useImageList() {
         query: {
           limit: PAGE_SIZE,
           page: targetPage,
-          ...folderQueryParams()
+          ...listQueryParams()
         }
       })
 
@@ -81,7 +118,7 @@ export function useImageList() {
           q,
           limit: PAGE_SIZE,
           page: targetPage,
-          ...folderQueryParams()
+          ...listQueryParams()
         }
       })
 
@@ -107,13 +144,25 @@ export function useImageList() {
     page.value = 1
     activeSearch.value = ''
     searchQuery.value = ''
-    await Promise.all([fetchList(1), fetchTotal()])
+    await Promise.all([fetchList(1), fetchTotal(), loadStorageBackendOptions()])
   }
 
   async function setActiveFolder(folder: string) {
     const next = folder.trim() || 'all'
     if (next === activeFolder.value) return
     activeFolder.value = next
+    page.value = 1
+    if (activeSearch.value) {
+      await Promise.all([fetchSearch(1), fetchTotal()])
+    } else {
+      await Promise.all([fetchList(1), fetchTotal()])
+    }
+  }
+
+  async function setActiveStorageBackend(backendId: string) {
+    const next = backendId.trim() || 'all'
+    if (next === activeStorageBackend.value) return
+    activeStorageBackend.value = next
     page.value = 1
     if (activeSearch.value) {
       await Promise.all([fetchSearch(1), fetchTotal()])
@@ -143,7 +192,9 @@ export function useImageList() {
   }
 
   function prependItems(newItems: ImageItem[]) {
-    const matched = newItems.filter(item => matchesActiveFolder(item.key))
+    const matched = newItems.filter(item =>
+      matchesActiveFolder(item.key) && matchesActiveStorage(item)
+    )
     if (!matched.length || page.value !== 1) return
     items.value = [...matched, ...items.value]
     total.value += matched.length
@@ -164,16 +215,41 @@ export function useImageList() {
     }
   }
 
+  const activeStorageLabel = computed(() => {
+    if (activeStorageBackend.value === 'all') return ''
+    return storageBackendOptions.value.find(
+      backend => backend.id === activeStorageBackend.value
+    )?.name ?? activeStorageBackend.value
+  })
+
   const listSummary = computed(() => {
     const folder = activeFolder.value.trim() || 'all'
     const folderLabel = folder === 'all' ? t('stats.allFolders') : folder
+    const storageLabel = activeStorageLabel.value
     if (loadingTotal.value && folderTotal.value === null) {
-      return `${folderLabel} · ${t('stats.counting')}`
+      return storageLabel
+        ? `${folderLabel} · ${storageLabel} · ${t('stats.counting')}`
+        : `${folderLabel} · ${t('stats.counting')}`
     }
     if (activeSearch.value) {
+      if (storageLabel) {
+        return t('stats.summarySearchStorage', {
+          folder: folderLabel,
+          storage: storageLabel,
+          q: activeSearch.value,
+          total: total.value
+        })
+      }
       return t('stats.summarySearch', { folder: folderLabel, q: activeSearch.value, total: total.value })
     }
     const count = folderTotal.value === null ? total.value : folderTotal.value
+    if (storageLabel) {
+      return t('stats.summaryTotalStorage', {
+        folder: folderLabel,
+        storage: storageLabel,
+        total: count
+      })
+    }
     return t('stats.summaryTotal', { folder: folderLabel, total: count })
   })
 
@@ -184,6 +260,8 @@ export function useImageList() {
     total,
     loading,
     activeFolder,
+    activeStorageBackend,
+    storageBackendOptions,
     searchQuery,
     activeSearch,
     listSummary,
@@ -193,6 +271,8 @@ export function useImageList() {
     refreshList,
     initializeList,
     setActiveFolder,
+    setActiveStorageBackend,
+    loadStorageBackendOptions,
     submitSearch,
     goToPage,
     prependItems,

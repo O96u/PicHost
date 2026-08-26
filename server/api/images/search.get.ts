@@ -8,7 +8,9 @@ import {
 import { createApiError } from '../../utils/api-error'
 import { listUserIdUsernameMap } from '../../utils/db'
 import { mapStoredImageToItem } from '../../utils/image-response'
+import { listStorageBackendNameMap } from '../../utils/storage-backends'
 import { isValidFolderName } from '../../utils/image-key'
+import { readBackendIdQuery } from '../../utils/image-query'
 import { searchImages } from '../../utils/storage'
 
 function readFolderQuery(query: Record<string, unknown>): string | undefined {
@@ -42,14 +44,19 @@ export default defineEventHandler(async (event) => {
     : 1
 
   const folder = readFolderQuery(query)
+  const backendId = readBackendIdQuery(query)
+  if (backendId === null) {
+    createApiError(event, 'INVALID_REQUEST', '无效的存储后端', 400)
+  }
   const userFilter = await getImageUserFilter(event)
 
-  const result = await searchImages({ query: q, limit, page, folder, userFilter })
+  const result = await searchImages({ query: q, limit, page, folder, userFilter, backendId })
 
   const user = await getCurrentUser(event)
   const ownerMap = user?.role === 'admin' ? listUserIdUsernameMap() : undefined
+  const backendMap = listStorageBackendNameMap()
   const items = result.items.map(stored =>
-    mapStoredImageToItem(event, stored, { ownerMap })
+    mapStoredImageToItem(event, stored, { ownerMap, backendMap })
   )
 
   items.sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))

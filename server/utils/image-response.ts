@@ -5,6 +5,7 @@ import type { StoredImage } from './storage'
 import { getImageBaseUrl } from './env'
 import { getActiveBackendRow } from './storage/resolver'
 import { getStorageBackendRow, getStorageBackendFromEnv } from './storage-backends'
+import type { StorageBackendType } from './storage/types'
 import { buildObjectKey, parseS3Config } from './storage/s3'
 import type { StorageBackendRow } from './storage/types'
 
@@ -24,10 +25,32 @@ export function resolveImageOwner(
   }
 }
 
+export function resolveImageStorage(
+  backendId: string | undefined,
+  backendMap?: Map<string, { name: string, type: StorageBackendType }>
+): ImageItem['storage'] | undefined {
+  if (!backendId) return undefined
+
+  const fromMap = backendMap?.get(backendId)
+  if (fromMap) {
+    return { id: backendId, name: fromMap.name, type: fromMap.type }
+  }
+
+  const row = getStorageBackendRow(backendId)
+  if (row) {
+    return { id: backendId, name: row.name, type: row.type }
+  }
+
+  return { id: backendId, name: backendId, type: 's3' }
+}
+
 export function mapStoredImageToItem(
   event: H3Event,
   stored: StoredImage,
-  options?: { ownerMap?: Map<number, string> }
+  options?: {
+    ownerMap?: Map<number, string>
+    backendMap?: Map<string, { name: string, type: StorageBackendType }>
+  }
 ): ImageItem {
   const item = buildImageItem({
     key: stored.key,
@@ -40,8 +63,14 @@ export function mapStoredImageToItem(
   })
 
   const owner = resolveImageOwner(stored.userId, options?.ownerMap)
-  if (owner) {
-    return { ...item, owner }
+  const storage = resolveImageStorage(stored.backendId, options?.backendMap)
+
+  if (owner || storage) {
+    return {
+      ...item,
+      ...(owner ? { owner } : {}),
+      ...(storage ? { storage } : {})
+    }
   }
 
   return item

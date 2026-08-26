@@ -159,6 +159,17 @@ export function listStorageBackends(maskSecrets = true): Array<StorageBackendInf
   return listStorageBackendRows().map(row => rowToInfo(row, maskSecrets))
 }
 
+export function listStorageBackendNameMap(): Map<string, {
+  name: string
+  type: StorageBackendType
+}> {
+  ensureStorageSchema()
+  const rows = getDb().prepare(`
+    SELECT id, name, type FROM storage_backends
+  `).all() as Array<{ id: string, name: string, type: StorageBackendType }>
+  return new Map(rows.map(row => [row.id, { name: row.name, type: row.type }]))
+}
+
 export function getStorageBackendRow(id: string): StorageBackendRow | null {
   ensureDefaultBackends()
   const row = getDb().prepare(`
@@ -191,6 +202,7 @@ export function getBackendIdForKey(key: string): string | null {
 }
 
 export function setDefaultBackend(id: string): void {
+  ensureDefaultBackends()
   const db = getDb()
   db.exec('UPDATE storage_backends SET is_default = 0')
   db.prepare(`

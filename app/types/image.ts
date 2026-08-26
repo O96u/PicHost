@@ -36,6 +36,12 @@ export interface ImageItem {
     userId: number | null
     username: string
   }
+  /** 图片所在存储后端（统计/管理列表） */
+  storage?: {
+    id: string
+    name: string
+    type: 'local' | 's3'
+  }
 }
 
 export interface UploadErrorItem {

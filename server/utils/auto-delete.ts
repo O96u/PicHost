@@ -91,7 +91,9 @@ export async function runAutoDeleteCleanup(): Promise<AutoDeleteResult> {
         originalName: image.originalName,
         size: image.size,
         contentType: image.contentType,
-        source: 'web'
+        source: 'web',
+        userId: image.userId ?? null,
+        backendId: image.backendId ?? null
       })
       deleted++
     } catch (error) {

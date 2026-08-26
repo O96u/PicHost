@@ -128,8 +128,9 @@ export async function processSingleImageUpload(
     input.prefix ?? 'images'
   )
 
+  let backendId: string
   try {
-    await putImage(key, compressed.bytes, {
+    backendId = await putImage(key, compressed.bytes, {
       originalName,
       uploadedAt,
       contentType: compressed.mime,
@@ -159,6 +160,8 @@ export async function processSingleImageUpload(
     size: compressed.bytes.byteLength,
     contentType: compressed.mime,
     source: input.source ?? 'web',
+    userId: input.userId ?? null,
+    backendId,
     createdAt: uploadedAt
   })
 

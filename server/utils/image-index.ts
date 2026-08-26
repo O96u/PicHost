@@ -222,9 +222,19 @@ export async function listFoldersForUser(
   return folders.sort((a, b) => a.localeCompare(b))
 }
 
+function buildBackendFilterSql(
+  backendId: string | undefined,
+  params: Array<string | number>
+): string {
+  if (!backendId) return ''
+  params.push(backendId)
+  return ' AND backend_id = ?'
+}
+
 export async function countImages(
   folder?: string,
-  userFilter?: number | 'admin'
+  userFilter?: number | 'admin',
+  backendId?: string
 ): Promise<number> {
   ensureStorageSchema()
   const params: Array<string | number> = []
@@ -236,8 +246,9 @@ export async function countImages(
   }
 
   const userSql = buildUserFilterSql(userFilter, params)
+  const backendSql = buildBackendFilterSql(backendId, params)
   const row = getDb().prepare(`
-    SELECT COUNT(*) AS count FROM images WHERE ${clauses.join(' AND ')}${userSql}
+    SELECT COUNT(*) AS count FROM images WHERE ${clauses.join(' AND ')}${userSql}${backendSql}
   `).get(...params) as { count: number }
 
   return row.count
@@ -264,6 +275,7 @@ export async function listImages(options: {
   page?: number
   folder?: string
   userFilter?: number | 'admin'
+  backendId?: string
 }): Promise<PaginatedResult<StoredImage>> {
   ensureStorageSchema()
   const params: Array<string | number> = []
@@ -275,10 +287,11 @@ export async function listImages(options: {
   }
 
   const userSql = buildUserFilterSql(options.userFilter, params)
+  const backendSql = buildBackendFilterSql(options.backendId, params)
   const rows = getDb().prepare(`
     SELECT key, backend_id, user_id, folder, original_name, content_type, size, uploaded_at
     FROM images
-    WHERE ${clauses.join(' AND ')}${userSql}
+    WHERE ${clauses.join(' AND ')}${userSql}${backendSql}
     ORDER BY uploaded_at DESC, key DESC
   `).all(...params) as unknown as ImageIndexRow[]
 
@@ -295,6 +308,7 @@ export async function searchImages(options: {
   page?: number
   folder?: string
   userFilter?: number | 'admin'
+  backendId?: string
 }): Promise<PaginatedResult<StoredImage>> {
   ensureStorageSchema()
   const needle = options.query.trim().toLowerCase()
@@ -307,10 +321,11 @@ export async function searchImages(options: {
   }
 
   const userSql = buildUserFilterSql(options.userFilter, params)
+  const backendSql = buildBackendFilterSql(options.backendId, params)
   const rows = getDb().prepare(`
     SELECT key, backend_id, user_id, folder, original_name, content_type, size, uploaded_at
     FROM images
-    WHERE ${clauses.join(' AND ')}${userSql}
+    WHERE ${clauses.join(' AND ')}${userSql}${backendSql}
     ORDER BY uploaded_at DESC, key DESC
   `).all(...params) as unknown as ImageIndexRow[]
 

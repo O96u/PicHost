@@ -42,7 +42,9 @@ export default defineEventHandler(async (event) => {
       originalName: existing.originalName,
       size: existing.size,
       contentType: existing.contentType,
-      source: resolveActivitySource(event)
+      source: resolveActivitySource(event),
+      userId: existing.userId ?? null,
+      backendId: existing.backendId ?? null
     })
 
     logInfo('delete success', { key, size: existing.size })

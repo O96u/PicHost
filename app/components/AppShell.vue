@@ -24,6 +24,11 @@ const navItems = computed(() => {
 
 const accountMenuItems = computed<DropdownMenuItem[]>(() => [
   {
+    label: t('nav.logs'),
+    icon: 'i-lucide-scroll-text',
+    to: '/logs'
+  },
+  {
     label: t('nav.changePassword'),
     icon: 'i-lucide-key-round',
     to: '/account/password'

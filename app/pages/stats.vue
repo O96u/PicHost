@@ -41,7 +41,11 @@ const {
   setActiveFolder,
   submitSearch,
   goToPage,
-  removeItems
+  removeItems,
+  activeStorageBackend,
+  storageBackendOptions,
+  setActiveStorageBackend,
+  loadStorageBackendOptions
 } = useImageList()
 
 const { formatFileSize } = useFileSize()
@@ -60,11 +64,20 @@ const deleteTargetKeys = ref<string[]>([])
 const batchDeleting = ref(false)
 const showScrollTop = ref(false)
 const currentFolder = ref('all')
+const currentStorage = ref('all')
 const folderOptions = ref<string[]>(['images'])
 
 const folderSelectItems = computed(() => [
   { label: t('stats.allFolders'), value: 'all' },
   ...folderOptions.value.map(folder => ({ label: folder, value: folder }))
+])
+
+const storageSelectItems = computed(() => [
+  { label: t('stats.filterStorageAll'), value: 'all' },
+  ...storageBackendOptions.value.map(backend => ({
+    label: backend.name,
+    value: backend.id
+  }))
 ])
 
 const selectedCount = computed(() => selectedKeys.value.size)
@@ -165,7 +178,8 @@ async function refreshGallery() {
   if (!isAuthenticated.value) return
   selectedKeys.value = new Set()
   try {
-    await Promise.all([refreshList(), loadFolders()])
+    await Promise.all([refreshList(), loadFolders(), loadStorageBackendOptions()])
+    currentStorage.value = activeStorageBackend.value
   } catch (error: unknown) {
     handleAuthError(error)
   }
@@ -188,8 +202,10 @@ async function refreshAll() {
     await Promise.all([
       fetchStats(),
       reloadGallery(),
-      loadFolders()
+      loadFolders(),
+      loadStorageBackendOptions()
     ])
+    currentStorage.value = activeStorageBackend.value
   } catch (error: unknown) {
     handleAuthError(error)
     if (isAuthenticated.value) {
@@ -206,6 +222,17 @@ async function handleFolderChange(folder: string) {
   selectedKeys.value = new Set()
   try {
     await setActiveFolder(folder)
+  } catch (error: unknown) {
+    handleAuthError(error)
+  }
+}
+
+async function handleStorageChange(backendId: string) {
+  if (!isAuthenticated.value) return
+  currentStorage.value = backendId
+  selectedKeys.value = new Set()
+  try {
+    await setActiveStorageBackend(backendId)
   } catch (error: unknown) {
     handleAuthError(error)
   }
@@ -481,6 +508,14 @@ watch(isAuthenticated, async (authed, prev) => {
               :aria-label="t('stats.folder')"
               @update:model-value="handleFolderChange"
             />
+            <USelect
+              v-model="currentStorage"
+              :items="storageSelectItems"
+              class="w-[6.5rem] shrink-0 sm:w-36"
+              size="sm"
+              :aria-label="t('stats.storage')"
+              @update:model-value="handleStorageChange"
+            />
             <UInput
               v-model="searchQuery"
               icon="i-lucide-search"
@@ -542,6 +577,7 @@ watch(isAuthenticated, async (authed, prev) => {
         <ImageGrid
           v-else
           :show-key="false"
+          show-storage
           :items="items"
           :selected-keys="selectedKeys"
           :deleting-keys="deletingKeys"

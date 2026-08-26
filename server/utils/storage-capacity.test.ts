@@ -21,12 +21,15 @@ describe('buildBackendCapacity', () => {
 
   it('reads disk stats for local backend when available', async () => {
     const capacity = await buildBackendCapacity('local', 'local', 1024, null)
-    if (capacity.source === 'disk') {
+    expect(capacity.source).toBe('disk')
+    if (capacity.totalBytes != null) {
       expect(capacity.totalBytes).toBeGreaterThan(0)
       expect(capacity.freeBytes).not.toBeNull()
       expect(capacity.percent).not.toBeNull()
     } else {
       expect(capacity.usedBytes).toBe(1024)
+      expect(capacity.freeBytes).toBeNull()
+      expect(capacity.percent).toBeNull()
     }
   })
 })

@@ -16,6 +16,7 @@ import {
   isValidFolderName,
   normalizeFolderName
 } from '../../utils/image-key'
+import { checkUploadRateLimit } from '../../utils/rate-limit'
 
 function readFormText(
   formData: { name?: string, data?: Buffer | Uint8Array }[],
@@ -29,13 +30,19 @@ function readFormText(
 export default defineEventHandler(async (event) => {
   await requireUploadAuth(event)
 
-  const source = verifyApiUploadToken(event) ? 'api' : 'web'
-  const uploadUserId = await getUploadUserId(event)
-
   const formData = await readMultipartFormData(event)
   if (!formData?.length) {
     createApiError(event, 'INVALID_REQUEST', '未收到上传文件', 400)
   }
+
+  const tokenField = formData.find(part => part.name === 'token')
+  const formToken = tokenField?.data?.length
+    ? new TextDecoder().decode(tokenField.data).trim()
+    : ''
+  checkUploadRateLimit(event, formToken)
+
+  const source = verifyApiUploadToken(event) ? 'api' : 'web'
+  const uploadUserId = await getUploadUserId(event)
 
   const query = getQuery(event)
   const folderFromForm = readFormText(formData, 'folder') || readFormText(formData, 'type')

@@ -9,10 +9,12 @@ const props = withDefaults(defineProps<{
   deleting?: boolean
   selectable?: boolean
   showKey?: boolean
+  showStorage?: boolean
   compact?: boolean
 }>(), {
   selectable: true,
   showKey: true,
+  showStorage: false,
   compact: false
 })
 
@@ -62,6 +64,10 @@ const copySuccessTitle = computed(() => {
   }
 })
 
+const storageIcon = computed(() =>
+  props.image.storage?.type === 'local' ? 'i-lucide-hard-drive' : 'i-lucide-cloud'
+)
+
 function toggleSelected(value: boolean | 'indeterminate') {
   emit('update:selected', value === true)
 }
@@ -106,7 +112,7 @@ function toggleSelected(value: boolean | 'indeterminate') {
       </div>
       <div
         v-if="image.owner"
-        class="absolute bottom-2 left-2 max-w-[calc(100%-1rem)]"
+        class="absolute bottom-2 left-2 max-w-[calc(50%-0.5rem)]"
       >
         <span
           class="inline-flex max-w-full items-center gap-1 rounded-md bg-black/65 px-2 py-0.5 text-xs font-medium text-white shadow-sm backdrop-blur-sm"
@@ -117,6 +123,22 @@ function toggleSelected(value: boolean | 'indeterminate') {
             class="size-3 shrink-0"
           />
           <span class="truncate">{{ image.owner.username }}</span>
+        </span>
+      </div>
+      <div
+        v-if="showStorage && image.storage"
+        class="absolute bottom-2 max-w-[calc(50%-0.5rem)]"
+        :class="image.owner ? 'right-2' : 'left-2'"
+      >
+        <span
+          class="inline-flex max-w-full items-center gap-1 rounded-md bg-black/65 px-2 py-0.5 text-xs font-medium text-white shadow-sm backdrop-blur-sm"
+          :title="t('image.storageBackend', { name: image.storage.name })"
+        >
+          <UIcon
+            :name="storageIcon"
+            class="size-3 shrink-0"
+          />
+          <span class="truncate">{{ image.storage.name }}</span>
         </span>
       </div>
     </div>
