@@ -93,8 +93,8 @@ export default defineEventHandler(async (event) => {
       summary,
       users: userMap
         ? Array.from(userMap.entries())
-          .map(([id, username]) => ({ id, username }))
-          .sort((a, b) => a.username.localeCompare(b.username))
+            .map(([id, username]) => ({ id, username }))
+            .sort((a, b) => a.username.localeCompare(b.username))
         : undefined
     }
   } catch (error) {

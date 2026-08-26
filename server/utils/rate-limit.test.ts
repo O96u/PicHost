@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { checkUploadRateLimit } from './rate-limit'
+
 vi.mock('./logger', () => ({
   clientIp: (event: { __ip?: string }) => event.__ip ?? '127.0.0.1'
 }))
-
-import { checkUploadRateLimit } from './rate-limit'
 
 function mockEvent(ip = '127.0.0.1', authToken = '') {
   return {

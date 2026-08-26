@@ -426,138 +426,138 @@ watch(isAuthenticated, async (authed, prev) => {
           </div>
 
           <div class="hidden overflow-x-auto sm:block">
-          <table class="min-w-full text-left text-sm">
-            <thead class="border-b border-default bg-muted/30 text-xs text-muted">
-              <tr>
-                <th class="px-4 py-3 font-medium sm:px-6">
-                  {{ t('logs.colTime') }}
-                </th>
-                <th
-                  v-if="isAdmin"
-                  class="px-4 py-3 font-medium"
-                >
-                  {{ t('logs.colUser') }}
-                </th>
-                <th class="px-4 py-3 font-medium">
-                  {{ t('logs.colAction') }}
-                </th>
-                <th class="px-4 py-3 font-medium">
-                  {{ t('logs.colSource') }}
-                </th>
-                <th class="px-4 py-3 font-medium">
-                  {{ t('logs.colStorage') }}
-                </th>
-                <th class="hidden px-4 py-3 font-medium md:table-cell">
-                  {{ t('logs.colFile') }}
-                </th>
-                <th class="hidden px-4 py-3 font-medium lg:table-cell">
-                  {{ t('logs.colFolder') }}
-                </th>
-                <th class="px-4 py-3 font-medium">
-                  {{ t('logs.colSize') }}
-                </th>
-                <th class="hidden px-4 py-3 font-medium xl:table-cell">
-                  {{ t('logs.colKey') }}
-                </th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-default">
-              <tr
-                v-for="row in listData.items"
-                :key="row.id"
-                class="hover:bg-muted/20"
-              >
-                <td class="whitespace-nowrap px-4 py-3 text-xs text-muted sm:px-6">
-                  {{ formatTime(row.createdAt) }}
-                </td>
-                <td
-                  v-if="isAdmin"
-                  class="px-4 py-3 text-xs"
-                >
-                  {{ row.username ?? '—' }}
-                </td>
-                <td class="px-4 py-3">
-                  <UBadge
-                    :color="actionColor(row.action)"
-                    variant="subtle"
-                    size="xs"
+            <table class="min-w-full text-left text-sm">
+              <thead class="border-b border-default bg-muted/30 text-xs text-muted">
+                <tr>
+                  <th class="px-4 py-3 font-medium sm:px-6">
+                    {{ t('logs.colTime') }}
+                  </th>
+                  <th
+                    v-if="isAdmin"
+                    class="px-4 py-3 font-medium"
                   >
-                    <UIcon
-                      :name="actionIcon(row.action)"
-                      class="mr-1 size-3"
-                    />
-                    {{ row.action === 'upload' ? t('logs.actionUpload') : t('logs.actionDelete') }}
-                  </UBadge>
-                </td>
-                <td class="px-4 py-3">
-                  <UBadge
-                    color="neutral"
-                    variant="subtle"
-                    size="xs"
-                  >
-                    {{ sourceLabel(row.source) }}
-                  </UBadge>
-                </td>
-                <td class="px-4 py-3 text-xs">
-                  <span
-                    v-if="row.storage"
-                    class="inline-flex max-w-[8rem] items-center gap-1 truncate"
-                    :title="row.storage.name"
-                  >
-                    <UIcon
-                      :name="storageIcon(row.storage)"
-                      class="size-3.5 shrink-0 opacity-70"
-                    />
-                    <span class="truncate">{{ row.storage.name }}</span>
-                  </span>
-                  <span
-                    v-else
-                    class="text-muted"
-                  >—</span>
-                </td>
-                <td
-                  class="hidden max-w-[12rem] truncate px-4 py-3 md:table-cell"
-                  :title="row.originalName"
+                    {{ t('logs.colUser') }}
+                  </th>
+                  <th class="px-4 py-3 font-medium">
+                    {{ t('logs.colAction') }}
+                  </th>
+                  <th class="px-4 py-3 font-medium">
+                    {{ t('logs.colSource') }}
+                  </th>
+                  <th class="px-4 py-3 font-medium">
+                    {{ t('logs.colStorage') }}
+                  </th>
+                  <th class="hidden px-4 py-3 font-medium md:table-cell">
+                    {{ t('logs.colFile') }}
+                  </th>
+                  <th class="hidden px-4 py-3 font-medium lg:table-cell">
+                    {{ t('logs.colFolder') }}
+                  </th>
+                  <th class="px-4 py-3 font-medium">
+                    {{ t('logs.colSize') }}
+                  </th>
+                  <th class="hidden px-4 py-3 font-medium xl:table-cell">
+                    {{ t('logs.colKey') }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-default">
+                <tr
+                  v-for="row in listData.items"
+                  :key="row.id"
+                  class="hover:bg-muted/20"
                 >
-                  {{ row.originalName }}
-                </td>
-                <td class="hidden px-4 py-3 font-mono text-xs text-muted lg:table-cell">
-                  {{ folderFromKey(row.key) }}
-                </td>
-                <td class="whitespace-nowrap px-4 py-3 tabular-nums text-muted">
-                  {{ formatFileSize(row.size) }}
-                </td>
-                <td class="hidden px-4 py-3 xl:table-cell">
-                  <div class="flex max-w-[16rem] items-center gap-1">
-                    <a
-                      v-if="row.action === 'upload'"
-                      :href="imageUrl(row.key)"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="truncate font-mono text-xs text-primary hover:underline"
-                      :title="row.key"
+                  <td class="whitespace-nowrap px-4 py-3 text-xs text-muted sm:px-6">
+                    {{ formatTime(row.createdAt) }}
+                  </td>
+                  <td
+                    v-if="isAdmin"
+                    class="px-4 py-3 text-xs"
+                  >
+                    {{ row.username ?? '—' }}
+                  </td>
+                  <td class="px-4 py-3">
+                    <UBadge
+                      :color="actionColor(row.action)"
+                      variant="subtle"
+                      size="xs"
                     >
-                      {{ row.key }}
-                    </a>
+                      <UIcon
+                        :name="actionIcon(row.action)"
+                        class="mr-1 size-3"
+                      />
+                      {{ row.action === 'upload' ? t('logs.actionUpload') : t('logs.actionDelete') }}
+                    </UBadge>
+                  </td>
+                  <td class="px-4 py-3">
+                    <UBadge
+                      color="neutral"
+                      variant="subtle"
+                      size="xs"
+                    >
+                      {{ sourceLabel(row.source) }}
+                    </UBadge>
+                  </td>
+                  <td class="px-4 py-3 text-xs">
+                    <span
+                      v-if="row.storage"
+                      class="inline-flex max-w-[8rem] items-center gap-1 truncate"
+                      :title="row.storage.name"
+                    >
+                      <UIcon
+                        :name="storageIcon(row.storage)"
+                        class="size-3.5 shrink-0 opacity-70"
+                      />
+                      <span class="truncate">{{ row.storage.name }}</span>
+                    </span>
                     <span
                       v-else
-                      class="truncate font-mono text-xs text-dimmed"
-                      :title="row.key"
-                    >
-                      {{ row.key }}
-                    </span>
-                    <CopyButton
-                      icon="i-lucide-copy"
-                      icon-only
-                      :label="t('common.copy')"
-                      :value="row.key"
-                      :success-title="t('copy.copiedUrl')"
-                    />
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                      class="text-muted"
+                    >—</span>
+                  </td>
+                  <td
+                    class="hidden max-w-[12rem] truncate px-4 py-3 md:table-cell"
+                    :title="row.originalName"
+                  >
+                    {{ row.originalName }}
+                  </td>
+                  <td class="hidden px-4 py-3 font-mono text-xs text-muted lg:table-cell">
+                    {{ folderFromKey(row.key) }}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 tabular-nums text-muted">
+                    {{ formatFileSize(row.size) }}
+                  </td>
+                  <td class="hidden px-4 py-3 xl:table-cell">
+                    <div class="flex max-w-[16rem] items-center gap-1">
+                      <a
+                        v-if="row.action === 'upload'"
+                        :href="imageUrl(row.key)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="truncate font-mono text-xs text-primary hover:underline"
+                        :title="row.key"
+                      >
+                        {{ row.key }}
+                      </a>
+                      <span
+                        v-else
+                        class="truncate font-mono text-xs text-dimmed"
+                        :title="row.key"
+                      >
+                        {{ row.key }}
+                      </span>
+                      <CopyButton
+                        icon="i-lucide-copy"
+                        icon-only
+                        :label="t('common.copy')"
+                        :value="row.key"
+                        :success-title="t('copy.copiedUrl')"
+                      />
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </template>
 

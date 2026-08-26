@@ -5,9 +5,8 @@ import type { StoredImage } from './storage'
 import { getImageBaseUrl } from './env'
 import { getActiveBackendRow } from './storage/resolver'
 import { getStorageBackendRow, getStorageBackendFromEnv } from './storage-backends'
-import type { StorageBackendType } from './storage/types'
+import type { StorageBackendType, StorageBackendRow } from './storage/types'
 import { buildObjectKey, parseS3Config } from './storage/s3'
-import type { StorageBackendRow } from './storage/types'
 
 export function resolveImageOwner(
   userId: number | null | undefined,
