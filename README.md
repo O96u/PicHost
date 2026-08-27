@@ -13,7 +13,7 @@
   <a href="https://github.com/O96u/PicHost/actions/workflows/ci.yml"><img src="https://github.com/O96u/PicHost/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <img src="https://img.shields.io/badge/Nuxt-4-00DC82?style=flat-square&logo=nuxt.js&logoColor=white" alt="Nuxt 4" />
   <a href="https://hub.docker.com/r/muxui/pichost"><img src="https://img.shields.io/badge/Docker-muxui%2Fpichost-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker" /></a>
-  <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT" />
+  <img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="GPL-3.0" />
 </p>
 
 <p align="center">
@@ -32,7 +32,7 @@
 
 | 分支 | 说明 |
 | ---- | ---- |
-| [**main**](https://github.com/O96u/PicHost/tree/main)（默认） | **v1.1.2** 主线：本地磁盘 + 多对象存储后端（R2 / COS / OSS / AWS）、[`/storage`](docs/README.md) 存储管理、混合直链 |
+| [**main**](https://github.com/O96u/PicHost/tree/main)（默认） | **v1.1.3** 主线：本地磁盘 + 多对象存储、双域名分离、[`/storage`](docs/README.md) 存储管理、混合直链 |
 | [**cloudflare**](https://github.com/O96u/PicHost/tree/cloudflare) | **Cloudflare R2 专用线**：面向「只用 R2」的部署，预设与配置更聚焦 R2 |
 
 日常使用、需要管理多种存储后端，请直接用 **main**。
@@ -181,7 +181,42 @@ curl -X POST "https://pic.example.com/api/images/upload" \
 
 - 反代到容器 **6892** 端口，建议 HTTPS
 - Nginx：`client_max_body_size` ≥ 12m
-- 公网访问请配置 `IMAGE_BASE_URL`
+- 公网访问请配置 `IMAGE_BASE_URL`（单域名）或 `SITE_BASE_URL` + `IMAGE_BASE_URL`（双域名分离）
+
+### 推荐部署架构（双域名分离）
+
+**单 Docker 实例 + 两个域名** 均可全量反代到 `6892`（隔离由 PicHost 中间件负责）：
+
+```nginx
+# admin.example.com — 后台 + API + 出图
+server {
+  server_name admin.example.com;
+  location / {
+    proxy_pass http://127.0.0.1:6892;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    client_max_body_size 12m;
+  }
+}
+
+# pic.example.com — 同样全量反代；PicHost 中间件会拦截非图片路径
+server {
+  server_name pic.example.com;
+  location / {
+    proxy_pass http://127.0.0.1:6892;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+飞牛 NAS [Lucky](https://github.com/gdy666/lucky) 反向代理示例（前端域名 → 后端 `http://<内网IP>:6892`）：
+
+| 网站域名（管理后台） | 图片域名 |
+| :------------------: | :------: |
+| ![Lucky 网站域名](docs/screenshots/lucky-site.png) | ![Lucky 图片域名](docs/screenshots/lucky-image.png) |
+
+完整说明（Caddy / NPM、环境变量、初始化填写项）见 **[docs/domain-separation.md](docs/domain-separation.md)**。
 
 ## 开发
 
@@ -198,7 +233,8 @@ npm test             # 单元测试
 
 | 版本       | 说明                                              |
 | ---------- | ------------------------------------------------- |
-| **v1.1.2** | 操作日志、图库存储筛选、上传限流（当前 main）     |
+| **v1.1.3** | 双域名分离、隐藏 `images/` 前缀、版本更新提示（当前 main） |
+| **v1.1.2** | 操作日志、图库存储筛选、上传限流                  |
 | **v1.1.1** | 会话校验与存储占位修复、Docker 日志增强           |
 | **v1.1.0** | S3 / R2 多后端对象存储、混合直链、存储管理页          |
 | **v1.0.4** | 密码显示切换、遗留 ADMIN_SECRET 迁移对齐          |
@@ -209,7 +245,7 @@ npm test             # 单元测试
 
 ## License
 
-[MIT](LICENSE)
+[GPL-3.0](LICENSE)
 
 ## 友链
 

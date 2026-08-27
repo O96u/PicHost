@@ -37,6 +37,6 @@ data
 # 本地 Git hooks 模板（仅安装在 .git/hooks/，不进仓库）
 git-hooks/
 
-# 飞牛 fpk 工程与产物（仅本地维护，不进仓库）
-scripts/fpk/
+# 本地维护脚本（assign-image-owner、fpk 打包等，不进仓库）
+scripts/
 dist-fpk/

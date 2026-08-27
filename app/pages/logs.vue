@@ -14,6 +14,8 @@ const userFilter = ref<'all' | number>('all')
 const searchQuery = ref('')
 const activeSearch = ref('')
 const listData = ref<ActivityLogListResponse | null>(null)
+const imageLinkBase = ref('')
+const hideFolderInUrl = ref(false)
 
 const pageSize = 10
 
@@ -100,9 +102,39 @@ function storageIcon(storage: ActivityLogStorage | null) {
   return storage?.type === 'local' ? 'i-lucide-hard-drive' : 'i-lucide-cloud'
 }
 
+function publicPathFromKey(key: string) {
+  if (!hideFolderInUrl.value) return key
+  const slash = key.indexOf('/')
+  return slash > 0 ? key.slice(slash + 1) : key
+}
+
 function imageUrl(key: string) {
-  if (!import.meta.client) return ''
-  return `${window.location.origin}/${key}`
+  const base = imageLinkBase.value.replace(/\/$/, '')
+  const path = publicPathFromKey(key)
+  if (!base) return `/${path}`
+  return `${base}/${path}`
+}
+
+async function loadImageLinkBase() {
+  try {
+    if (isAdmin.value) {
+      const data = await $fetch<{ imageBaseUrl: string, hideFolderInUrl: boolean }>('/api/settings', {
+        credentials: 'include'
+      })
+      imageLinkBase.value = data.imageBaseUrl
+      hideFolderInUrl.value = data.hideFolderInUrl
+      return
+    }
+    const data = await $fetch<{ env: { imageBaseUrl: string, hideFolderInUrl: boolean } }>('/api/user/api-token', {
+      credentials: 'include'
+    })
+    imageLinkBase.value = data.env.imageBaseUrl
+    hideFolderInUrl.value = data.env.hideFolderInUrl
+  } catch {
+    if (import.meta.client) {
+      imageLinkBase.value = window.location.origin
+    }
+  }
 }
 
 async function loadLogs() {
@@ -172,11 +204,13 @@ onMounted(async () => {
     await navigateTo('/')
     return
   }
+  await loadImageLinkBase()
   await loadLogs()
 })
 
 watch(isAuthenticated, async (authed, prev) => {
   if (authed && prev === false) {
+    await loadImageLinkBase()
     await loadLogs()
   }
 })

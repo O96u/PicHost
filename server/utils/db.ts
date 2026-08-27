@@ -373,6 +373,8 @@ export function deleteSessionsForUser(userId: number): void {
 export const SETTINGS_API_UPLOAD_TOKEN = 'api_upload_token'
 export const SETTINGS_WEBP_QUALITY = 'webp_quality'
 export const SETTINGS_ALLOWED_REFERER_HOSTS = 'allowed_referer_hosts'
+export const SETTINGS_HIDE_FOLDER_IN_URL = 'hide_folder_in_url'
+export const SETTINGS_SITE_BASE_URL = 'site_base_url'
 export const SETTINGS_IMAGE_BASE_URL = 'image_base_url'
 export const SETTINGS_AUTO_DELETE_DAYS = 'auto_delete_days'
 export const SETTINGS_AUTO_DELETE_ENABLED_AT = 'auto_delete_enabled_at'

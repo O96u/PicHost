@@ -4,13 +4,21 @@ import {
   createUserAccount,
   isInitialized
 } from '../utils/auth'
-import { setAllowRegistration } from '../utils/db'
+import { setAllowRegistration, setSetting, SETTINGS_IMAGE_BASE_URL, SETTINGS_SITE_BASE_URL } from '../utils/db'
+import {
+  normalizeImageBaseUrl,
+  normalizeSiteBaseUrl,
+  validateDomainSeparationPair
+} from '../utils/env'
 import { clientIp, logInfo } from '../utils/logger'
 
 interface SetupBody {
   username?: string
   password?: string
   allowRegistration?: boolean
+  domainSeparation?: boolean
+  siteBaseUrl?: string
+  imageBaseUrl?: string
 }
 
 export default defineEventHandler(async (event) => {
@@ -30,6 +38,18 @@ export default defineEventHandler(async (event) => {
     })
 
     setAllowRegistration(Boolean(body?.allowRegistration))
+
+    if (body?.domainSeparation) {
+      const siteBaseUrl = normalizeSiteBaseUrl(body.siteBaseUrl ?? '')
+      const imageBaseUrl = normalizeImageBaseUrl(body.imageBaseUrl ?? '')
+      const pairError = validateDomainSeparationPair(siteBaseUrl, imageBaseUrl)
+      if (pairError) {
+        createApiError(event, 'INVALID_REQUEST', pairError, 400)
+      }
+      setSetting(SETTINGS_SITE_BASE_URL, siteBaseUrl)
+      setSetting(SETTINGS_IMAGE_BASE_URL, imageBaseUrl)
+    }
+
     await createSession(event, user.id)
 
     logInfo('setup complete', { ip: clientIp(event), username: user.username })

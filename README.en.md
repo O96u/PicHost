@@ -13,7 +13,7 @@
   <a href="https://github.com/O96u/PicHost/actions/workflows/ci.yml"><img src="https://github.com/O96u/PicHost/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <img src="https://img.shields.io/badge/Nuxt-4-00DC82?style=flat-square&logo=nuxt.js&logoColor=white" alt="Nuxt 4" />
   <a href="https://hub.docker.com/r/muxui/pichost"><img src="https://img.shields.io/badge/Docker-muxui%2Fpichost-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker" /></a>
-  <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT" />
+  <img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="GPL-3.0" />
 </p>
 
 <p align="center">
@@ -32,7 +32,7 @@
 
 | Branch | Notes |
 | ------ | ----- |
-| [**main**](https://github.com/O96u/PicHost/tree/main) (default) | **v1.1.2** — local disk + multi-backend object storage (R2 / COS / OSS / AWS), [`/storage`](docs/README.md) UI, hybrid URLs |
+| [**main**](https://github.com/O96u/PicHost/tree/main) (default) | **v1.1.3** — local disk + multi-backend storage, dual-domain separation, [`/storage`](docs/README.md) UI, hybrid URLs |
 | [**cloudflare**](https://github.com/O96u/PicHost/tree/cloudflare) | **Cloudflare R2–only line** — streamlined for deployments that use R2 exclusively |
 
 Use **main** for the full product and multiple cloud backends.
@@ -176,7 +176,42 @@ Full docs and copyable cURL snippets are on the **API** page after deployment.
 
 - Proxy to port **6892**; HTTPS recommended
 - Nginx: `client_max_body_size` ≥ 12m
-- Set `IMAGE_BASE_URL` for public access
+- Set `IMAGE_BASE_URL` (single domain) or `SITE_BASE_URL` + `IMAGE_BASE_URL` (dual-domain separation)
+
+### Recommended architecture (dual domains)
+
+**One Docker instance + two domains**, both fully proxied to `6892` (isolation via PicHost middleware):
+
+```nginx
+# admin.example.com — admin + API + images
+server {
+  server_name admin.example.com;
+  location / {
+    proxy_pass http://127.0.0.1:6892;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    client_max_body_size 12m;
+  }
+}
+
+# pic.example.com — same full proxy; PicHost middleware blocks non-image paths
+server {
+  server_name pic.example.com;
+  location / {
+    proxy_pass http://127.0.0.1:6892;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+FN NAS [Lucky](https://github.com/gdy666/lucky) reverse proxy (public hostname → backend `http://<LAN-IP>:6892`):
+
+| Site domain (admin) | Image domain |
+| :-----------------: | :----------: |
+| ![Lucky site](docs/screenshots/lucky-site.png) | ![Lucky image](docs/screenshots/lucky-image.png) |
+
+See **[docs/domain-separation.en.md](docs/domain-separation.en.md)** for Caddy/NPM notes, env vars, and setup fields.
 
 ## Development
 
@@ -193,7 +228,8 @@ npm test             # Unit tests
 
 | Version    | Plan                                                           |
 | ---------- | -------------------------------------------------------------- |
-| **v1.1.2** | Activity logs, gallery storage filter, upload rate limits (current `main`) |
+| **v1.1.3** | Dual-domain separation, optional `images/` URL prefix, update check (current `main`) |
+| **v1.1.2** | Activity logs, gallery storage filter, upload rate limits |
 | **v1.1.1** | Session check fixes, storage placeholder cleanup, Docker logging |
 | **v1.1.0** | Multi-backend object storage, hybrid URLs, storage UI |
 | **v1.0.4** | Password visibility toggle, legacy ADMIN_SECRET migration      |
@@ -204,7 +240,7 @@ npm test             # Unit tests
 
 ## License
 
-[MIT](LICENSE)
+[GPL-3.0](LICENSE)
 
 ## Friend links
 

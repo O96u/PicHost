@@ -182,6 +182,9 @@ export function useAuth() {
     username: string
     password: string
     allowRegistration: boolean
+    domainSeparation?: boolean
+    siteBaseUrl?: string
+    imageBaseUrl?: string
   }): Promise<AuthActionResult> {
     const validationError = validateAuthInput(input.username, input.password)
     if (validationError) {
@@ -197,7 +200,10 @@ export function useAuth() {
           body: {
             username: input.username.trim(),
             password: input.password,
-            allowRegistration: input.allowRegistration
+            allowRegistration: input.allowRegistration,
+            domainSeparation: input.domainSeparation,
+            siteBaseUrl: input.siteBaseUrl,
+            imageBaseUrl: input.imageBaseUrl
           }
         }
       )

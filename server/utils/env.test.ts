@@ -8,18 +8,23 @@ import {
   getAutoDeleteDays,
   getAutoDeleteDaysSource,
   getRefererSource,
+  getSiteBaseUrl,
+  getSiteBaseUrlConfigured,
+  getSiteBaseUrlSource,
   getWebpQuality,
   getWebpQualitySource,
   isApiUploadTokenEnvConfigured,
   isAutoDeleteDaysEnvConfigured,
   isRefererEnvConfigured,
-  isWebpQualityEnvConfigured
+  isWebpQualityEnvConfigured,
+  validateDomainSeparationPair
 } from './env'
 import {
   getSetting,
   SETTINGS_ALLOWED_REFERER_HOSTS,
   SETTINGS_API_UPLOAD_TOKEN,
   SETTINGS_AUTO_DELETE_DAYS,
+  SETTINGS_SITE_BASE_URL,
   SETTINGS_WEBP_QUALITY,
   generateApiUploadToken
 } from './db'
@@ -34,8 +39,12 @@ vi.mock('./db', async (importOriginal) => {
 })
 
 vi.stubGlobal('useRuntimeConfig', () => ({
-  apiUploadToken: ''
+  apiUploadToken: '',
+  siteBaseUrl: '',
+  imageBaseUrl: ''
 }))
+
+vi.stubGlobal('getRequestURL', () => new URL('https://fallback.example.com'))
 
 function mockEvent(): H3Event {
   return {
@@ -199,5 +208,50 @@ describe('getAutoDeleteDays priority', () => {
     vi.mocked(getSetting).mockReturnValue(null)
     expect(getAutoDeleteDays()).toBe(0)
     expect(getAutoDeleteDaysSource()).toBe('default')
+  })
+})
+
+describe('getSiteBaseUrl priority', () => {
+  afterEach(() => {
+    vi.clearAllMocks()
+    delete process.env.SITE_BASE_URL
+  })
+
+  it('prefers database over environment variable', () => {
+    process.env.SITE_BASE_URL = 'https://env.example.com'
+    vi.mocked(getSetting).mockImplementation(key =>
+      key === SETTINGS_SITE_BASE_URL ? 'https://db.example.com' : null
+    )
+    const event = mockEvent()
+    expect(getSiteBaseUrlConfigured(event)).toBe('https://db.example.com')
+    expect(getSiteBaseUrlSource(event)).toBe('db')
+    expect(getSiteBaseUrl(event)).toBe('https://db.example.com')
+  })
+
+  it('falls back to request origin when unset', () => {
+    vi.mocked(getSetting).mockReturnValue(null)
+    const event = mockEvent()
+    expect(getSiteBaseUrl(event)).toBe('https://fallback.example.com')
+    expect(getSiteBaseUrlSource(event)).toBe('none')
+  })
+})
+
+describe('validateDomainSeparationPair', () => {
+  it('rejects missing values', () => {
+    expect(validateDomainSeparationPair('', 'https://pic.example.com')).toContain('同时填写')
+  })
+
+  it('rejects identical hostnames', () => {
+    expect(validateDomainSeparationPair(
+      'https://same.example.com',
+      'https://same.example.com'
+    )).toContain('相同主机名')
+  })
+
+  it('accepts different hostnames', () => {
+    expect(validateDomainSeparationPair(
+      'https://admin.example.com',
+      'https://pic.example.com'
+    )).toBeNull()
   })
 })

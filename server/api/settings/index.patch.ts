@@ -1,9 +1,12 @@
 import { requireAdminAuth } from '../../utils/access'
 import { createApiError } from '../../utils/api-error'
 import {
+  getSetting,
   setSetting,
   SETTINGS_ALLOWED_REFERER_HOSTS,
+  SETTINGS_HIDE_FOLDER_IN_URL,
   SETTINGS_IMAGE_BASE_URL,
+  SETTINGS_SITE_BASE_URL,
   SETTINGS_WEBP_QUALITY,
   setAllowRegistration
 } from '../../utils/db'
@@ -11,18 +14,23 @@ import {
   getSettingsPayload,
   isValidImageBaseUrl,
   isValidRefererHost,
+  isValidSiteBaseUrl,
   MAX_AUTO_DELETE_DAYS,
   normalizeImageBaseUrl,
   normalizeRefererHosts,
+  normalizeSiteBaseUrl,
   parseAutoDeleteDays,
   parseWebpQuality,
-  setGlobalAutoDeletePolicy
+  setGlobalAutoDeletePolicy,
+  validateDomainSeparationPair
 } from '../../utils/env'
 
 interface SettingsPatchBody {
   webpQuality?: unknown
   allowedRefererHosts?: unknown
+  siteBaseUrl?: unknown
   imageBaseUrl?: unknown
+  hideFolderInUrl?: unknown
   autoDeleteDays?: unknown
   allowRegistration?: unknown
 }
@@ -61,6 +69,21 @@ export default defineEventHandler(async (event) => {
     setSetting(SETTINGS_ALLOWED_REFERER_HOSTS, normalized)
   }
 
+  if (body.siteBaseUrl !== undefined) {
+    const configured = normalizeSiteBaseUrl(
+      typeof body.siteBaseUrl === 'string' ? body.siteBaseUrl : ''
+    )
+    if (configured && !isValidSiteBaseUrl(configured)) {
+      createApiError(
+        event,
+        'INVALID_REQUEST',
+        'SITE_BASE_URL 需为 http(s) 地址，或留空使用当前请求域名',
+        400
+      )
+    }
+    setSetting(SETTINGS_SITE_BASE_URL, configured)
+  }
+
   if (body.imageBaseUrl !== undefined) {
     const configured = normalizeImageBaseUrl(
       typeof body.imageBaseUrl === 'string' ? body.imageBaseUrl : ''
@@ -74,6 +97,21 @@ export default defineEventHandler(async (event) => {
       )
     }
     setSetting(SETTINGS_IMAGE_BASE_URL, configured)
+  }
+
+  if (body.siteBaseUrl !== undefined || body.imageBaseUrl !== undefined) {
+    const siteConfigured = normalizeSiteBaseUrl(
+      getSetting(SETTINGS_SITE_BASE_URL) ?? ''
+    )
+    const imageConfigured = normalizeImageBaseUrl(
+      getSetting(SETTINGS_IMAGE_BASE_URL) ?? ''
+    )
+    if (siteConfigured && imageConfigured) {
+      const pairError = validateDomainSeparationPair(siteConfigured, imageConfigured)
+      if (pairError) {
+        createApiError(event, 'INVALID_REQUEST', pairError, 400)
+      }
+    }
   }
 
   if (body.autoDeleteDays !== undefined) {
@@ -91,6 +129,10 @@ export default defineEventHandler(async (event) => {
 
   if (body.allowRegistration !== undefined) {
     setAllowRegistration(Boolean(body.allowRegistration))
+  }
+
+  if (body.hideFolderInUrl !== undefined) {
+    setSetting(SETTINGS_HIDE_FOLDER_IN_URL, body.hideFolderInUrl ? 'true' : 'false')
   }
 
   return getSettingsPayload(event)

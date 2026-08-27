@@ -24,6 +24,15 @@
 | `screenshots/settings.png` | 系统设置（上传偏好 + 系统设置） |
 | `screenshots/preferences.png` | 首页上传卡片翻转后的上传偏好 |
 | `screenshots/login.png` | 登录页 |
+| `screenshots/lucky-site.png` | 飞牛 NAS Lucky：网站域名反代示例 |
+| `screenshots/lucky-image.png` | 飞牛 NAS Lucky：图片域名反代示例 |
+
+## 部署文档
+
+| 文档 | 说明 |
+| ---- | ---- |
+| [domain-separation.md](domain-separation.md) | 双域名分离推荐架构（Nginx / Lucky / 环境变量） |
+| [domain-separation.en.md](domain-separation.en.md) | Dual-domain deployment (English) |
 
 ## 相关页面路由（main / v1.1.0）
 

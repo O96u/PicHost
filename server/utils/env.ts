@@ -6,7 +6,9 @@ import {
   SETTINGS_API_UPLOAD_TOKEN,
   SETTINGS_AUTO_DELETE_DAYS,
   SETTINGS_AUTO_DELETE_ENABLED_AT,
+  SETTINGS_HIDE_FOLDER_IN_URL,
   SETTINGS_IMAGE_BASE_URL,
+  SETTINGS_SITE_BASE_URL,
   SETTINGS_WEBP_QUALITY,
   isAllowRegistration
 } from './db'
@@ -47,8 +49,25 @@ export function getAdminSecret(event: H3Event): string {
 
 export type SettingSource = 'env' | 'db' | 'none'
 
-export function normalizeImageBaseUrl(raw: string): string {
+export function normalizeBaseUrl(raw: string): string {
   return raw.trim().replace(/\/$/, '')
+}
+
+export function normalizeImageBaseUrl(raw: string): string {
+  return normalizeBaseUrl(raw)
+}
+
+export function normalizeSiteBaseUrl(raw: string): string {
+  return normalizeBaseUrl(raw)
+}
+
+export function hostnameFromBaseUrl(value: string): string | null {
+  if (!value) return null
+  try {
+    return new URL(value).hostname.toLowerCase()
+  } catch {
+    return null
+  }
 }
 
 export function getImageBaseUrlFromEnv(event: H3Event): string {
@@ -73,6 +92,45 @@ export function getImageBaseUrlConfigured(event: H3Event): string {
   return getImageBaseUrlFromEnv(event)
 }
 
+export function getSiteBaseUrlFromEnv(event: H3Event): string {
+  return normalizeSiteBaseUrl(
+    getRuntimeEnv(event, 'SITE_BASE_URL', 'siteBaseUrl')
+  )
+}
+
+export function isSiteBaseUrlEnvConfigured(event: H3Event): boolean {
+  return getSiteBaseUrlFromEnv(event).length > 0
+}
+
+export function getSiteBaseUrlSource(event: H3Event): SettingSource {
+  if (getSetting(SETTINGS_SITE_BASE_URL) !== null) return 'db'
+  if (isSiteBaseUrlEnvConfigured(event)) return 'env'
+  return 'none'
+}
+
+export function getSiteBaseUrlConfigured(event: H3Event): string {
+  const dbRaw = getSetting(SETTINGS_SITE_BASE_URL)
+  if (dbRaw !== null) return normalizeSiteBaseUrl(dbRaw)
+  return getSiteBaseUrlFromEnv(event)
+}
+
+export function getSiteBaseUrl(event: H3Event): string {
+  const dbRaw = getSetting(SETTINGS_SITE_BASE_URL)
+  if (dbRaw !== null) {
+    const configured = normalizeSiteBaseUrl(dbRaw)
+    if (configured) return configured
+  } else {
+    const fromEnv = getSiteBaseUrlFromEnv(event)
+    if (fromEnv) return fromEnv
+  }
+
+  const requestUrl = getRequestURL(event, {
+    xForwardedHost: true,
+    xForwardedProto: true
+  })
+  return requestUrl.origin
+}
+
 export function getImageBaseUrl(event: H3Event): string {
   const dbRaw = getSetting(SETTINGS_IMAGE_BASE_URL)
   if (dbRaw !== null) {
@@ -89,6 +147,36 @@ export function getImageBaseUrl(event: H3Event): string {
     xForwardedProto: true
   })
   return requestUrl.origin
+}
+
+export function isHideFolderInUrlFromEnv(): boolean {
+  try {
+    return process.env.HIDE_FOLDER_IN_URL?.trim().toLowerCase() === 'true'
+  } catch {
+    return false
+  }
+}
+
+export function isHideFolderInUrlEnvConfigured(): boolean {
+  try {
+    const raw = process.env.HIDE_FOLDER_IN_URL?.trim().toLowerCase()
+    return raw === 'true' || raw === 'false'
+  } catch {
+    return false
+  }
+}
+
+export function getHideFolderInUrlSource(): SettingSource {
+  if (getSetting(SETTINGS_HIDE_FOLDER_IN_URL) !== null) return 'db'
+  if (isHideFolderInUrlEnvConfigured()) return 'env'
+  return 'none'
+}
+
+/** 优先级：SQLite settings → 环境变量 → 默认 false */
+export function isHideFolderInUrl(_event?: H3Event): boolean {
+  const dbRaw = getSetting(SETTINGS_HIDE_FOLDER_IN_URL)
+  if (dbRaw !== null) return dbRaw === 'true'
+  return isHideFolderInUrlFromEnv()
 }
 
 export function getApiUploadTokenFromEnv(event: H3Event): string {
@@ -294,7 +382,7 @@ export function isValidRefererHost(host: string): boolean {
   return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/i.test(host)
 }
 
-export function isValidImageBaseUrl(value: string): boolean {
+export function isValidBaseUrl(value: string): boolean {
   if (!value) return true
   try {
     const url = new URL(value)
@@ -304,13 +392,46 @@ export function isValidImageBaseUrl(value: string): boolean {
   }
 }
 
+export function isValidImageBaseUrl(value: string): boolean {
+  return isValidBaseUrl(value)
+}
+
+export function isValidSiteBaseUrl(value: string): boolean {
+  return isValidBaseUrl(value)
+}
+
+export function validateDomainSeparationPair(
+  siteBaseUrl: string,
+  imageBaseUrl: string
+): string | null {
+  if (!siteBaseUrl || !imageBaseUrl) {
+    return '启用域名分离时需同时填写网站域名与图片域名'
+  }
+  if (!isValidSiteBaseUrl(siteBaseUrl) || !isValidImageBaseUrl(imageBaseUrl)) {
+    return '域名需为 http(s) 地址，且末尾不加 /'
+  }
+  const siteHost = hostnameFromBaseUrl(siteBaseUrl)
+  const imageHost = hostnameFromBaseUrl(imageBaseUrl)
+  if (!siteHost || !imageHost) {
+    return '域名格式无效'
+  }
+  if (siteHost === imageHost) {
+    return '网站域名与图片域名不能使用相同主机名'
+  }
+  return null
+}
+
 export function getSettingsPayload(event: H3Event) {
   const config = useRuntimeConfig(event)
   const webpQuality = getWebpQuality(event)
   const allowedRefererHosts = getAllowedRefererHostsRaw(event)
+  const siteBaseUrl = getSiteBaseUrl(event)
   const imageBaseUrl = getImageBaseUrl(event)
   const autoDeleteDays = getAutoDeleteDays(event)
   const appVersion = config.appVersion as string
+  const domainSeparation = isDomainSeparationActive(event)
+  const hideFolderInUrl = isHideFolderInUrl(event)
+  const hideFolderInUrlSource = getHideFolderInUrlSource()
 
   return {
     apiUploadToken: getApiUploadToken(event),
@@ -321,9 +442,15 @@ export function getSettingsPayload(event: H3Event) {
     allowedRefererHosts,
     refererSource: getRefererSource(),
     refererEnvFallback: getRefererHostsFromEnv(),
+    siteBaseUrl,
+    siteBaseUrlConfigured: getSiteBaseUrlConfigured(event),
+    siteBaseUrlSource: getSiteBaseUrlSource(event),
     imageBaseUrl,
     imageBaseUrlConfigured: getImageBaseUrlConfigured(event),
     imageBaseUrlSource: getImageBaseUrlSource(event),
+    domainSeparation,
+    hideFolderInUrl,
+    hideFolderInUrlSource,
     autoDeleteDays,
     autoDeleteDaysSource: getAutoDeleteDaysSource(),
     autoDeleteEnvFallback: parseAutoDeleteDays(getAutoDeleteDaysFromEnv()) ?? 0,
@@ -332,8 +459,16 @@ export function getSettingsPayload(event: H3Event) {
     env: {
       webpQuality,
       refererConfigured: allowedRefererHosts.length > 0,
+      siteBaseUrl,
       imageBaseUrl,
+      hideFolderInUrl,
       appVersion
     }
   }
+}
+
+export function isDomainSeparationActive(event: H3Event): boolean {
+  const siteHost = hostnameFromBaseUrl(getSiteBaseUrlConfigured(event))
+  const imageHost = hostnameFromBaseUrl(getImageBaseUrlConfigured(event))
+  return Boolean(siteHost && imageHost && siteHost !== imageHost)
 }

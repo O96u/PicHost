@@ -2,7 +2,8 @@ import type { H3Event } from 'h3'
 import type { ImageItem } from '~/types/image'
 import type { AllowedMimeType } from './constants'
 import type { StoredImage } from './storage'
-import { getImageBaseUrl } from './env'
+import { getImageBaseUrl, isHideFolderInUrl } from './env'
+import { toPublicImagePath } from './image-public-path'
 import { getActiveBackendRow } from './storage/resolver'
 import { getStorageBackendRow, getStorageBackendFromEnv } from './storage-backends'
 import type { StorageBackendType, StorageBackendRow } from './storage/types'
@@ -75,19 +76,30 @@ export function mapStoredImageToItem(
   return item
 }
 
-export function buildImageUrl(baseUrl: string, key: string): string {
+export function buildImageUrl(
+  baseUrl: string,
+  key: string,
+  hideFolder = false
+): string {
   const normalizedBase = baseUrl.replace(/\/$/, '')
-  return `${normalizedBase}/${key}`
+  const path = toPublicImagePath(key, hideFolder)
+  return `${normalizedBase}/${path}`
 }
 
-export function buildPublicImageUrl(backendRow: StorageBackendRow, key: string): string {
+export function buildPublicImageUrl(
+  backendRow: StorageBackendRow,
+  key: string,
+  hideFolder = false
+): string {
   const base = backendRow.public_url.replace(/\/$/, '')
+  const path = toPublicImagePath(key, hideFolder)
   if (backendRow.type === 's3') {
     const config = parseS3Config(backendRow.config_json)
     const objectKey = buildObjectKey(config?.prefix, key)
-    return `${base}/${objectKey}`
+    const publicPath = hideFolder ? toPublicImagePath(key, true) : objectKey
+    return `${base}/${publicPath}`
   }
-  return `${base}/${key}`
+  return `${base}/${path}`
 }
 
 export function resolveImageUrl(
@@ -95,14 +107,17 @@ export function resolveImageUrl(
   key: string,
   backendId?: string
 ): string {
+  const hideFolder = isHideFolderInUrl(event)
   const envConfig = getStorageBackendFromEnv()
   if (envConfig && (!backendId || backendId === 's3-primary')) {
     if (envConfig.servingMode === 'public' && envConfig.publicUrl) {
       const prefix = envConfig.config.prefix as string | undefined
       const objectKey = buildObjectKey(prefix, key)
-      return `${envConfig.publicUrl.replace(/\/$/, '')}/${objectKey}`
+      const base = envConfig.publicUrl.replace(/\/$/, '')
+      const publicPath = hideFolder ? toPublicImagePath(key, true) : objectKey
+      return `${base}/${publicPath}`
     }
-    return buildImageUrl(getImageBaseUrl(event), key)
+    return buildImageUrl(getImageBaseUrl(event), key, hideFolder)
   }
 
   const backendRow = backendId
@@ -110,10 +125,10 @@ export function resolveImageUrl(
     : getActiveBackendRow()
 
   if (backendRow?.serving_mode === 'public' && backendRow.public_url) {
-    return buildPublicImageUrl(backendRow, key)
+    return buildPublicImageUrl(backendRow, key, hideFolder)
   }
 
-  return buildImageUrl(getImageBaseUrl(event), key)
+  return buildImageUrl(getImageBaseUrl(event), key, hideFolder)
 }
 
 export function buildMarkdown(url: string, alt: string): string {

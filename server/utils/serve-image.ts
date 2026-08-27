@@ -1,6 +1,12 @@
 import type { H3Event } from 'h3'
 import { IMAGE_CACHE_CONTROL } from './constants'
-import { getAllowedRefererHostsRaw } from './env'
+import {
+  getAllowedRefererHostsRaw,
+  getImageBaseUrlConfigured,
+  getSiteBaseUrlConfigured,
+  hostnameFromBaseUrl
+} from './env'
+import { findImageKeyByDatePath } from './image-index'
 import { validateImageKey } from './image-key'
 import { buildPublicImageUrl } from './image-response'
 import { createImageStream, headImage } from './storage'
@@ -30,6 +36,12 @@ function getAllowedHosts(event: H3Event): Set<string> {
     xForwardedProto: true
   })
   hosts.add(requestUrl.hostname.toLowerCase())
+
+  // 双域名分离时，管理域页面会引用图片域直链，需互相放行 Referer
+  const siteHost = hostnameFromBaseUrl(getSiteBaseUrlConfigured(event))
+  const imageHost = hostnameFromBaseUrl(getImageBaseUrlConfigured(event))
+  if (siteHost) hosts.add(siteHost)
+  if (imageHost) hosts.add(imageHost)
 
   return hosts
 }
@@ -63,9 +75,19 @@ function parseRangeHeader(
   return { start, end: safeEnd }
 }
 
-export function requestPathToImageKey(pathname: string): string | null {
-  const key = decodeURIComponent(pathname).replace(/^\/+/, '')
-  return validateImageKey(key) ? key : null
+export function requestPathToImageKey(
+  pathname: string,
+  options?: { hideFolder?: boolean }
+): string | null {
+  const raw = decodeURIComponent(pathname).replace(/^\/+/, '')
+  if (validateImageKey(raw)) return raw
+
+  if (options?.hideFolder) {
+    const resolved = findImageKeyByDatePath(raw)
+    if (resolved && validateImageKey(resolved)) return resolved
+  }
+
+  return null
 }
 
 export async function serveImageByKey(event: H3Event, key: string) {

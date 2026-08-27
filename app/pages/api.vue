@@ -6,6 +6,7 @@ interface SettingsResponse {
   env: {
     webpQuality: number
     refererConfigured: boolean
+    siteBaseUrl: string
     imageBaseUrl: string
     appVersion: string
   }
@@ -32,6 +33,8 @@ const regenerateResultOpen = ref(false)
 const newToken = ref('')
 
 const baseUrl = computed(() => {
+  const configured = settings.value?.env.siteBaseUrl
+  if (configured) return configured
   if (import.meta.client) {
     return window.location.origin
   }
@@ -57,7 +60,7 @@ const apiDocs = computed<ApiDocItem[]>(() => {
   ${authHeaderFlag.value} \\
   -F "image=@./demo.png"
 
-# 上传到自定义目录 blog/
+${t('api.docs.upload.curlCustomFolder')}
 curl -X POST "${baseUrl.value}/api/images/upload" \\
   ${authHeaderFlag.value} \\
   -F "folder=blog" \\
@@ -73,7 +76,7 @@ curl -X POST "${baseUrl.value}/api/images/upload" \\
     ? `curl "${baseUrl.value}/api/images?limit=20&page=1" \\
   ${authHeaderFlag.value}
 
-# 按目录筛选
+${t('api.docs.list.curlFolderFilter')}
 curl "${baseUrl.value}/api/images?folder=blog&limit=20&page=1" \\
   ${authHeaderFlag.value}`
     : `curl "${baseUrl.value}/api/images?limit=20&page=1" \\

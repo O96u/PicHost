@@ -16,14 +16,21 @@ const username = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const allowRegistration = ref(false)
+const domainSeparation = ref(false)
+const siteBaseUrl = ref('')
+const imageBaseUrl = ref('')
 const loading = ref(false)
 
-const canSubmit = computed(() =>
-  Boolean(username.value && password.value && confirmPassword.value)
-  && password.value === confirmPassword.value
-  && isPasswordValid(password.value)
-  && AUTH_USERNAME_PATTERN.test(username.value.trim())
-)
+const canSubmit = computed(() => {
+  if (!username.value || !password.value || !confirmPassword.value) return false
+  if (password.value !== confirmPassword.value) return false
+  if (!isPasswordValid(password.value)) return false
+  if (!AUTH_USERNAME_PATTERN.test(username.value.trim())) return false
+  if (domainSeparation.value) {
+    return Boolean(siteBaseUrl.value.trim() && imageBaseUrl.value.trim())
+  }
+  return true
+})
 
 onMounted(async () => {
   const status = await fetchStatus()
@@ -34,6 +41,10 @@ onMounted(async () => {
   }
   if (status.initialized && !status.needsMigration) {
     await router.replace('/')
+    return
+  }
+  if (import.meta.client) {
+    siteBaseUrl.value = window.location.origin
   }
 })
 
@@ -50,7 +61,10 @@ async function submit() {
     const payload = {
       username: username.value.trim(),
       password: password.value,
-      allowRegistration: allowRegistration.value
+      allowRegistration: allowRegistration.value,
+      domainSeparation: domainSeparation.value,
+      siteBaseUrl: domainSeparation.value ? siteBaseUrl.value.trim() : undefined,
+      imageBaseUrl: domainSeparation.value ? imageBaseUrl.value.trim() : undefined
     }
     const result = isMigrate.value
       ? await migrate(payload)
@@ -76,7 +90,7 @@ async function submit() {
     <div class="absolute top-4 right-4">
       <AuthPagePreferences />
     </div>
-    <div class="w-full max-w-sm rounded-2xl border border-default bg-elevated p-6 shadow-lg sm:p-8">
+    <div class="w-full max-w-sm rounded-2xl border border-default bg-elevated p-6 shadow-lg sm:max-w-md sm:p-8">
       <div class="mb-8 space-y-3 text-center">
         <div class="mx-auto inline-flex items-center justify-center">
           <img
@@ -163,6 +177,57 @@ async function submit() {
           <UCheckbox v-model="allowRegistration" />
           {{ t('setup.allowRegistration') }}
         </label>
+
+        <div class="space-y-3 rounded-xl border border-default bg-muted/20 p-4">
+          <label class="flex cursor-pointer items-start gap-2.5">
+            <UCheckbox
+              v-model="domainSeparation"
+              class="mt-0.5"
+            />
+            <span>
+              <span class="block text-sm font-medium">{{ t('setup.domainSeparation') }}</span>
+              <span class="mt-1 block text-xs leading-relaxed text-muted">
+                {{ t('setup.domainSeparationHint') }}
+              </span>
+            </span>
+          </label>
+
+          <template v-if="domainSeparation">
+            <p class="text-xs leading-relaxed text-warning">
+              {{ t('setup.domainSeparationProxyHint') }}
+              <a
+                href="https://github.com/O96u/PicHost/blob/main/docs/domain-separation.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-primary hover:underline"
+              >
+                {{ t('setup.domainSeparationProxyExample') }}
+              </a>
+            </p>
+            <div class="space-y-2">
+              <label class="text-sm">{{ t('setup.siteBaseUrl') }}</label>
+              <p class="text-xs text-muted">
+                {{ t('setup.siteBaseUrlHint') }}
+              </p>
+              <UInput
+                v-model="siteBaseUrl"
+                :placeholder="t('setup.siteBaseUrlPlaceholder')"
+                class="w-full font-mono text-sm"
+              />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm">{{ t('setup.imageBaseUrl') }}</label>
+              <p class="text-xs text-muted">
+                {{ t('setup.imageBaseUrlHint') }}
+              </p>
+              <UInput
+                v-model="imageBaseUrl"
+                :placeholder="t('setup.imageBaseUrlPlaceholder')"
+                class="w-full font-mono text-sm"
+              />
+            </div>
+          </template>
+        </div>
 
         <UButton
           type="submit"

@@ -8,7 +8,9 @@ export default defineEventHandler(async (event) => {
   const method = getMethod(event)
   if (method !== 'GET' && method !== 'HEAD') return
 
-  const key = requestPathToImageKey(getRequestURL(event).pathname)
+  const key = requestPathToImageKey(getRequestURL(event).pathname, {
+    hideFolder: isHideFolderInUrl(event)
+  })
   if (!key) return
 
   return serveImageByKey(event, key)

@@ -2,7 +2,8 @@ import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
 import { getDb } from './db'
 import { getDataDir } from './data-dir'
-import { isValidFolderName, validateImageKey, DEFAULT_FOLDER } from './image-key'
+import { DEFAULT_FOLDER, isValidFolderName, validateImageKey } from './image-key'
+import { isHiddenImageDatePath } from './image-public-path'
 import {
   ensureDefaultBackends,
   ensureStorageSchema,
@@ -112,6 +113,29 @@ export function getImageIndexRow(key: string): ImageIndexRow | null {
 export function getImageIndexAsStored(key: string): StoredImage | null {
   const row = getImageIndexRow(key)
   return row ? rowToStoredImage(row) : null
+}
+
+/** 隐藏目录 URL（YYYY/MM/file）反查完整 key；多目录同名时优先 images */
+export function findImageKeyByDatePath(datePath: string): string | null {
+  if (!isHiddenImageDatePath(datePath)) return null
+
+  ensureStorageSchema()
+  const suffix = `/${datePath}`
+  const rows = getDb().prepare(`
+    SELECT key FROM images WHERE key LIKE ?
+  `).all(`%${suffix}`) as Array<{ key: string }>
+
+  if (rows.length === 0) {
+    const fallback = `${DEFAULT_FOLDER}/${datePath}`
+    return validateImageKey(fallback) ? fallback : null
+  }
+  if (rows.length === 1) return rows[0]!.key
+
+  const exactDefault = rows.find(row => row.key === `${DEFAULT_FOLDER}/${datePath}`)
+  if (exactDefault) return exactDefault.key
+
+  const defaultFolder = rows.find(row => row.key.startsWith(`${DEFAULT_FOLDER}/`))
+  return defaultFolder?.key ?? rows[0]!.key
 }
 
 async function readDirNames(path: string): Promise<string[]> {

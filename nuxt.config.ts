@@ -30,8 +30,14 @@ export default defineNuxtConfig({
     appVersion: pkg.version,
     devBypassAccess: process.env.DEV_BYPASS_ACCESS === 'true',
     adminSecret: '',
+    siteBaseUrl: '',
     imageBaseUrl: '',
     apiUploadToken: ''
+  },
+
+  devServer: {
+    host: '127.0.0.1',
+    port: 3000
   },
 
   compatibilityDate: '2026-06-30',
@@ -40,6 +46,12 @@ export default defineNuxtConfig({
     preset: 'node-server',
     scheduledTasks: {
       '0 3 * * *': ['auto-delete']
+    }
+  },
+
+  vite: {
+    server: {
+      allowedHosts: true
     }
   },
 
