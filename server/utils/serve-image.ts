@@ -20,7 +20,7 @@ import { getBackendRowForKey } from './storage/resolver'
  * - Referer 可被非浏览器客户端伪造，本方案防普通网站盗链，不是身份认证
  */
 
-const ERROR_CACHE_CONTROL = 'public, max-age=60'
+const ERROR_CACHE_CONTROL = 'private, no-cache, max-age=0'
 
 function getAllowedHosts(event: H3Event): Set<string> {
   const hosts = new Set<string>()

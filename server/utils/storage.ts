@@ -53,12 +53,21 @@ export async function putImage(
 }
 
 export async function headImage(key: string): Promise<StoredImage | null> {
-  const indexed = getImageIndexAsStored(key)
-  if (indexed) return indexed
-
   const backend = await getBackendForKey(key)
   const stored = await backend.head(key)
   if (!stored) return null
+
+  const indexed = getImageIndexAsStored(key)
+  if (indexed) {
+    return {
+      ...stored,
+      backendId: backend.id,
+      originalName: indexed.originalName,
+      contentType: indexed.contentType,
+      uploadedAt: indexed.uploadedAt,
+      userId: indexed.userId
+    }
+  }
 
   insertImageIndex({
     key: stored.key,

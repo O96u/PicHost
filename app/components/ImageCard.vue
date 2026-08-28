@@ -26,7 +26,47 @@ const emit = defineEmits<{
 const { formatFileSize } = useFileSize()
 const { t, locale } = useI18n()
 const imageError = ref(false)
+const retryCount = ref(0)
 const copyFormat = ref<CopyFormat>('url')
+
+const MAX_PREVIEW_RETRIES = 3
+const PREVIEW_RETRY_DELAYS_MS = [1000, 2000, 4000]
+
+const previewSrc = computed(() => {
+  if (retryCount.value === 0) return props.image.url
+  const separator = props.image.url.includes('?') ? '&' : '?'
+  return `${props.image.url}${separator}retry=${retryCount.value}`
+})
+
+watch(() => props.image.key, () => {
+  imageError.value = false
+  retryCount.value = 0
+})
+
+let retryTimer: ReturnType<typeof setTimeout> | undefined
+
+function clearRetryTimer() {
+  if (retryTimer !== undefined) {
+    clearTimeout(retryTimer)
+    retryTimer = undefined
+  }
+}
+
+function onPreviewError() {
+  if (retryCount.value >= MAX_PREVIEW_RETRIES) {
+    imageError.value = true
+    return
+  }
+
+  const delay = PREVIEW_RETRY_DELAYS_MS[retryCount.value] ?? PREVIEW_RETRY_DELAYS_MS.at(-1)!
+  clearRetryTimer()
+  retryTimer = setTimeout(() => {
+    retryCount.value += 1
+    retryTimer = undefined
+  }, delay)
+}
+
+onUnmounted(clearRetryTimer)
 
 const copyFormatItems = computed(() => [
   { label: t('copy.url'), value: 'url' as const },
@@ -78,11 +118,12 @@ function toggleSelected(value: boolean | 'indeterminate') {
     <div class="relative aspect-square shrink-0 overflow-hidden bg-muted">
       <img
         v-if="!imageError"
-        :src="image.url"
+        :key="`${image.key}-${retryCount}`"
+        :src="previewSrc"
         :alt="image.originalName"
         loading="lazy"
         class="absolute inset-0 size-full object-cover object-center"
-        @error="imageError = true"
+        @error="onPreviewError"
       >
       <div
         v-else
