@@ -1,6 +1,9 @@
 # 双域名分离 · 推荐部署架构
 
-启用「后台与图片域名分离」后，管理后台、API 与图片直链使用不同域名。PicHost 通过 **Host 中间件** 在应用层隔离：图片域仅放行图片路径，其余请求返回 404。
+启用「后台与图片域名分离」后，管理后台、API 与图片直链使用不同域名。PicHost 通过 **Host 中间件** 双向隔离：
+
+- **网站域**：后台、API、上传；**禁止**直链出图（图片路径返回 404）
+- **图片域**：仅放行图片路径；其余请求返回 404
 
 ## 架构说明
 
@@ -19,7 +22,7 @@
 ## Nginx 示例
 
 ```nginx
-# admin.example.com — 后台 + API + 出图
+# admin.example.com — 后台 + API（不出图，直链请走图片域）
 server {
   server_name admin.example.com;
   location / {
@@ -111,6 +114,7 @@ npm run dev
 | 地址 | 预期 |
 | ---- | ---- |
 | `http://admin.pichost.test:3000/` | 正常进入后台 |
+| `http://admin.pichost.test:3000/images/...` 或 `/2026/08/xxx.webp` | **404**（请用图片域直链） |
 | `http://pic.pichost.test:3000/` | **404**（正常，图片域不提供后台） |
 | `http://pic.pichost.test:3000/images/...` | 能出图 |
 | `http://localhost:3000/` | 能打开，但与双域名配置无关，登录态不共享 |

@@ -5,6 +5,7 @@ import {
   setSetting,
   SETTINGS_ALLOWED_REFERER_HOSTS,
   SETTINGS_HIDE_FOLDER_IN_URL,
+  SETTINGS_STORAGE_USE_DATE_PATH,
   SETTINGS_IMAGE_BASE_URL,
   SETTINGS_SITE_BASE_URL,
   SETTINGS_WEBP_QUALITY,
@@ -31,6 +32,7 @@ interface SettingsPatchBody {
   siteBaseUrl?: unknown
   imageBaseUrl?: unknown
   hideFolderInUrl?: unknown
+  storageUseDatePath?: unknown
   autoDeleteDays?: unknown
   allowRegistration?: unknown
 }
@@ -133,6 +135,10 @@ export default defineEventHandler(async (event) => {
 
   if (body.hideFolderInUrl !== undefined) {
     setSetting(SETTINGS_HIDE_FOLDER_IN_URL, body.hideFolderInUrl ? 'true' : 'false')
+  }
+
+  if (body.storageUseDatePath !== undefined) {
+    setSetting(SETTINGS_STORAGE_USE_DATE_PATH, body.storageUseDatePath ? 'true' : 'false')
   }
 
   return getSettingsPayload(event)

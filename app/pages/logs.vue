@@ -104,8 +104,8 @@ function storageIcon(storage: ActivityLogStorage | null) {
 
 function publicPathFromKey(key: string) {
   if (!hideFolderInUrl.value) return key
-  const slash = key.indexOf('/')
-  return slash > 0 ? key.slice(slash + 1) : key
+  const slash = key.lastIndexOf('/')
+  return slash >= 0 ? key.slice(slash + 1) : key
 }
 
 function imageUrl(key: string) {

@@ -14,7 +14,7 @@ import {
 import type { LogSource } from './db'
 import { generateImageKey } from './image-key'
 import { buildImageItem, sanitizeOriginalName } from './image-response'
-import { getWebpQuality } from './env'
+import { getStorageLayout, getWebpQuality } from './env'
 import { insertActivityLog } from './db'
 import { putImage } from './storage'
 import { logInfo, logException } from './logger'
@@ -122,10 +122,12 @@ export async function processSingleImageUpload(
   const compressed = await compressToWebp(bytes, detectedMime, getWebpQuality(event))
 
   const uploadedAt = new Date().toISOString()
+  const layout = getStorageLayout(event)
   const key = generateImageKey(
     compressed.mime,
     new Date(uploadedAt),
-    input.prefix ?? 'images'
+    input.prefix ?? 'images',
+    layout
   )
 
   let backendId: string

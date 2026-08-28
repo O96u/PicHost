@@ -20,6 +20,8 @@ interface SettingsResponse {
   domainSeparation: boolean
   hideFolderInUrl: boolean
   hideFolderInUrlSource: SettingSource
+  storageUseDatePath: boolean
+  storageUseDatePathSource: SettingSource
   allowRegistration: boolean
   appVersion: string
 }
@@ -37,6 +39,7 @@ const refererDraft = ref('')
 const siteBaseUrlDraft = ref('')
 const imageBaseUrlDraft = ref('')
 const hideFolderInUrlDraft = ref(false)
+const storageUseDatePathDraft = ref(true)
 const allowRegistrationDraft = ref(false)
 const domainSeparationDraft = ref(false)
 const hideFolderConfirmOpen = ref(false)
@@ -61,6 +64,7 @@ const hasServerChanges = computed(() => {
     || siteBaseUrlDraft.value !== (settings.value.domainSeparation ? settings.value.siteBaseUrlConfigured : '')
     || imageBaseUrlDraft.value !== settings.value.imageBaseUrlConfigured
     || hideFolderInUrlDraft.value !== settings.value.hideFolderInUrl
+    || storageUseDatePathDraft.value !== settings.value.storageUseDatePath
     || allowRegistrationDraft.value !== settings.value.allowRegistration
 })
 
@@ -101,6 +105,7 @@ function applySettings(data: SettingsResponse) {
   siteBaseUrlDraft.value = data.domainSeparation ? data.siteBaseUrlConfigured : ''
   imageBaseUrlDraft.value = data.imageBaseUrlConfigured
   hideFolderInUrlDraft.value = data.hideFolderInUrl
+  storageUseDatePathDraft.value = data.storageUseDatePath
   allowRegistrationDraft.value = data.allowRegistration
   domainSeparationDraft.value = data.domainSeparation
 }
@@ -170,6 +175,7 @@ async function saveServerSettings() {
       siteBaseUrl: domainSeparationDraft.value ? siteBaseUrlDraft.value : '',
       imageBaseUrl: imageBaseUrlDraft.value,
       hideFolderInUrl: hideFolderInUrlDraft.value,
+      storageUseDatePath: storageUseDatePathDraft.value,
       allowRegistration: allowRegistrationDraft.value
     })
     toast.add({ title: t('settings.saved'), color: 'success' })
@@ -299,192 +305,54 @@ watch(isAuthenticated, async (authed, prev) => {
           class="p-5 sm:p-6"
         >
           <div class="space-y-5">
-            <div class="grid gap-5 lg:grid-cols-2">
-              <div class="space-y-4 rounded-xl border border-default/60 bg-muted/10 p-4 sm:p-5">
+            <div class="grid min-w-0 gap-5 lg:grid-cols-2 lg:items-stretch">
+              <div class="flex h-full min-w-0 flex-col space-y-3 rounded-xl border border-default/60 bg-muted/10 p-4 sm:p-5">
                 <h3 class="text-sm font-semibold">
-                  {{ t('settings.uploadAccount') }}
+                  {{ t('settings.featureToggles') }}
                 </h3>
-
-                <div class="space-y-1.5">
-                  <label class="text-sm font-medium">{{ t('settings.defaultFolder') }}</label>
-                  <p class="text-xs leading-relaxed text-muted">
-                    {{ t('settings.defaultFolderHint') }}
-                  </p>
-                  <USelect
-                    v-model="defaultFolder"
-                    :items="folderSelectItems"
-                    class="w-full"
-                  />
-                </div>
 
                 <label class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-default/50 bg-default/40 p-3">
                   <UCheckbox
                     v-model="allowRegistrationDraft"
-                    class="mt-0.5"
+                    class="mt-0.5 shrink-0"
                   />
-                  <span>
+                  <span class="min-w-0">
                     <span class="block text-sm font-medium">{{ t('settings.allowRegistration') }}</span>
                     <span class="mt-1 block text-xs leading-relaxed text-muted">
                       {{ t('settings.allowRegistrationHint') }}
                     </span>
                   </span>
                 </label>
-              </div>
 
-              <div class="flex flex-col gap-4 rounded-xl border border-default/60 bg-muted/10 p-4 sm:p-5">
-                <div class="flex items-center justify-between gap-2">
-                  <h3 class="text-sm font-semibold">
-                    {{ t('settings.accessControl') }}
-                  </h3>
-                  <UBadge
-                    :color="sourceBadge(settings.refererSource).color"
-                    variant="subtle"
-                    size="xs"
-                  >
-                    {{ sourceBadge(settings.refererSource).label }}
-                  </UBadge>
-                </div>
-                <p class="text-xs leading-relaxed text-muted">
-                  {{ t('settings.refererHint') }}
-                </p>
-                <UTextarea
-                  v-model="refererDraft"
-                  :placeholder="t('settings.refererPlaceholder')"
-                  :rows="5"
-                  class="min-h-0 w-full flex-1 font-mono text-sm"
-                  :ui="{ root: 'flex-1' }"
-                />
-              </div>
-            </div>
-
-            <div class="space-y-4 rounded-xl border border-default/60 bg-muted/10 p-4 sm:p-5">
-              <h3 class="text-sm font-semibold">
-                {{ t('settings.linkGeneration') }}
-              </h3>
-
-              <label class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-default/50 bg-default/40 p-3">
-                <UCheckbox
-                  :model-value="domainSeparationDraft"
-                  class="mt-0.5"
-                  @update:model-value="onDomainSeparationDraftChange"
-                />
-                <span class="min-w-0">
-                  <span class="block text-sm font-medium">{{ t('setup.domainSeparation') }}</span>
-                  <span class="mt-1 block text-xs leading-relaxed text-muted">
-                    {{ t('setup.domainSeparationHint') }}
+                <label class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-default/50 bg-default/40 p-3">
+                  <UCheckbox
+                    :model-value="storageUseDatePathDraft"
+                    class="mt-0.5 shrink-0"
+                    :disabled="settings.storageUseDatePathSource === 'env'"
+                    @update:model-value="(v) => storageUseDatePathDraft = v === true"
+                  />
+                  <span class="min-w-0">
+                    <span class="flex flex-wrap items-center gap-2 text-sm font-medium">
+                      {{ t('settings.storageUseDatePath') }}
+                      <UBadge
+                        v-if="settings.storageUseDatePathSource === 'env'"
+                        :color="sourceBadge(settings.storageUseDatePathSource).color"
+                        variant="subtle"
+                        size="xs"
+                      >
+                        {{ sourceBadge(settings.storageUseDatePathSource).label }}
+                      </UBadge>
+                    </span>
+                    <span class="mt-1 block text-xs leading-relaxed text-muted">
+                      {{ t('settings.storageUseDatePathHint') }}
+                    </span>
                   </span>
-                </span>
-              </label>
+                </label>
 
-              <p
-                v-if="domainSeparationDraft"
-                class="text-xs leading-relaxed text-warning"
-              >
-                {{ t('setup.domainSeparationProxyHint') }}
-                <a
-                  href="https://github.com/O96u/PicHost/blob/main/docs/domain-separation.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-primary hover:underline"
-                >
-                  {{ t('setup.domainSeparationProxyExample') }}
-                </a>
-              </p>
-
-              <div
-                v-if="domainSeparationDraft"
-                class="grid gap-4 lg:grid-cols-2"
-              >
-                <div class="space-y-1.5">
-                  <div class="flex items-center justify-between gap-2">
-                    <label class="text-sm font-medium">{{ t('settings.siteBaseUrl') }}</label>
-                    <UBadge
-                      :color="sourceBadge(settings.siteBaseUrlSource).color"
-                      variant="subtle"
-                      size="xs"
-                    >
-                      {{ sourceBadge(settings.siteBaseUrlSource).label }}
-                    </UBadge>
-                  </div>
-                  <p class="text-xs leading-relaxed text-muted">
-                    {{ t('settings.siteBaseUrlHint') }}
-                  </p>
-                  <UInput
-                    v-model="siteBaseUrlDraft"
-                    :placeholder="t('settings.siteBaseUrlPlaceholder')"
-                    class="w-full font-mono text-sm"
-                  />
-                  <p
-                    v-if="settings.siteBaseUrl"
-                    class="text-xs text-muted"
-                  >
-                    {{ t('settings.siteBaseUrlActive', { url: settings.siteBaseUrl }) }}
-                  </p>
-                </div>
-
-                <div class="space-y-1.5">
-                  <div class="flex items-center justify-between gap-2">
-                    <label class="text-sm font-medium">{{ t('settings.imageBaseUrl') }}</label>
-                    <UBadge
-                      :color="sourceBadge(settings.imageBaseUrlSource).color"
-                      variant="subtle"
-                      size="xs"
-                    >
-                      {{ sourceBadge(settings.imageBaseUrlSource).label }}
-                    </UBadge>
-                  </div>
-                  <p class="text-xs leading-relaxed text-muted">
-                    {{ t('settings.imageBaseUrlHint') }}
-                  </p>
-                  <UInput
-                    v-model="imageBaseUrlDraft"
-                    :placeholder="t('settings.imageBaseUrlPlaceholder')"
-                    class="w-full font-mono text-sm"
-                  />
-                  <p
-                    v-if="settings.imageBaseUrl"
-                    class="text-xs text-muted"
-                  >
-                    {{ t('settings.imageBaseUrlActive', { url: settings.imageBaseUrl }) }}
-                  </p>
-                </div>
-              </div>
-
-              <div
-                v-else
-                class="space-y-1.5"
-              >
-                <div class="flex items-center justify-between gap-2">
-                  <label class="text-sm font-medium">{{ t('settings.imageBaseUrl') }}</label>
-                  <UBadge
-                    :color="sourceBadge(settings.imageBaseUrlSource).color"
-                    variant="subtle"
-                    size="xs"
-                  >
-                    {{ sourceBadge(settings.imageBaseUrlSource).label }}
-                  </UBadge>
-                </div>
-                <p class="text-xs leading-relaxed text-muted">
-                  {{ t('settings.imageBaseUrlSingleHint') }}
-                </p>
-                <UInput
-                  v-model="imageBaseUrlDraft"
-                  :placeholder="t('settings.imageBaseUrlPlaceholder')"
-                  class="w-full font-mono text-sm"
-                />
-                <p
-                  v-if="settings.imageBaseUrl"
-                  class="text-xs text-muted"
-                >
-                  {{ t('settings.imageBaseUrlActive', { url: settings.imageBaseUrl }) }}
-                </p>
-              </div>
-
-              <div class="border-t border-default/60 pt-4">
-                <label class="flex cursor-pointer items-start gap-2.5">
+                <label class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-default/50 bg-default/40 p-3">
                   <UCheckbox
                     :model-value="hideFolderInUrlDraft"
-                    class="mt-0.5"
+                    class="mt-0.5 shrink-0"
                     :disabled="settings.hideFolderInUrlSource === 'env'"
                     @update:model-value="onHideFolderDraftChange"
                   />
@@ -506,6 +374,172 @@ watch(isAuthenticated, async (authed, prev) => {
                   </span>
                 </label>
               </div>
+
+              <div class="settings-side-panel flex h-full min-w-0 flex-col rounded-xl border border-default/60 bg-muted/10 p-4 sm:p-5">
+                <div class="shrink-0 space-y-1.5">
+                  <label class="text-sm font-medium">{{ t('settings.defaultFolder') }}</label>
+                  <p class="text-xs leading-relaxed text-muted">
+                    {{ t('settings.defaultFolderHint') }}
+                  </p>
+                  <USelect
+                    v-model="defaultFolder"
+                    :items="folderSelectItems"
+                    class="settings-folder-select w-40 max-w-full"
+                  />
+                </div>
+
+                <div class="settings-referer-section mt-4 space-y-1.5 border-t border-default/60 pt-4">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <label class="text-sm font-medium">{{ t('settings.accessControl') }}</label>
+                    <UBadge
+                      :color="sourceBadge(settings.refererSource).color"
+                      variant="subtle"
+                      size="xs"
+                    >
+                      {{ sourceBadge(settings.refererSource).label }}
+                    </UBadge>
+                  </div>
+                  <p class="text-xs leading-relaxed text-muted">
+                    {{ t('settings.refererHint') }}
+                  </p>
+                  <UTextarea
+                    v-model="refererDraft"
+                    :placeholder="t('settings.refererPlaceholder')"
+                    :rows="4"
+                    :autoresize="false"
+                    class="settings-referer-field flex min-h-0 w-full max-w-xl flex-1 flex-col font-mono text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-xl border border-default/60 bg-muted/10 p-4 sm:p-5">
+              <h3 class="text-sm font-semibold">
+                {{ t('settings.domainSettings') }}
+              </h3>
+
+              <div class="mt-4 space-y-4">
+                <label class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-default/50 bg-default/40 p-3">
+                  <UCheckbox
+                    :model-value="domainSeparationDraft"
+                    class="mt-0.5 shrink-0"
+                    @update:model-value="onDomainSeparationDraftChange"
+                  />
+                  <span class="min-w-0">
+                    <span class="block text-sm font-medium">{{ t('setup.domainSeparation') }}</span>
+                    <span class="mt-1 block text-xs leading-relaxed text-muted">
+                      {{ t('setup.domainSeparationHint') }}
+                    </span>
+                  </span>
+                </label>
+
+                <p
+                  v-if="domainSeparationDraft"
+                  class="rounded-lg border border-warning/25 bg-warning/5 px-3 py-2.5 text-xs leading-relaxed text-warning"
+                >
+                  {{ t('setup.domainSeparationProxyHint') }}
+                  <a
+                    href="https://github.com/O96u/PicHost/blob/main/docs/domain-separation.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-primary hover:underline"
+                  >
+                    {{ t('setup.domainSeparationProxyExample') }}
+                  </a>
+                </p>
+
+                <div
+                  v-if="domainSeparationDraft"
+                  class="grid gap-4 sm:grid-cols-2"
+                >
+                  <div class="space-y-1.5">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <label class="text-sm font-medium">{{ t('settings.siteBaseUrl') }}</label>
+                      <UBadge
+                        :color="sourceBadge(settings.siteBaseUrlSource).color"
+                        variant="subtle"
+                        size="xs"
+                      >
+                        {{ sourceBadge(settings.siteBaseUrlSource).label }}
+                      </UBadge>
+                    </div>
+                    <p class="text-xs leading-relaxed text-muted">
+                      {{ t('settings.siteBaseUrlHint') }}
+                    </p>
+                    <UInput
+                      v-model="siteBaseUrlDraft"
+                      :placeholder="t('settings.siteBaseUrlPlaceholder')"
+                      class="w-full max-w-xl font-mono text-sm"
+                    />
+                    <p
+                      v-if="settings.siteBaseUrl"
+                      class="truncate text-xs text-muted"
+                      :title="settings.siteBaseUrl"
+                    >
+                      {{ t('settings.siteBaseUrlActive', { url: settings.siteBaseUrl }) }}
+                    </p>
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <label class="text-sm font-medium">{{ t('settings.imageBaseUrl') }}</label>
+                      <UBadge
+                        :color="sourceBadge(settings.imageBaseUrlSource).color"
+                        variant="subtle"
+                        size="xs"
+                      >
+                        {{ sourceBadge(settings.imageBaseUrlSource).label }}
+                      </UBadge>
+                    </div>
+                    <p class="text-xs leading-relaxed text-muted">
+                      {{ t('settings.imageBaseUrlHint') }}
+                    </p>
+                    <UInput
+                      v-model="imageBaseUrlDraft"
+                      :placeholder="t('settings.imageBaseUrlPlaceholder')"
+                      class="w-full max-w-xl font-mono text-sm"
+                    />
+                    <p
+                      v-if="settings.imageBaseUrl"
+                      class="truncate text-xs text-muted"
+                      :title="settings.imageBaseUrl"
+                    >
+                      {{ t('settings.imageBaseUrlActive', { url: settings.imageBaseUrl }) }}
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  v-else
+                  class="space-y-1.5"
+                >
+                  <div class="flex flex-wrap items-center gap-2">
+                    <label class="text-sm font-medium">{{ t('settings.imageBaseUrl') }}</label>
+                    <UBadge
+                      :color="sourceBadge(settings.imageBaseUrlSource).color"
+                      variant="subtle"
+                      size="xs"
+                    >
+                      {{ sourceBadge(settings.imageBaseUrlSource).label }}
+                    </UBadge>
+                  </div>
+                  <p class="text-xs leading-relaxed text-muted">
+                    {{ t('settings.imageBaseUrlSingleHint') }}
+                  </p>
+                  <UInput
+                    v-model="imageBaseUrlDraft"
+                    :placeholder="t('settings.imageBaseUrlPlaceholder')"
+                    class="w-full max-w-xl font-mono text-sm"
+                  />
+                  <p
+                    v-if="settings.imageBaseUrl"
+                    class="truncate text-xs text-muted"
+                    :title="settings.imageBaseUrl"
+                  >
+                    {{ t('settings.imageBaseUrlActive', { url: settings.imageBaseUrl }) }}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -522,14 +556,14 @@ watch(isAuthenticated, async (authed, prev) => {
 
         <div
           v-if="settings"
-          class="flex flex-wrap items-center justify-between gap-3 border-t border-default px-5 py-4 sm:px-6"
+          class="flex flex-col gap-3 border-t border-default px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
         >
           <div class="flex min-w-0 items-center gap-2 text-xs text-muted">
             <UIcon
               name="i-lucide-key-round"
               class="size-3.5 shrink-0"
             />
-            <span>
+            <span class="min-w-0">
               {{ t('settings.apiTokenLine', { source: tokenSourceText(settings.tokenSource) }) }}
               <a
                 :href="releaseCheck?.updateAvailable && releaseCheck.releaseUrl
@@ -563,7 +597,7 @@ watch(isAuthenticated, async (authed, prev) => {
               </template>
             </span>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="flex flex-wrap items-center justify-end gap-2">
             <UButton
               :label="t('settings.manageToken')"
               icon="i-lucide-external-link"
@@ -609,3 +643,45 @@ watch(isAuthenticated, async (authed, prev) => {
     </UModal>
   </div>
 </template>
+
+<style scoped>
+.settings-side-panel {
+  overflow: hidden;
+}
+
+.settings-folder-select {
+  min-width: 0;
+}
+
+.settings-folder-select :deep(button),
+.settings-folder-select :deep([role='combobox']) {
+  justify-content: space-between;
+}
+
+.settings-referer-section {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.settings-referer-field {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.settings-referer-field :deep(textarea),
+.settings-referer-field :deep(> div) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.settings-referer-field :deep(textarea) {
+  height: 100%;
+  min-height: 5.5rem;
+  resize: none;
+}
+</style>

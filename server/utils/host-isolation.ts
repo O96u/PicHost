@@ -24,6 +24,8 @@ export function shouldBlockImageHostRequest(
     requestHost?: string
     separationActive?: boolean
     imageHost?: string | null
+    siteHost?: string | null
+    hideFolder?: boolean
   }
 ): boolean {
   const separationActive = options?.separationActive ?? isDomainSeparationActive(event)
@@ -45,7 +47,45 @@ export function shouldBlockImageHostRequest(
   if (method !== 'GET' && method !== 'HEAD') return true
 
   const pathname = options?.pathname ?? requestUrl?.pathname ?? ''
+  const hideFolder = options?.hideFolder ?? isHideFolderInUrl(event)
   return requestPathToImageKey(pathname, {
-    hideFolder: isHideFolderInUrl(event)
+    hideFolder
   }) === null
+}
+
+/** 网站域禁止直链出图（仅图片域可 GET/HEAD 图片路径） */
+export function shouldBlockSiteHostImageRequest(
+  event: H3Event,
+  options?: {
+    method?: string
+    pathname?: string
+    requestHost?: string
+    separationActive?: boolean
+    siteHost?: string | null
+    hideFolder?: boolean
+  }
+): boolean {
+  const separationActive = options?.separationActive ?? isDomainSeparationActive(event)
+  if (!separationActive) return false
+
+  const siteHost = options?.siteHost ?? getConfiguredSiteHost(event)
+  if (!siteHost) return false
+
+  const requestUrl = options?.requestHost
+    ? null
+    : getRequestURL(event, {
+        xForwardedHost: true,
+        xForwardedProto: true
+      })
+  const requestHost = (options?.requestHost ?? requestUrl?.hostname ?? '').toLowerCase()
+  if (requestHost !== siteHost) return false
+
+  const method = (options?.method ?? getMethod(event)).toUpperCase()
+  if (method !== 'GET' && method !== 'HEAD') return false
+
+  const pathname = options?.pathname ?? requestUrl?.pathname ?? ''
+  const hideFolder = options?.hideFolder ?? isHideFolderInUrl(event)
+  return requestPathToImageKey(pathname, {
+    hideFolder
+  }) !== null
 }

@@ -1,7 +1,7 @@
 import { requestPathToImageKey, serveImageByKey } from '../utils/serve-image'
 
 /**
- * 仅当路径像图片 key（{type}/YYYY/MM/file.ext）时才接管。
+ * 仅当路径像图片 key 或短链时才接管。
  * 其它请求（/_nuxt、/api、页面）原样放行。
  */
 export default defineEventHandler(async (event) => {

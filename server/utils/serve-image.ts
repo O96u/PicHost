@@ -6,7 +6,7 @@ import {
   getSiteBaseUrlConfigured,
   hostnameFromBaseUrl
 } from './env'
-import { findImageKeyByDatePath } from './image-index'
+import { findImageKeyByDatePath, findImageKeyByFilename } from './image-index'
 import { validateImageKey } from './image-key'
 import { buildPublicImageUrl } from './image-response'
 import { createImageStream, headImage } from './storage'
@@ -83,8 +83,11 @@ export function requestPathToImageKey(
   if (validateImageKey(raw)) return raw
 
   if (options?.hideFolder) {
-    const resolved = findImageKeyByDatePath(raw)
-    if (resolved && validateImageKey(resolved)) return resolved
+    const byFilename = findImageKeyByFilename(raw)
+    if (byFilename && validateImageKey(byFilename)) return byFilename
+
+    const byDatePath = findImageKeyByDatePath(raw)
+    if (byDatePath && validateImageKey(byDatePath)) return byDatePath
   }
 
   return null

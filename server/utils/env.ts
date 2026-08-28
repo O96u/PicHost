@@ -7,6 +7,7 @@ import {
   SETTINGS_AUTO_DELETE_DAYS,
   SETTINGS_AUTO_DELETE_ENABLED_AT,
   SETTINGS_HIDE_FOLDER_IN_URL,
+  SETTINGS_STORAGE_USE_DATE_PATH,
   SETTINGS_IMAGE_BASE_URL,
   SETTINGS_SITE_BASE_URL,
   SETTINGS_WEBP_QUALITY,
@@ -177,6 +178,49 @@ export function isHideFolderInUrl(_event?: H3Event): boolean {
   const dbRaw = getSetting(SETTINGS_HIDE_FOLDER_IN_URL)
   if (dbRaw !== null) return dbRaw === 'true'
   return isHideFolderInUrlFromEnv()
+}
+
+export function isStorageUseDatePathFromEnv(): boolean {
+  try {
+    const layout = process.env.STORAGE_LAYOUT?.trim().toLowerCase()
+    if (layout === 'flat') return false
+    if (layout === 'date') return true
+    const raw = process.env.STORAGE_USE_DATE_PATH?.trim().toLowerCase()
+    if (raw === 'false') return false
+    if (raw === 'true') return true
+    return true
+  } catch {
+    return true
+  }
+}
+
+export function isStorageUseDatePathEnvConfigured(): boolean {
+  try {
+    const layout = process.env.STORAGE_LAYOUT?.trim().toLowerCase()
+    if (layout === 'flat' || layout === 'date') return true
+    const raw = process.env.STORAGE_USE_DATE_PATH?.trim().toLowerCase()
+    return raw === 'true' || raw === 'false'
+  } catch {
+    return false
+  }
+}
+
+export function getStorageUseDatePathSource(): SettingSource {
+  if (getSetting(SETTINGS_STORAGE_USE_DATE_PATH) !== null) return 'db'
+  if (isStorageUseDatePathEnvConfigured()) return 'env'
+  return 'none'
+}
+
+/** 优先级：SQLite settings → 环境变量 → 默认 true（按年/月分组） */
+export function isStorageUseDatePath(_event?: H3Event): boolean {
+  const dbRaw = getSetting(SETTINGS_STORAGE_USE_DATE_PATH)
+  if (dbRaw !== null) return dbRaw !== 'false'
+  if (isStorageUseDatePathEnvConfigured()) return isStorageUseDatePathFromEnv()
+  return true
+}
+
+export function getStorageLayout(event?: H3Event): 'date' | 'flat' {
+  return isStorageUseDatePath(event) ? 'date' : 'flat'
 }
 
 export function getApiUploadTokenFromEnv(event: H3Event): string {
@@ -432,6 +476,8 @@ export function getSettingsPayload(event: H3Event) {
   const domainSeparation = isDomainSeparationActive(event)
   const hideFolderInUrl = isHideFolderInUrl(event)
   const hideFolderInUrlSource = getHideFolderInUrlSource()
+  const storageUseDatePath = isStorageUseDatePath(event)
+  const storageUseDatePathSource = getStorageUseDatePathSource()
 
   return {
     apiUploadToken: getApiUploadToken(event),
@@ -451,6 +497,8 @@ export function getSettingsPayload(event: H3Event) {
     domainSeparation,
     hideFolderInUrl,
     hideFolderInUrlSource,
+    storageUseDatePath,
+    storageUseDatePathSource,
     autoDeleteDays,
     autoDeleteDaysSource: getAutoDeleteDaysSource(),
     autoDeleteEnvFallback: parseAutoDeleteDays(getAutoDeleteDaysFromEnv()) ?? 0,

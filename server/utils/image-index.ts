@@ -2,8 +2,8 @@ import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
 import { getDb } from './db'
 import { getDataDir } from './data-dir'
-import { DEFAULT_FOLDER, isValidFolderName, validateImageKey } from './image-key'
-import { isHiddenImageDatePath } from './image-public-path'
+import { DEFAULT_FOLDER, isValidFolderName, sortFolderNames, validateImageKey } from './image-key'
+import { isBareImageFilename, isHiddenImageDatePath } from './image-public-path'
 import {
   ensureDefaultBackends,
   ensureStorageSchema,
@@ -138,6 +138,29 @@ export function findImageKeyByDatePath(datePath: string): string | null {
   return defaultFolder?.key ?? rows[0]!.key
 }
 
+/** 隐藏目录 URL（纯文件名）反查完整 key；多目录同名时优先 images */
+export function findImageKeyByFilename(filename: string): string | null {
+  if (!isBareImageFilename(filename)) return null
+
+  ensureStorageSchema()
+  const suffix = `/${filename}`
+  const rows = getDb().prepare(`
+    SELECT key FROM images WHERE key LIKE ?
+  `).all(`%${suffix}`) as Array<{ key: string }>
+
+  if (rows.length === 0) {
+    const flatFallback = `${DEFAULT_FOLDER}/${filename}`
+    return validateImageKey(flatFallback) ? flatFallback : null
+  }
+  if (rows.length === 1) return rows[0]!.key
+
+  const exactDefault = rows.find(row => row.key === `${DEFAULT_FOLDER}/${filename}`)
+  if (exactDefault) return exactDefault.key
+
+  const defaultFolder = rows.find(row => row.key.startsWith(`${DEFAULT_FOLDER}/`))
+  return defaultFolder?.key ?? rows[0]!.key
+}
+
 async function readDirNames(path: string): Promise<string[]> {
   try {
     const entries = await fs.readdir(path, { withFileTypes: true })
@@ -164,8 +187,16 @@ async function listLocalImageKeys(): Promise<string[]> {
   for (const prefix of prefixes) {
     if (!isValidFolderName(prefix)) continue
     const root = join(dataDir, prefix)
+    const rootFiles = await readFileNames(root)
+    for (const file of rootFiles) {
+      if (file.endsWith(META_SUFFIX)) continue
+      const key = `${prefix}/${file}`
+      if (validateImageKey(key)) keys.push(key)
+    }
+
     const years = await readDirNames(root)
     for (const year of years) {
+      if (!/^\d{4}$/.test(year)) continue
       const months = await readDirNames(join(root, year))
       for (const month of months) {
         const files = await readFileNames(join(root, year, month))
@@ -222,10 +253,7 @@ export async function listFolders(): Promise<string[]> {
   `).all() as Array<{ folder: string }>
 
   const folders = rows.map(row => row.folder).filter(isValidFolderName)
-  if (!folders.includes(DEFAULT_FOLDER)) {
-    folders.push(DEFAULT_FOLDER)
-  }
-  return folders.sort((a, b) => a.localeCompare(b))
+  return sortFolderNames(folders)
 }
 
 export async function listFoldersForUser(
@@ -240,10 +268,7 @@ export async function listFoldersForUser(
   `).all(...params) as Array<{ folder: string }>
 
   const folders = rows.map(row => row.folder).filter(isValidFolderName)
-  if (!folders.length) {
-    folders.push(DEFAULT_FOLDER)
-  }
-  return folders.sort((a, b) => a.localeCompare(b))
+  return sortFolderNames(folders)
 }
 
 function buildBackendFilterSql(
