@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { ImageItem } from '~/types/image'
-
-type CopyFormat = 'url' | 'markdown' | 'html'
+import type { CopyFormat } from '~/composables/useUploadPreferences'
 
 const props = withDefaults(defineProps<{
   image: ImageItem
@@ -25,9 +24,13 @@ const emit = defineEmits<{
 
 const { formatFileSize } = useFileSize()
 const { t, locale } = useI18n()
+const { copyFormat } = useUploadPreferences()
 const imageError = ref(false)
 const retryCount = ref(0)
-const copyFormat = ref<CopyFormat>('url')
+
+function selectCopyFormat(value: CopyFormat) {
+  copyFormat.value = value
+}
 
 const MAX_PREVIEW_RETRIES = 3
 const PREVIEW_RETRY_DELAYS_MS = [1000, 2000, 4000]
@@ -231,7 +234,7 @@ function toggleSelected(value: boolean | 'indeterminate') {
           :variant="copyFormat === item.value ? 'solid' : 'ghost'"
           :color="copyFormat === item.value ? 'primary' : 'neutral'"
           :label="item.label"
-          @click="() => { copyFormat = item.value }"
+          @click="selectCopyFormat(item.value)"
         />
       </div>
 

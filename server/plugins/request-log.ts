@@ -1,7 +1,7 @@
 import { clientIp, logError, logInfo, logWarn } from '../utils/logger'
 
 /**
- * 只记录 /api/*，避免 /images、/twikoo 直链刷屏。
+ * 只记录 /api/*，避免 /images 直链刷屏。
  */
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('request', (event) => {

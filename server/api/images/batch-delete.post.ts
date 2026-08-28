@@ -3,8 +3,9 @@ import { requireApiOrAdminAuth, assertImageOwnership, resolveActivitySource } fr
 import { createApiError } from '../../utils/api-error'
 import { MAX_DELETE_BATCH } from '../../utils/constants'
 import { insertActivityLog } from '../../utils/db'
-import { validateImageKey } from '../../utils/image-key'
-import { deleteImage, headImage } from '../../utils/storage'
+import { getImageIndexRow, deleteImageIndex } from '../../utils/image-index'
+import { toCanonicalImageKey, validateImageKey } from '../../utils/image-key'
+import { deleteImage, headImage, resolveStorageImageKey } from '../../utils/storage'
 import { logInfo } from '../../utils/logger'
 
 interface BatchDeleteBody {
@@ -33,7 +34,11 @@ export default defineEventHandler(async (event) => {
     }
 
     for (const key of keys) {
-      if (!validateImageKey(key)) {
+      if (
+        !validateImageKey(key)
+        && !toCanonicalImageKey(key)
+        && !getImageIndexRow(key)
+      ) {
         createApiError(event, 'INVALID_IMAGE_KEY', `无效的图片路径: ${key}`, 400)
       }
     }
@@ -43,7 +48,38 @@ export default defineEventHandler(async (event) => {
 
     for (const key of keys) {
       try {
-        const existing = await headImage(key)
+        const storageKey = await resolveStorageImageKey(key) ?? key
+        const existing = await headImage(storageKey)
+        const indexed = getImageIndexRow(key) ?? getImageIndexRow(storageKey)
+
+        if (!existing && indexed) {
+          try {
+            await assertImageOwnership(event, indexed.user_id)
+          } catch {
+            failed.push({
+              key,
+              error: { code: 'FORBIDDEN', message: '无权操作此图片' }
+            })
+            continue
+          }
+
+          deleteImageIndex(key)
+          if (storageKey !== key) deleteImageIndex(storageKey)
+
+          deleted.push(key)
+          insertActivityLog({
+            action: 'delete',
+            key,
+            originalName: indexed.original_name,
+            size: indexed.size,
+            contentType: indexed.content_type,
+            source: resolveActivitySource(event),
+            userId: indexed.user_id ?? null,
+            backendId: indexed.backend_id ?? null
+          })
+          logInfo('delete orphan index', { key })
+          continue
+        }
 
         if (!existing) {
           failed.push({
@@ -63,7 +99,7 @@ export default defineEventHandler(async (event) => {
           continue
         }
 
-        await deleteImage(key)
+        await deleteImage(storageKey, key)
         deleted.push(key)
 
         insertActivityLog({
@@ -77,7 +113,7 @@ export default defineEventHandler(async (event) => {
           backendId: existing.backendId ?? null
         })
 
-        logInfo('delete success', { key, size: existing.size })
+        logInfo('delete success', { key: storageKey, size: existing.size })
       } catch {
         failed.push({
           key,

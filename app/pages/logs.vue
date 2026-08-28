@@ -38,8 +38,7 @@ const actionItems = computed(() => [
 const sourceItems = computed(() => [
   { label: t('logs.filterSourceAll'), value: 'all' as const },
   { label: t('logs.sourceWeb'), value: 'web' as const },
-  { label: t('logs.sourceApi'), value: 'api' as const },
-  { label: t('logs.sourceTwikoo'), value: 'twikoo' as const }
+  { label: t('logs.sourceApi'), value: 'api' as const }
 ])
 
 const userItems = computed(() => {
@@ -93,8 +92,6 @@ function sourceLabel(source: LogSource) {
       return t('logs.sourceWeb')
     case 'api':
       return t('logs.sourceApi')
-    case 'twikoo':
-      return t('logs.sourceTwikoo')
   }
 }
 

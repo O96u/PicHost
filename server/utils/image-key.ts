@@ -13,20 +13,6 @@ export const DEFAULT_FOLDER = 'images'
 
 export type StorageLayout = 'date' | 'flat'
 
-/** 避免与站点路由 / 静态资源冲突 */
-const RESERVED_FOLDERS = new Set([
-  'api',
-  'stats',
-  '_nuxt',
-  '__nuxt',
-  'assets',
-  'public',
-  'favicon',
-  'robots',
-  'sitemap',
-  'sw'
-])
-
 const IMAGE_EXT_PATTERN = /\.(jpg|jpeg|png|webp|gif|svg|ico)$/i
 
 function generateRandomId(length = 12): string {
@@ -40,51 +26,26 @@ export function mimeToExtension(mime: AllowedMimeType): string {
   return EXT_MAP[mime]
 }
 
-/** 目录名：字母数字开头，允许 - _，最长 32；不含路径分隔符 */
-export function isValidFolderName(name: string): boolean {
-  if (!name || typeof name !== 'string') return false
-  if (name.length > 32) return false
-  if (!/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(name)) return false
-  return !RESERVED_FOLDERS.has(name.toLowerCase())
-}
-
-export function normalizeFolderName(raw: string | undefined | null): string {
-  const trimmed = raw?.trim() || DEFAULT_FOLDER
-  return trimmed
-}
-
-/** 默认目录 images 始终排在首位，其余按字母序 */
-export function sortFolderNames(folders: string[]): string[] {
-  const seen = new Set<string>()
-  const valid: string[] = []
-  for (const folder of folders) {
-    if (!isValidFolderName(folder) || seen.has(folder)) continue
-    seen.add(folder)
-    valid.push(folder)
-  }
-  if (!seen.has(DEFAULT_FOLDER)) {
-    valid.push(DEFAULT_FOLDER)
-  }
-  const rest = valid
-    .filter(folder => folder !== DEFAULT_FOLDER)
-    .sort((a, b) => a.localeCompare(b))
-  return [DEFAULT_FOLDER, ...rest]
+/** 路径段：字母数字开头，允许 - _ .，最长 64 */
+function isValidPathSegment(segment: string): boolean {
+  if (!segment || segment.length > 64) return false
+  if (segment === '.' || segment === '..') return false
+  return /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(segment)
 }
 
 export function generateImageKey(
   contentType: AllowedMimeType,
   date = new Date(),
-  prefix = DEFAULT_FOLDER,
   layout: StorageLayout = 'date'
 ): string {
   const id = generateRandomId(12)
   const ext = mimeToExtension(contentType)
   if (layout === 'flat') {
-    return `${prefix}/${id}.${ext}`
+    return `${DEFAULT_FOLDER}/${id}.${ext}`
   }
   const year = date.getUTCFullYear()
   const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-  return `${prefix}/${year}/${month}/${id}.${ext}`
+  return `${DEFAULT_FOLDER}/${year}/${month}/${id}.${ext}`
 }
 
 export function validateImageKey(key: string): boolean {
@@ -96,21 +57,34 @@ export function validateImageKey(key: string): boolean {
   const parts = key.split('/')
   if (parts.length < 2 || parts.some(part => !part)) return false
 
-  const folder = parts[0]!
-  if (!isValidFolderName(folder)) return false
+  if (parts[0] !== DEFAULT_FOLDER) return false
 
   const filename = parts[parts.length - 1]!
   if (!IMAGE_EXT_PATTERN.test(filename)) return false
 
-  if (parts.length === 2) {
-    return true
+  for (let i = 1; i < parts.length - 1; i++) {
+    if (!isValidPathSegment(parts[i]!)) return false
   }
 
-  if (parts.length === 4) {
-    const year = parts[1]!
-    const month = parts[2]!
-    return /^\d{4}$/.test(year) && /^\d{2}$/.test(month)
+  return true
+}
+
+/** 将遗留顶层目录 key（如 blog/foo.webp）映射为 images/blog/foo.webp */
+export function toCanonicalImageKey(key: string): string | null {
+  if (validateImageKey(key)) return key
+  if (!key || key.startsWith('/') || key.includes('..') || key.includes('//')) return null
+
+  const parts = key.split('/')
+  if (parts.length < 2 || parts.some(part => !part)) return null
+  if (parts[0] === DEFAULT_FOLDER) return null
+
+  const filename = parts[parts.length - 1]!
+  if (!IMAGE_EXT_PATTERN.test(filename)) return null
+
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!isValidPathSegment(parts[i]!)) return null
   }
 
-  return false
+  const canonical = `${DEFAULT_FOLDER}/${key}`
+  return validateImageKey(canonical) ? canonical : null
 }

@@ -1,10 +1,15 @@
 import type { ReadStream } from 'node:fs'
+import { promises as fs } from 'node:fs'
+import { join } from 'node:path'
 import type { Readable } from 'node:stream'
+import { contentTypeFromKey } from './content-type'
+import { getDataDir } from './data-dir'
 import {
   countImages as countImagesFromIndex,
   deleteImageIndex,
   getFolderStorageStats as getFolderStorageStatsFromIndex,
   getImageIndexAsStored,
+  getImageIndexRow,
   getUserScopedStorageStats as getUserScopedStorageStatsFromIndex,
   insertImageIndex,
   listFolders as listFoldersFromIndex,
@@ -13,6 +18,7 @@ import {
   listImages as listImagesFromIndex,
   searchImages as searchImagesFromIndex
 } from './image-index'
+import { DEFAULT_FOLDER, toCanonicalImageKey, validateImageKey } from './image-key'
 import {
   getActiveBackend,
   getBackendForKey
@@ -32,6 +38,58 @@ export type {
 } from './storage/types'
 
 export { getDataDir } from './data-dir'
+
+function keyToFilePath(key: string): string {
+  return join(getDataDir(), ...key.split('/'))
+}
+
+async function fileExistsAtKey(key: string): Promise<boolean> {
+  try {
+    await fs.access(keyToFilePath(key))
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** 删除/变更前解析 key：接受遗留 blog/… 并映射到 images/blog/… */
+export async function resolveStorageImageKey(key: string): Promise<string | null> {
+  if (!key || typeof key !== 'string') return null
+
+  if (validateImageKey(key)) {
+    if (await fileExistsAtKey(key) || getImageIndexRow(key)) return key
+    return null
+  }
+
+  if (getImageIndexRow(key)) {
+    const canonical = toCanonicalImageKey(key)
+    if (canonical && (await fileExistsAtKey(canonical) || getImageIndexRow(canonical))) {
+      return canonical
+    }
+    if (await fileExistsAtKey(key)) return key
+    return canonical ?? key
+  }
+
+  const canonical = toCanonicalImageKey(key)
+  if (canonical && (await fileExistsAtKey(canonical) || getImageIndexRow(canonical))) {
+    return canonical
+  }
+
+  return null
+}
+
+function deleteImageIndexAliases(storageKey: string, requestedKey?: string) {
+  deleteImageIndex(storageKey)
+  if (requestedKey && requestedKey !== storageKey) {
+    deleteImageIndex(requestedKey)
+  }
+  if (storageKey.startsWith(`${DEFAULT_FOLDER}/`)) {
+    const legacy = storageKey.slice(DEFAULT_FOLDER.length + 1)
+    if (legacy && legacy !== storageKey) {
+      deleteImageIndex(legacy)
+    }
+  }
+}
 
 export async function putImage(
   key: string,
@@ -59,11 +117,17 @@ export async function headImage(key: string): Promise<StoredImage | null> {
 
   const indexed = getImageIndexAsStored(key)
   if (indexed) {
+    let contentType = indexed.contentType
+    if (contentType === 'application/octet-stream') {
+      contentType = stored.contentType !== 'application/octet-stream'
+        ? stored.contentType
+        : contentTypeFromKey(key)
+    }
     return {
       ...stored,
       backendId: backend.id,
       originalName: indexed.originalName,
-      contentType: indexed.contentType,
+      contentType,
       uploadedAt: indexed.uploadedAt,
       userId: indexed.userId
     }
@@ -90,10 +154,10 @@ export async function createImageStream(
   return backend.createStream(key, range)
 }
 
-export async function deleteImage(key: string): Promise<void> {
+export async function deleteImage(key: string, requestedKey?: string): Promise<void> {
   const backend = await getBackendForKey(key)
   await backend.delete(key)
-  deleteImageIndex(key)
+  deleteImageIndexAliases(key, requestedKey)
 }
 
 export async function listFolders(): Promise<string[]> {
@@ -106,11 +170,10 @@ export async function listImageKeys(): Promise<string[]> {
 }
 
 export async function countImages(
-  folder?: string,
   userFilter?: number | 'admin',
   backendId?: string
 ): Promise<number> {
-  return countImagesFromIndex(folder, userFilter, backendId)
+  return countImagesFromIndex(userFilter, backendId)
 }
 
 export async function getFolderStorageStats(
@@ -138,7 +201,6 @@ export async function getUserScopedStorageStats(userId: number): Promise<{
 export async function listImages(options: {
   limit: number
   page?: number
-  folder?: string
   userFilter?: number | 'admin'
   backendId?: string
 }): Promise<PaginatedResult<StoredImage>> {
@@ -149,7 +211,6 @@ export async function searchImages(options: {
   query: string
   limit: number
   page?: number
-  folder?: string
   userFilter?: number | 'admin'
   backendId?: string
 }): Promise<PaginatedResult<StoredImage>> {

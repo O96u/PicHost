@@ -32,7 +32,7 @@
 
 | Branch | Notes |
 | ------ | ----- |
-| [**main**](https://github.com/O96u/PicHost/tree/main) (default) | **v1.1.5** — local disk + multi-backend storage, bidirectional dual-domain isolation, [`/storage`](docs/README.md) UI, hybrid URLs |
+| [**main**](https://github.com/O96u/PicHost/tree/main) (default) | **v1.2.0** (in progress) — unified `images/` storage, multi-backend, dual-domain isolation, [`/storage`](docs/README.md), [`migration guide`](docs/migration-to-v1.2.en.md) |
 | [**cloudflare**](https://github.com/O96u/PicHost/tree/cloudflare) | **Cloudflare R2–only line** — streamlined for deployments that use R2 exclusively |
 
 Use **main** for the full product and multiple cloud backends.
@@ -59,14 +59,14 @@ git checkout cloudflare
 
 ## Features
 
-- **Drag, click, or Ctrl+V paste** to upload; admins can use custom `folder` paths
+- **Drag, click, or Ctrl+V paste** to upload; all files under `images/`
 - **Server-side WebP** (sharp), Referer hotlink protection, configurable public base URL
 - **Multi-user** — username/password login; optional registration; users see only their images
 - **Upload preferences** (home card flip): client-side compression, auto-copy links, per-user auto-delete
 - **Multi-backend storage**: local disk + S3-compatible (Cloudflare R2 / Tencent COS / Alibaba OSS / AWS S3); admins manage backends at **Storage** (`/storage`)
 - **Hybrid URLs**: `proxy` (same-origin via PicHost) or `public` (302 to CDN / bucket URL)
 - **Gallery** — browse, search, batch delete; admin sees uploader badges
-- **Stats** — upload/delete metrics, folder breakdown; admin sees registered user count
+- **Stats** — upload/delete metrics, upload source breakdown; admin sees registered user count
 - **API** — global token (admin) + per-user tokens; in-app cURL snippets
 - **Twikoo** — `POST /api/index.php` (`image` + `token`)
 - **Zero-config Docker** — first-run web wizard, no secrets required upfront
@@ -94,6 +94,27 @@ docker exec pichost reset-password <username>   # admin or regular user
 ```
 
 A random password is printed. Fails if the user does not exist.
+
+Local: `npm run reset-password` or `npm run reset-password -- <username>`
+
+### Upgrading to v1.2.0 (legacy local directories)
+
+From v1.2.0, all images live under `data/images/`. Migration is two steps:
+
+1. **CLI** (manual): move images from every top-level folder under `data/` except `images` into `data/images/{original-dir}/...`
+2. **Startup sync** (automatic): scan disk, fill SQLite index, normalize legacy keys, remove orphan rows
+
+```bash
+docker exec pichost migrate          # preview + data/mapping.json
+docker exec pichost migrate --apply  # move files
+# upgrade image and restart — index sync logs appear on startup
+```
+
+Local: `npm run migrate` / `npm run migrate -- --apply`.
+
+Full guide (layout, logs, URLs, **other image hosts**): [`docs/migration-to-v1.2.en.md`](docs/migration-to-v1.2.en.md)
+
+Skip the CLI if you only use object storage or files are already under `data/images/`.
 
 If you cloned the repo, you can also use `docker compose up -d` (see `docker-compose.yml`).
 
@@ -130,19 +151,19 @@ Open `http://localhost:3000/setup` to create the admin account. Data defaults to
 | Gallery list / search / delete | Session or token     | Users: own only; admin: all |
 | Direct link `GET /images/...`  | None (Referer rules) | Public if URL is known      |
 
-Regular users are limited to the `images/` folder; custom `folder` requires admin or global token.
+All uploads are stored under `images/`.
 
 ## Storage layout
 
 ```
 /data
 ├── pichost.db          # SQLite: users, sessions, settings, storage_backends, images index
-├── images/             # Default upload folder (when using local backend)
-├── blog/               # Example custom folder
-└── twikoo/             # Twikoo comment images
+└── images/             # All images (local backend); may include migrated subpaths
 ```
 
-Pattern: `folder/YYYY/MM/randomId.webp` + `.meta.json`. With cloud backends, blobs live in the bucket; SQLite `images` tracks `backend_id` and `key`. Back up all of `/data` plus bucket data.
+New uploads: `images/randomId.webp` or `images/YYYY/MM/randomId.webp`. Migrated legacy paths may look like `images/blog/...`. Metadata lives in SQLite `images`. With cloud backends, blobs live in the bucket. Back up `data/images/`, `pichost.db`, and bucket data.
+
+Upgrading from v1.1.x with parallel folders such as `data/blog/`: see [Upgrading to v1.2.0](#upgrading-to-v120-legacy-local-directories) or [`docs/migration-to-v1.2.en.md`](docs/migration-to-v1.2.en.md).
 
 ## API overview
 
@@ -158,7 +179,6 @@ Upload example:
 ```bash
 curl -X POST "https://pic.example.com/api/images/upload" \
   -H "Auth-Token: YOUR_TOKEN" \
-  -F "folder=blog" \
   -F "image=@./demo.png"
 ```
 
@@ -222,13 +242,16 @@ npm run start        # Run .output
 npm run lint         # ESLint
 npm run typecheck    # Type check
 npm test             # Unit tests
+npm run reset-password   # Reset password (optional username)
+npm run migrate          # Preview legacy dir migration (-- --apply to run)
 ```
 
 ## Roadmap
 
 | Version    | Plan                                                           |
 | ---------- | -------------------------------------------------------------- |
-| **v1.1.5** | Gallery preview reliability: auto-retry, storage verify, no-cache errors (current `main`) |
+| **v1.2.0** | Unified `images/` storage, CLI migration, startup index sync, upload source stats (in progress) |
+| **v1.1.5** | Gallery preview reliability: auto-retry, storage verify, no-cache errors |
 | **v1.1.4** | Flat vs date storage paths, basename public URLs, bidirectional domain isolation |
 | **v1.1.3** | Dual-domain separation, optional `images/` URL prefix, update check |
 | **v1.1.2** | Activity logs, gallery storage filter, upload rate limits |

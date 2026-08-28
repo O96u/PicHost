@@ -17,8 +17,7 @@ export function useImageUpload() {
 
   async function uploadFiles(
     files: File[],
-    folder = 'images',
-    options?: { notify?: boolean, includeFolder?: boolean }
+    options?: { notify?: boolean }
   ) {
     if (uploading.value) return
 
@@ -55,9 +54,6 @@ export function useImageUpload() {
       }))
 
       const formData = new FormData()
-      if (options?.includeFolder !== false) {
-        formData.append('folder', folder.trim() || 'images')
-      }
       for (const file of prepared) {
         formData.append('files', file, file.name)
       }

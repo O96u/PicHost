@@ -56,12 +56,11 @@ export default defineEventHandler(async (event) => {
     return easyImageError(415, '无法识别的图片格式')
   }
 
-  // Twikoo 评论图片单独存放在 twikoo/ 目录下
+  // Twikoo 走 token 上传，记入 activity log source=api
   const result = await processSingleImageUpload(event, {
     bytes,
     filename: imagePart.filename,
-    prefix: 'twikoo',
-    source: 'twikoo'
+    source: 'api'
   })
 
   if ('error' in result) {

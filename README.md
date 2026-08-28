@@ -32,7 +32,7 @@
 
 | 分支 | 说明 |
 | ---- | ---- |
-| [**main**](https://github.com/O96u/PicHost/tree/main)（默认） | **v1.1.5** 主线：本地磁盘 + 多对象存储、双域名双向隔离、[`/storage`](docs/README.md) 存储管理、混合直链 |
+| [**main**](https://github.com/O96u/PicHost/tree/main)（默认） | **v1.2.0**（开发中）— 统一 `images/` 存储、多后端、双域名隔离、[`/storage`](docs/README.md)、[`迁移指南`](docs/migration-to-v1.2.md) |
 | [**cloudflare**](https://github.com/O96u/PicHost/tree/cloudflare) | **Cloudflare R2 专用线**：面向「只用 R2」的部署，预设与配置更聚焦 R2 |
 
 日常使用、需要管理多种存储后端，请直接用 **main**。
@@ -59,14 +59,14 @@ git checkout cloudflare
 
 ## 特性
 
-- **拖拽 / 点击 / Ctrl+V 粘贴**上传；管理员可自定义 `folder` 目录
+- **拖拽 / 点击 / Ctrl+V 粘贴**上传；图片统一存入 `images/`
 - **服务端 WebP 压缩**（sharp）、Referer 防盗链、可配置访问域名
 - **多用户**：账号密码登录；管理员可开放注册；普通用户仅见自己的图片
 - **上传偏好**（首页卡片翻转）：客户端预压缩、自动复制链接、按用户自动删除
 - **多后端存储**：本地磁盘 + S3 兼容（Cloudflare R2 / 腾讯云 COS / 阿里云 OSS / AWS S3）；管理员在 **存储**（`/storage`）页管理，新上传写入默认后端
 - **混合直链**：`proxy`（PicHost 同源代理）或 `public`（302 到 CDN / 桶公网地址）
 - **图库**：浏览、搜索、批量删除；管理员可查看上传者标签
-- **统计**：上传/删除趋势、目录分布；管理员额外显示注册用户数量
+- **统计**：上传/删除趋势、上传来源分布；管理员额外显示注册用户数量
 - **API**：全局 Token（管理员）+ 每用户个人 Token；后台可复制 cURL
 - **Twikoo**：`POST /api/index.php`（`image` + `token`）
 - **Docker 零配置**：首次访问 Web 引导创建管理员，无需预先写密钥
@@ -99,6 +99,29 @@ docker exec pichost reset-password 用户名
 终端会打印随机新密码；用户不存在时会报错。登录后请到「修改密码」更换。
 
 本地：`npm run reset-password` 或 `npm run reset-password -- 用户名`
+
+### 升级到 v1.2.0（本地磁盘遗留目录）
+
+v1.2.0 起图片统一在 `data/images/`。迁移分两步：
+
+1. **CLI 搬文件**（手动，升级前后均可）：把 `data/` 下除 `images` 外各顶层目录里的图片迁入 `data/images/{原目录名}/...`
+2. **启动时同步索引**（自动）：扫描 `data/images/` 补全 SQLite、归一化遗留 key、清理无文件的孤儿记录
+
+```bash
+# 1. 预览迁移并生成 data/mapping.json（旧 key → 新 key）
+docker exec pichost migrate
+
+# 2. 确认后执行文件移动
+docker exec pichost migrate --apply
+
+# 3. 升级镜像并重启；启动日志会打印索引同步过程
+```
+
+本地：`npm run migrate` / `npm run migrate -- --apply`。
+
+详细说明（结构对比、日志含义、外链替换、**其它图床迁入**）：[`docs/migration-to-v1.2.md`](docs/migration-to-v1.2.md)
+
+仅对象存储、或图片已在 `data/images/` 下时，可跳过 CLI，仅依赖启动同步。
 
 已克隆仓库时也可用 `docker compose up -d`（见仓库内 `docker-compose.yml`）。
 
@@ -135,19 +158,19 @@ npm run dev
 | 图库列表 / 搜索 / 删除     | Session 或 Token     | 普通用户仅自己；管理员全部 |
 | 图片直链 `GET /images/...` | 无（Referer 防盗链） | 知道 URL 即可访问          |
 
-普通用户上传目录固定为 `images/`；自定义 `folder` 仅管理员或全局 Token 可用。
+所有上传统一存入 `images/` 目录。
 
 ## 存储结构
 
 ```
 /data
 ├── pichost.db          # SQLite：用户、会话、设置、storage_backends、images 索引
-├── images/             # 默认上传目录（本地后端时）
-├── blog/               # 管理员自定义 folder 示例
-└── twikoo/             # Twikoo 评论图片
+└── images/             # 全部图片（本地后端时）；可含迁移子路径如 file/、年/月/日/
 ```
 
-路径规则：`目录/年/月/随机ID.webp` + 同名 `.meta.json`。云存储时文件在对应桶内，SQLite `images` 表记录 `backend_id` 与 `key`。备份请包含整个 `/data` 与云桶数据。
+路径规则：新上传为 `images/随机ID.webp` 或 `images/年/月/随机ID.webp`；迁移遗留可为更深子路径（如 `images/blog/...`）。元数据在 SQLite `images` 表；云存储时文件在对应桶内。备份请包含 `data/images/`、`pichost.db` 与云桶数据。
+
+从 v1.1.x 升级且存在 `data/blog/` 等并列目录时，见 [升级到 v1.2.0](#升级到-v120本地磁盘遗留目录) 或 [`docs/migration-to-v1.2.md`](docs/migration-to-v1.2.md)。
 
 ## API 概览
 
@@ -163,7 +186,6 @@ npm run dev
 ```bash
 curl -X POST "https://pic.example.com/api/images/upload" \
   -H "Auth-Token: YOUR_TOKEN" \
-  -F "folder=blog" \
   -F "image=@./demo.png"
 ```
 
@@ -226,14 +248,17 @@ npm run build        # 生产构建
 npm run start        # 运行 .output
 npm run lint         # ESLint
 npm run typecheck    # 类型检查
-npm test             # 单元测试
+npm test               # 单元测试
+npm run reset-password # 重置密码（可选用户名参数）
+npm run migrate        # 预览遗留目录迁移（加 -- --apply 执行）
 ```
 
 ## 路线图
 
 | 版本       | 说明                                              |
 | ---------- | ------------------------------------------------- |
-| **v1.1.5** | 图库预览可靠性：自动重试、出图前校验、错误响应禁缓存（当前 main） |
+| **v1.2.0** | 统一 `images/` 存储、遗留目录 CLI 迁移、启动索引同步、上传来源统计（开发中） |
+| **v1.1.5** | 图库预览可靠性：自动重试、出图前校验、错误响应禁缓存 |
 | **v1.1.4** | 存储路径扁平/分组、basename 外链、双域名双向隔离 |
 | **v1.1.3** | 双域名分离、隐藏 `images/` 前缀、版本更新提示 |
 | **v1.1.2** | 操作日志、图库存储筛选、上传限流                  |

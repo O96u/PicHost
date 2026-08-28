@@ -236,21 +236,3 @@ export async function getUploadUserId(event: H3Event): Promise<number | null> {
   const user = await getCurrentUser(event)
   return user?.id ?? null
 }
-
-/** 管理员会话 / 全局 API Token 可使用自定义上传目录 */
-export async function canUseCustomUploadFolder(event: H3Event): Promise<boolean> {
-  if (devBypass(event)) {
-    return true
-  }
-
-  if (verifyGlobalApiUploadToken(event)) {
-    return true
-  }
-
-  if (resolveUserIdFromApiToken(event) !== null) {
-    return false
-  }
-
-  const user = await getCurrentUser(event)
-  return user?.role === 'admin'
-}

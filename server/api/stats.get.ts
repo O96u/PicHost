@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
       uploadTotal: scoped.storedCount,
       deleteTotal: 0,
       uploadBytesTotal: scoped.uploadBytesTotal,
-      bySource: { web: scoped.storedCount, api: 0, twikoo: 0 },
+      bySource: { web: scoped.storedCount, api: 0 },
       byFolderUploads: scoped.byFolder.map(item => ({
         folder: item.folder,
         count: item.count

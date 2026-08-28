@@ -52,34 +52,13 @@ const authHeader = computed(() =>
 const authHeaderFlag = computed(() => `-H 'Auth-Token: ${authHeader.value}'`)
 
 const apiDocs = computed<ApiDocItem[]>(() => {
-  const uploadDescription = isAdmin.value
-    ? t('api.docs.upload.descAdmin')
-    : t('api.docs.upload.descUser')
-  const uploadCurl = isAdmin.value
-    ? `curl -X POST "${baseUrl.value}/api/images/upload" \\
-  ${authHeaderFlag.value} \\
-  -F "image=@./demo.png"
-
-${t('api.docs.upload.curlCustomFolder')}
-curl -X POST "${baseUrl.value}/api/images/upload" \\
-  ${authHeaderFlag.value} \\
-  -F "folder=blog" \\
-  -F "image=@./demo.png"`
-    : `curl -X POST "${baseUrl.value}/api/images/upload" \\
+  const uploadDescription = t('api.docs.upload.desc')
+  const uploadCurl = `curl -X POST "${baseUrl.value}/api/images/upload" \\
   ${authHeaderFlag.value} \\
   -F "image=@./demo.png"`
 
-  const listDescription = isAdmin.value
-    ? t('api.docs.list.descAdmin')
-    : t('api.docs.list.descUser')
-  const listCurl = isAdmin.value
-    ? `curl "${baseUrl.value}/api/images?limit=20&page=1" \\
-  ${authHeaderFlag.value}
-
-${t('api.docs.list.curlFolderFilter')}
-curl "${baseUrl.value}/api/images?folder=blog&limit=20&page=1" \\
-  ${authHeaderFlag.value}`
-    : `curl "${baseUrl.value}/api/images?limit=20&page=1" \\
+  const listDescription = t('api.docs.list.desc')
+  const listCurl = `curl "${baseUrl.value}/api/images?limit=20&page=1" \\
   ${authHeaderFlag.value}`
 
   return [
@@ -156,10 +135,12 @@ function methodBadgeColor(method: ApiDocItem['method']) {
   switch (method) {
     case 'GET':
       return 'info' as const
+    case 'POST':
+      return 'warning' as const
     case 'DELETE':
       return 'error' as const
     default:
-      return 'primary' as const
+      return 'neutral' as const
   }
 }
 
@@ -216,15 +197,6 @@ async function confirmRegenerate() {
     }
   } finally {
     regenerating.value = false
-  }
-}
-
-async function copyCurl(text: string) {
-  try {
-    await navigator.clipboard.writeText(text)
-    toast.add({ title: t('copy.curl'), color: 'success' })
-  } catch {
-    toast.add({ title: t('copy.failed'), color: 'error' })
   }
 }
 
@@ -404,18 +376,7 @@ watch(isAuthenticated, async (authed, prev) => {
               <p class="mb-2 text-xs font-medium text-muted">
                 {{ t('api.curlExample') }}
               </p>
-              <div class="relative overflow-hidden rounded-xl bg-neutral-950">
-                <UButton
-                  icon="i-lucide-copy"
-                  :label="t('common.copy')"
-                  size="xs"
-                  variant="ghost"
-                  color="neutral"
-                  class="absolute top-2 right-2 z-10 text-neutral-300 hover:text-white"
-                  @click="copyCurl(doc.curl)"
-                />
-                <pre class="max-h-80 overflow-auto p-4 pt-10 text-xs leading-relaxed text-neutral-100"><code class="font-mono">{{ doc.curl }}</code></pre>
-              </div>
+              <ApiCurlBlock :code="doc.curl" />
             </div>
           </article>
         </div>
@@ -431,7 +392,7 @@ watch(isAuthenticated, async (authed, prev) => {
             <div class="min-w-0 space-y-2">
               <div class="flex flex-wrap items-center gap-2">
                 <UBadge
-                  color="neutral"
+                  :color="methodBadgeColor(twikooDoc.method)"
                   variant="subtle"
                   size="sm"
                 >
@@ -454,18 +415,10 @@ watch(isAuthenticated, async (authed, prev) => {
             <p class="mb-2 text-xs font-medium text-muted">
               {{ t('api.curlExample') }}
             </p>
-            <div class="relative overflow-hidden rounded-xl bg-neutral-950">
-              <UButton
-                icon="i-lucide-copy"
-                :label="t('common.copy')"
-                size="xs"
-                variant="ghost"
-                color="neutral"
-                class="absolute top-2 right-2 z-10 text-neutral-300 hover:text-white"
-                @click="copyCurl(twikooDoc.curl)"
-              />
-              <pre class="overflow-auto p-4 pt-10 text-xs leading-relaxed text-neutral-100"><code class="font-mono">{{ twikooDoc.curl }}</code></pre>
-            </div>
+            <ApiCurlBlock
+              :code="twikooDoc.curl"
+              :scrollable="false"
+            />
           </div>
         </div>
       </section>

@@ -12,19 +12,12 @@ export function useImageList() {
   const totalPages = ref(1)
   const total = ref(0)
   const loading = ref(false)
-  const folderTotal = ref<number | null>(null)
+  const totalCount = ref<number | null>(null)
   const loadingTotal = ref(false)
   const searchQuery = ref('')
   const activeSearch = ref('')
-  const activeFolder = ref('all')
   const activeStorageBackend = ref('all')
   const storageBackendOptions = ref<Array<{ id: string, name: string }>>([])
-
-  function folderQueryParams(): Record<string, string> {
-    const folder = activeFolder.value.trim()
-    if (!folder || folder === 'all') return {}
-    return { folder }
-  }
 
   function storageQueryParams(): Record<string, string> {
     const backendId = activeStorageBackend.value.trim()
@@ -33,16 +26,7 @@ export function useImageList() {
   }
 
   function listQueryParams(): Record<string, string> {
-    return {
-      ...folderQueryParams(),
-      ...storageQueryParams()
-    }
-  }
-
-  function matchesActiveFolder(key: string) {
-    const folder = activeFolder.value.trim()
-    if (!folder || folder === 'all') return true
-    return key.startsWith(`${folder}/`)
+    return storageQueryParams()
   }
 
   function matchesActiveStorage(item: ImageItem) {
@@ -74,9 +58,9 @@ export function useImageList() {
         credentials: 'include',
         query: listQueryParams()
       })
-      folderTotal.value = data.total
+      totalCount.value = data.total
     } catch {
-      folderTotal.value = null
+      totalCount.value = null
     } finally {
       loadingTotal.value = false
     }
@@ -138,25 +122,11 @@ export function useImageList() {
     await Promise.all([fetchList(1), fetchTotal()])
   }
 
-  async function initializeList(folder = 'all') {
-    const next = folder.trim() || 'all'
-    activeFolder.value = next
+  async function initializeList() {
     page.value = 1
     activeSearch.value = ''
     searchQuery.value = ''
     await Promise.all([fetchList(1), fetchTotal(), loadStorageBackendOptions()])
-  }
-
-  async function setActiveFolder(folder: string) {
-    const next = folder.trim() || 'all'
-    if (next === activeFolder.value) return
-    activeFolder.value = next
-    page.value = 1
-    if (activeSearch.value) {
-      await Promise.all([fetchSearch(1), fetchTotal()])
-    } else {
-      await Promise.all([fetchList(1), fetchTotal()])
-    }
   }
 
   async function setActiveStorageBackend(backendId: string) {
@@ -192,14 +162,12 @@ export function useImageList() {
   }
 
   function prependItems(newItems: ImageItem[]) {
-    const matched = newItems.filter(item =>
-      matchesActiveFolder(item.key) && matchesActiveStorage(item)
-    )
+    const matched = newItems.filter(item => matchesActiveStorage(item))
     if (!matched.length || page.value !== 1) return
     items.value = [...matched, ...items.value]
     total.value += matched.length
-    if (folderTotal.value !== null) {
-      folderTotal.value += matched.length
+    if (totalCount.value !== null) {
+      totalCount.value += matched.length
     }
   }
 
@@ -210,8 +178,8 @@ export function useImageList() {
     if (removed > 0) {
       total.value = Math.max(0, total.value - removed)
     }
-    if (folderTotal.value !== null && removed > 0) {
-      folderTotal.value = Math.max(0, folderTotal.value - removed)
+    if (totalCount.value !== null && removed > 0) {
+      totalCount.value = Math.max(0, totalCount.value - removed)
     }
   }
 
@@ -223,34 +191,30 @@ export function useImageList() {
   })
 
   const listSummary = computed(() => {
-    const folder = activeFolder.value.trim() || 'all'
-    const folderLabel = folder === 'all' ? t('stats.allFolders') : folder
     const storageLabel = activeStorageLabel.value
-    if (loadingTotal.value && folderTotal.value === null) {
+    if (loadingTotal.value && totalCount.value === null) {
       return storageLabel
-        ? `${folderLabel} · ${storageLabel} · ${t('stats.counting')}`
-        : `${folderLabel} · ${t('stats.counting')}`
+        ? `${storageLabel} · ${t('stats.counting')}`
+        : t('stats.counting')
     }
     if (activeSearch.value) {
       if (storageLabel) {
         return t('stats.summarySearchStorage', {
-          folder: folderLabel,
-          storage: storageLabel,
           q: activeSearch.value,
-          total: total.value
+          total: total.value,
+          storage: storageLabel
         })
       }
-      return t('stats.summarySearch', { folder: folderLabel, q: activeSearch.value, total: total.value })
+      return t('stats.summarySearch', { q: activeSearch.value, total: total.value })
     }
-    const count = folderTotal.value === null ? total.value : folderTotal.value
+    const count = totalCount.value === null ? total.value : totalCount.value
     if (storageLabel) {
       return t('stats.summaryTotalStorage', {
-        folder: folderLabel,
-        storage: storageLabel,
-        total: count
+        total: count,
+        storage: storageLabel
       })
     }
-    return t('stats.summaryTotal', { folder: folderLabel, total: count })
+    return t('stats.summaryTotal', { total: count })
   })
 
   return {
@@ -259,7 +223,6 @@ export function useImageList() {
     totalPages,
     total,
     loading,
-    activeFolder,
     activeStorageBackend,
     storageBackendOptions,
     searchQuery,
@@ -270,7 +233,6 @@ export function useImageList() {
     fetchTotal,
     refreshList,
     initializeList,
-    setActiveFolder,
     setActiveStorageBackend,
     loadStorageBackendOptions,
     submitSearch,

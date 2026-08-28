@@ -13,7 +13,7 @@ describe('toPublicImagePath', () => {
 
   it('returns basename when hideFolder is true', () => {
     expect(toPublicImagePath('images/2026/08/a.webp', true)).toBe('a.webp')
-    expect(toPublicImagePath('blog/2026/08/a.webp', true)).toBe('a.webp')
+    expect(toPublicImagePath('images/blog/2026/08/a.webp', true)).toBe('a.webp')
     expect(toPublicImagePath('images/a.webp', true)).toBe('a.webp')
   })
 })

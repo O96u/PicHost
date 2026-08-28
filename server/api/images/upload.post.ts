@@ -1,6 +1,6 @@
 import { readMultipartFormData } from 'h3'
 import type { UploadResponse, UploadErrorItem, ImageItem } from '~/types/image'
-import { requireUploadAuth, verifyApiUploadToken, getUploadUserId, canUseCustomUploadFolder } from '../../utils/access'
+import { requireUploadAuth, verifyApiUploadToken, getUploadUserId } from '../../utils/access'
 import { MAX_FILES_PER_UPLOAD } from '../../utils/constants'
 import {
   detectMimeFromSignature,
@@ -11,21 +11,7 @@ import {
   processSingleImageUpload
 } from '../../utils/process-image-upload'
 import { createApiError } from '../../utils/api-error'
-import {
-  DEFAULT_FOLDER,
-  isValidFolderName,
-  normalizeFolderName
-} from '../../utils/image-key'
 import { checkUploadRateLimit } from '../../utils/rate-limit'
-
-function readFormText(
-  formData: { name?: string, data?: Buffer | Uint8Array }[],
-  name: string
-): string {
-  const part = formData.find(item => item.name === name && item.data?.length)
-  if (!part?.data) return ''
-  return new TextDecoder().decode(part.data).trim()
-}
 
 export default defineEventHandler(async (event) => {
   await requireUploadAuth(event)
@@ -43,36 +29,6 @@ export default defineEventHandler(async (event) => {
 
   const source = verifyApiUploadToken(event) ? 'api' : 'web'
   const uploadUserId = await getUploadUserId(event)
-
-  const query = getQuery(event)
-  const folderFromForm = readFormText(formData, 'folder') || readFormText(formData, 'type')
-  const folderFromQuery = typeof query.folder === 'string'
-    ? query.folder
-    : typeof query.type === 'string'
-      ? query.type
-      : ''
-  const requestedFolder = normalizeFolderName(folderFromForm || folderFromQuery)
-  const canCustomFolder = await canUseCustomUploadFolder(event)
-
-  if (!canCustomFolder && requestedFolder && requestedFolder !== DEFAULT_FOLDER) {
-    createApiError(
-      event,
-      'FORBIDDEN',
-      '当前账号不支持自定义上传目录',
-      403
-    )
-  }
-
-  const folder = canCustomFolder ? requestedFolder : ''
-
-  if (folder && !isValidFolderName(folder)) {
-    createApiError(
-      event,
-      'INVALID_REQUEST',
-      '无效的 folder：仅允许字母数字开头，可含 - _，最长 32 位，且不能是 api/stats 等保留名',
-      400
-    )
-  }
 
   // 兼容 image / file / files 字段名（图床脚本 / 通用客户端 / 网页多图）
   const fileParts = formData.filter(
@@ -127,7 +83,6 @@ export default defineEventHandler(async (event) => {
       bytes,
       filename: part.filename,
       source,
-      prefix: folder || DEFAULT_FOLDER,
       userId: uploadUserId
     })
 

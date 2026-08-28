@@ -4,17 +4,14 @@ import type { ImageItem } from '~/types/image'
 const { uploading, progressItems, uploadFiles } = useImageUpload()
 
 const {
-  defaultFolder,
   autoCopyMarkdown,
   copyFormat,
   loadPreferences
 } = useUploadPreferences()
 
-const { isChecking, isAuthenticated, checkSession, handleAuthError, fetchStatus, isAdmin }
-  = useAuth()
+const { isChecking, isAuthenticated, checkSession, handleAuthError, fetchStatus } = useAuth()
 const toast = useToast()
 const { t } = useI18n()
-const folderOptions = ref<string[]>(['images'])
 const sessionItems = ref<ImageItem[]>([])
 const deletingKeys = ref<Set<string>>(new Set())
 const emptySelection = ref(new Set<string>())
@@ -30,22 +27,9 @@ const showProgress = computed(
     )
 )
 
-async function loadFolders() {
-  const data = await $fetch<{ folders: string[] }>('/api/folders', {
-    credentials: 'include'
-  })
-  folderOptions.value = [...data.folders]
-  if (!folderOptions.value.includes(defaultFolder.value)) {
-    defaultFolder.value = folderOptions.value[0] ?? 'images'
-  }
-}
-
 async function loadPage() {
   try {
     loadPreferences()
-    if (isAdmin.value) {
-      await loadFolders()
-    }
   } catch (error: unknown) {
     handleAuthError(error)
   }
@@ -112,20 +96,9 @@ async function handleUpload(files: File[]) {
   }
 
   try {
-    const uploadTarget = isAdmin.value
-      ? (defaultFolder.value.trim() || 'images')
-      : 'images'
-    const result = await uploadFiles(files, uploadTarget, {
-      includeFolder: isAdmin.value
-    })
+    const result = await uploadFiles(files)
     if (result?.items.length) {
       sessionItems.value = [...result.items, ...sessionItems.value]
-      if (isAdmin.value) {
-        const folder = uploadTarget
-        if (!folderOptions.value.includes(folder)) {
-          folderOptions.value = [...folderOptions.value, folder]
-        }
-      }
       if (autoCopyMarkdown.value && result.items[0]) {
         const first = result.items[0]
         const text

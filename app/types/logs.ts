@@ -1,15 +1,10 @@
 export type LogAction = 'upload' | 'delete'
-export type LogSource = 'web' | 'api' | 'twikoo'
-
-export interface ActivityLogUser {
-  id: number
-  username: string
-}
+export type LogSource = 'web' | 'api'
 
 export interface ActivityLogStorage {
   id: string
   name: string
-  type: 'local' | 's3'
+  type: string
 }
 
 export interface ActivityLogItem {
@@ -26,18 +21,16 @@ export interface ActivityLogItem {
   createdAt: string
 }
 
-export interface ActivityLogSummary {
-  total: number
-  upload: number
-  delete: number
-}
-
 export interface ActivityLogListResponse {
   items: ActivityLogItem[]
   total: number
   page: number
   pageSize: number
   totalPages: number
-  summary: ActivityLogSummary
-  users?: ActivityLogUser[]
+  summary: {
+    total: number
+    upload: number
+    delete: number
+  }
+  users?: Array<{ id: number, username: string }>
 }

@@ -88,7 +88,7 @@
     "domainSeparationProxyHint": "需将两个域名解析到本机，并通过 Nginx、Caddy、NPM 等反代到端口 6892",
     "domainSeparationProxyExample": "查看示例",
     "siteBaseUrl": "网站域名",
-    "siteBaseUrlHint": "末尾不加 /；管理后台、API 文档与 Twikoo 上传地址",
+    "siteBaseUrlHint": "末尾不加 /；管理后台、API 上传地址",
     "siteBaseUrlPlaceholder": "https://admin.example.com",
     "imageBaseUrl": "图片域名",
     "imageBaseUrlHint": "末尾不加 /；生成图片直链地址",
@@ -179,21 +179,16 @@
   "settings": {
     "title": "系统设置",
     "subtitle": "保存后写入数据库；环境变量优先级更高",
-    "uploadAccount": "上传与账号",
     "featureToggles": "功能开关",
-    "defaultFolder": "默认上传目录",
-    "defaultFolderHint": "保存在本机浏览器，仅影响您的上传目标目录",
     "allowRegistration": "开放用户注册",
     "allowRegistrationHint": "允许新用户自行注册（普通用户仅可见自己的图片）",
     "accessControl": "访问控制",
     "refererHint": "Referer 防盗链，逗号分隔允许引用的域名，留空不限制",
     "refererPlaceholder": "example.com, www.example.com",
-    "linkGeneration": "域名与链接",
     "domainSettings": "域名配置",
-    "storagePathSettings": "存储路径与直链",
     "domainSeparationActive": "已启用域名分离：图片域仅出图，管理域提供后台与 API",
     "siteBaseUrl": "网站域名",
-    "siteBaseUrlHint": "末尾不加 /；管理后台、API 文档与 Twikoo 上传地址",
+    "siteBaseUrlHint": "末尾不加 /；管理后台、API 上传地址",
     "siteBaseUrlPlaceholder": "https://admin.example.com",
     "siteBaseUrlActive": "当前生效：{url}",
     "imageBaseUrl": "图片域名",
@@ -202,10 +197,7 @@
     "imageBaseUrlPlaceholder": "https://pic.example.com",
     "imageBaseUrlActive": "当前生效：{url}",
     "hideFolderInUrl": "隐藏直链目录前缀",
-    "hideFolderInUrlHint": "开启后直链为 /xxx.webp，不含 images/ 或日期路径；旧链接仍可用",
-    "hideFolderConfirmTitle": "确认隐藏目录前缀？",
-    "hideFolderConfirmDesc": "开启后不同目录下若存在相同文件名（如 images/a.webp 与 blog/a.webp），短链接 /a.webp 将优先解析到 images 目录，可能访问到非预期的图片。仅单一上传目录或文件名全局唯一时建议开启。",
-    "hideFolderConfirmEnable": "仍要开启",
+    "hideFolderInUrlHint": "开启后直链为 /xxx.webp，不含 images/ 或日期路径；旧完整路径仍可用。子路径下若存在同名文件，短链可能冲突",
     "storageUseDatePath": "上传目录按年/月分组",
     "storageUseDatePathHint": "开启后保存为 images/2026/08/xxx.webp；关闭则为 images/xxx.webp。仅影响启用后的新上传",
     "badgeEnv": ".env",
@@ -317,12 +309,11 @@
     "deleteTotal": "累计删除",
     "userCount": "注册用户数量",
     "uploadBytes": "累计上传体积",
-    "folderDistribution": "上传目录分布",
-    "folderUsage": "目录占用",
+    "sourceDistribution": "上传来源分布",
+    "sourceWeb": "网页",
+    "sourceApi": "API",
     "noData": "暂无数据",
-    "folderCount": "{count} 张 · {size}",
     "gallery": "图库记录",
-    "folder": "目录",
     "filterStorageAll": "全部存储",
     "storage": "存储",
     "searchPlaceholder": "搜索文件名",
@@ -336,12 +327,11 @@
     "deletePartialFail": "{n} 张图片删除失败",
     "deleteFailed": "删除失败",
     "deletedSingle": "已删除",
-    "allFolders": "全部",
     "counting": "统计中…",
-    "summarySearch": "{folder} · 搜索「{q}」· 共 {total} 张",
-    "summaryTotal": "{folder} · 共 {total} 张",
-    "summarySearchStorage": "{folder} · {storage} · 搜索「{q}」· 共 {total} 张",
-    "summaryTotalStorage": "{folder} · {storage} · 共 {total} 张"
+    "summarySearch": "搜索「{q}」· 共 {total} 张",
+    "summaryTotal": "共 {total} 张",
+    "summarySearchStorage": "{storage} · 搜索「{q}」· 共 {total} 张",
+    "summaryTotalStorage": "{storage} · 共 {total} 张"
   },
   "logs": {
     "pageTitle": "操作日志",
@@ -359,7 +349,6 @@
     "actionDelete": "删除",
     "sourceWeb": "网页",
     "sourceApi": "API",
-    "sourceTwikoo": "Twikoo",
     "colTime": "时间",
     "colUser": "用户",
     "colStorage": "存储",
@@ -418,15 +407,11 @@
     "docs": {
       "upload": {
         "title": "上传图片",
-        "descAdmin": "上传单张或多张图片。字段 image 传图片，folder 指定目录（不存在则自动创建）；仍兼容 file、files、type。",
-        "descUser": "上传单张或多张图片。字段 image 传图片；仍兼容 file、files。图片固定存入 images/ 目录。",
-        "curlCustomFolder": "# 上传到自定义目录 blog/"
+        "desc": "上传单张或多张图片。字段 image 传图片；仍兼容 file、files。图片存入 images/ 目录。"
       },
       "list": {
         "title": "获取图片列表",
-        "descAdmin": "分页列出图库，folder 可筛选目录，limit 默认 20、最大 100。",
-        "descUser": "分页列出您的图库，limit 默认 20、最大 100。",
-        "curlFolderFilter": "# 按目录筛选"
+        "desc": "分页列出图库，limit 默认 20、最大 100。"
       },
       "search": {
         "title": "搜索图片",
@@ -442,7 +427,7 @@
       },
       "twikoo": {
         "title": "twikoo 兼容上传",
-        "desc": "兼容 Twikoo / EasyImage 2.0 协议，图片存入 twikoo/ 目录；字段 image + token。"
+        "desc": "兼容 Twikoo / EasyImage 2.0 协议，图片存入 images/ 目录；字段 image + token。"
       }
     }
   },

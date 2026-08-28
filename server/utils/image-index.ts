@@ -1,8 +1,9 @@
 import { promises as fs } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { getDb } from './db'
 import { getDataDir } from './data-dir'
-import { DEFAULT_FOLDER, isValidFolderName, sortFolderNames, validateImageKey } from './image-key'
+import { contentTypeFromKey } from './content-type'
+import { DEFAULT_FOLDER, toCanonicalImageKey, validateImageKey } from './image-key'
 import { isBareImageFilename, isHiddenImageDatePath } from './image-public-path'
 import {
   ensureDefaultBackends,
@@ -100,6 +101,99 @@ export function deleteImageIndex(key: string): void {
   getDb().prepare('DELETE FROM images WHERE key = ?').run(key)
 }
 
+function preferIndexedImageKey(key: string): string {
+  const canonical = toCanonicalImageKey(key)
+  if (canonical && getImageIndexRow(canonical)) return canonical
+  if (validateImageKey(key)) return key
+  return key
+}
+
+async function fileExistsAtKey(key: string): Promise<boolean> {
+  try {
+    await fs.access(keyToFilePath(key))
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** 将 SQLite 中遗留顶层目录 key 归一为 images/ 下路径，并同步磁盘文件 */
+export async function reconcileLegacyImageKeys(): Promise<{
+  updated: number
+  removed: number
+}> {
+  ensureStorageSchema()
+  const rows = getDb().prepare('SELECT key FROM images').all() as Array<{ key: string }>
+  let updated = 0
+  let removed = 0
+
+  for (const { key } of rows) {
+    if (validateImageKey(key)) continue
+
+    const canonical = toCanonicalImageKey(key)
+    if (!canonical) continue
+
+    const canonicalRow = getImageIndexRow(canonical)
+    if (canonicalRow) {
+      deleteImageIndex(key)
+      removed++
+      continue
+    }
+
+    const canonicalExists = await fileExistsAtKey(canonical)
+    const legacyExists = await fileExistsAtKey(key)
+
+    if (canonicalExists) {
+      getDb().prepare(`
+        UPDATE images
+        SET key = ?, folder = ?
+        WHERE key = ?
+      `).run(canonical, DEFAULT_FOLDER, key)
+      updated++
+      continue
+    }
+
+    if (legacyExists) {
+      const legacyPath = keyToFilePath(key)
+      const canonicalPath = keyToFilePath(canonical)
+      await fs.mkdir(dirname(canonicalPath), { recursive: true })
+      await fs.rename(legacyPath, canonicalPath)
+      try {
+        await fs.rename(legacyPath + META_SUFFIX, canonicalPath + META_SUFFIX)
+      } catch {
+        // no meta
+      }
+      getDb().prepare(`
+        UPDATE images
+        SET key = ?, folder = ?
+        WHERE key = ?
+      `).run(canonical, DEFAULT_FOLDER, key)
+      updated++
+    }
+  }
+
+  return { updated, removed }
+}
+
+/** 移除 SQLite 中有记录但本地磁盘无对应文件的索引行 */
+export async function purgeOrphanImageIndexRows(): Promise<number> {
+  ensureStorageSchema()
+  const rows = getDb().prepare(`
+    SELECT key, backend_id FROM images
+  `).all() as Array<{ key: string, backend_id: string }>
+
+  let removed = 0
+  for (const row of rows) {
+    if (row.backend_id !== LOCAL_BACKEND_ID) continue
+    if (await fileExistsAtKey(row.key)) continue
+    const canonical = toCanonicalImageKey(row.key)
+    if (canonical && await fileExistsAtKey(canonical)) continue
+    deleteImageIndex(row.key)
+    removed++
+  }
+  return removed
+}
+
 export function getImageIndexRow(key: string): ImageIndexRow | null {
   ensureStorageSchema()
   const row = getDb().prepare(`
@@ -129,7 +223,7 @@ export function findImageKeyByDatePath(datePath: string): string | null {
     const fallback = `${DEFAULT_FOLDER}/${datePath}`
     return validateImageKey(fallback) ? fallback : null
   }
-  if (rows.length === 1) return rows[0]!.key
+  if (rows.length === 1) return preferIndexedImageKey(rows[0]!.key)
 
   const exactDefault = rows.find(row => row.key === `${DEFAULT_FOLDER}/${datePath}`)
   if (exactDefault) return exactDefault.key
@@ -152,7 +246,7 @@ export function findImageKeyByFilename(filename: string): string | null {
     const flatFallback = `${DEFAULT_FOLDER}/${filename}`
     return validateImageKey(flatFallback) ? flatFallback : null
   }
-  if (rows.length === 1) return rows[0]!.key
+  if (rows.length === 1) return preferIndexedImageKey(rows[0]!.key)
 
   const exactDefault = rows.find(row => row.key === `${DEFAULT_FOLDER}/${filename}`)
   if (exactDefault) return exactDefault.key
@@ -161,55 +255,37 @@ export function findImageKeyByFilename(filename: string): string | null {
   return defaultFolder?.key ?? rows[0]!.key
 }
 
-async function readDirNames(path: string): Promise<string[]> {
-  try {
-    const entries = await fs.readdir(path, { withFileTypes: true })
-    return entries.filter(e => e.isDirectory()).map(e => e.name)
-  } catch {
-    return []
-  }
-}
-
-async function readFileNames(path: string): Promise<string[]> {
-  try {
-    const entries = await fs.readdir(path, { withFileTypes: true })
-    return entries.filter(e => e.isFile()).map(e => e.name)
-  } catch {
-    return []
-  }
-}
-
-async function listLocalImageKeys(): Promise<string[]> {
+async function collectImageKeysRecursive(
+  dir: string,
+  keyPrefix: string
+): Promise<string[]> {
   const keys: string[] = []
-  const dataDir = getDataDir()
-  const prefixes = await readDirNames(dataDir)
-
-  for (const prefix of prefixes) {
-    if (!isValidFolderName(prefix)) continue
-    const root = join(dataDir, prefix)
-    const rootFiles = await readFileNames(root)
-    for (const file of rootFiles) {
-      if (file.endsWith(META_SUFFIX)) continue
-      const key = `${prefix}/${file}`
-      if (validateImageKey(key)) keys.push(key)
-    }
-
-    const years = await readDirNames(root)
-    for (const year of years) {
-      if (!/^\d{4}$/.test(year)) continue
-      const months = await readDirNames(join(root, year))
-      for (const month of months) {
-        const files = await readFileNames(join(root, year, month))
-        for (const file of files) {
-          if (file.endsWith(META_SUFFIX)) continue
-          const key = `${prefix}/${year}/${month}/${file}`
-          if (validateImageKey(key)) keys.push(key)
-        }
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true })
+    for (const entry of entries) {
+      const name = String(entry.name)
+      if (entry.isDirectory()) {
+        const childKeys = await collectImageKeysRecursive(
+          join(dir, name),
+          `${keyPrefix}/${name}`
+        )
+        keys.push(...childKeys)
+      } else if (entry.isFile()) {
+        if (name.endsWith(META_SUFFIX)) continue
+        const key = `${keyPrefix}/${name}`
+        if (validateImageKey(key)) keys.push(key)
       }
     }
+  } catch {
+    return keys
   }
 
   return keys
+}
+
+async function listLocalImageKeys(): Promise<string[]> {
+  const imagesRoot = join(getDataDir(), DEFAULT_FOLDER)
+  return collectImageKeysRecursive(imagesRoot, DEFAULT_FOLDER)
 }
 
 export async function migrateLocalImagesToIndex(): Promise<number> {
@@ -231,12 +307,17 @@ export async function migrateLocalImagesToIndex(): Promise<number> {
     const meta = await readLocalMeta(key)
     const uploadedAt = meta.uploadedAt ?? stat.mtime.toISOString()
 
+    const inferredType = contentTypeFromKey(key)
+    const contentType = meta.contentType && meta.contentType !== 'application/octet-stream'
+      ? meta.contentType
+      : inferredType
+
     insertImageIndex({
       key,
       backendId: LOCAL_BACKEND_ID,
       userId: meta.userId ?? null,
       originalName: meta.originalName ?? key.split('/').pop() ?? 'image',
-      contentType: meta.contentType ?? 'application/octet-stream',
+      contentType,
       size: stat.size,
       uploadedAt
     })
@@ -247,28 +328,36 @@ export async function migrateLocalImagesToIndex(): Promise<number> {
 }
 
 export async function listFolders(): Promise<string[]> {
-  ensureStorageSchema()
-  const rows = getDb().prepare(`
-    SELECT DISTINCT folder FROM images ORDER BY folder ASC
-  `).all() as Array<{ folder: string }>
-
-  const folders = rows.map(row => row.folder).filter(isValidFolderName)
-  return sortFolderNames(folders)
+  return [DEFAULT_FOLDER]
 }
 
 export async function listFoldersForUser(
-  userFilter?: number | 'admin'
+  _userFilter?: number | 'admin'
 ): Promise<string[]> {
+  return [DEFAULT_FOLDER]
+}
+
+/** 修正存量索引中错误的 application/octet-stream */
+export function repairLocalImageIndexMetadata(): number {
   ensureStorageSchema()
-  const params: Array<string | number> = []
-  const userSql = buildUserFilterSql(userFilter, params)
-
   const rows = getDb().prepare(`
-    SELECT DISTINCT folder FROM images WHERE 1=1${userSql} ORDER BY folder ASC
-  `).all(...params) as Array<{ folder: string }>
+    SELECT key, content_type FROM images WHERE content_type = 'application/octet-stream'
+  `).all() as Array<{ key: string, content_type: string }>
 
-  const folders = rows.map(row => row.folder).filter(isValidFolderName)
-  return sortFolderNames(folders)
+  let repaired = 0
+  const update = getDb().prepare(`
+    UPDATE images SET content_type = ? WHERE key = ?
+  `)
+
+  for (const row of rows) {
+    const inferred = contentTypeFromKey(row.key)
+    if (inferred !== 'application/octet-stream') {
+      update.run(inferred, row.key)
+      repaired++
+    }
+  }
+
+  return repaired
 }
 
 function buildBackendFilterSql(
@@ -281,18 +370,12 @@ function buildBackendFilterSql(
 }
 
 export async function countImages(
-  folder?: string,
   userFilter?: number | 'admin',
   backendId?: string
 ): Promise<number> {
   ensureStorageSchema()
   const params: Array<string | number> = []
   const clauses: string[] = ['1=1']
-
-  if (folder && isValidFolderName(folder)) {
-    clauses.push('folder = ?')
-    params.push(folder)
-  }
 
   const userSql = buildUserFilterSql(userFilter, params)
   const backendSql = buildBackendFilterSql(backendId, params)
@@ -322,18 +405,12 @@ function paginateSlice<T>(
 export async function listImages(options: {
   limit: number
   page?: number
-  folder?: string
   userFilter?: number | 'admin'
   backendId?: string
 }): Promise<PaginatedResult<StoredImage>> {
   ensureStorageSchema()
   const params: Array<string | number> = []
   const clauses: string[] = ['1=1']
-
-  if (options.folder && isValidFolderName(options.folder)) {
-    clauses.push('folder = ?')
-    params.push(options.folder)
-  }
 
   const userSql = buildUserFilterSql(options.userFilter, params)
   const backendSql = buildBackendFilterSql(options.backendId, params)
@@ -355,7 +432,6 @@ export async function searchImages(options: {
   query: string
   limit: number
   page?: number
-  folder?: string
   userFilter?: number | 'admin'
   backendId?: string
 }): Promise<PaginatedResult<StoredImage>> {
@@ -363,11 +439,6 @@ export async function searchImages(options: {
   const needle = options.query.trim().toLowerCase()
   const params: Array<string | number> = []
   const clauses: string[] = ['1=1']
-
-  if (options.folder && isValidFolderName(options.folder)) {
-    clauses.push('folder = ?')
-    params.push(options.folder)
-  }
 
   const userSql = buildUserFilterSql(options.userFilter, params)
   const backendSql = buildBackendFilterSql(options.backendId, params)

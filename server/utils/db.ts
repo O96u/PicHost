@@ -5,7 +5,7 @@ import { getDataDir } from './data-dir'
 import { logException } from './logger'
 
 export type LogAction = 'upload' | 'delete'
-export type LogSource = 'web' | 'api' | 'twikoo'
+export type LogSource = 'web' | 'api'
 
 export interface ActivityLogRow {
   id: number
@@ -53,7 +53,7 @@ export function getDb(): DatabaseSync {
       original_name TEXT NOT NULL,
       size INTEGER NOT NULL DEFAULT 0,
       content_type TEXT NOT NULL DEFAULT '',
-      source TEXT NOT NULL CHECK(source IN ('web', 'api', 'twikoo')),
+      source TEXT NOT NULL CHECK(source IN ('web', 'api')),
       created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at
@@ -142,6 +142,10 @@ function migrateSchema(database: DatabaseSync): void {
   if (!activityLogColumns.some(column => column.name === 'backend_id')) {
     database.exec('ALTER TABLE activity_logs ADD COLUMN backend_id TEXT')
   }
+
+  database.exec(`
+    UPDATE activity_logs SET source = 'api' WHERE source = 'twikoo'
+  `)
 }
 
 const USER_COLUMNS = 'id, username, password_hash, role, created_at, api_token, auto_delete_days, auto_delete_enabled_at'
@@ -615,9 +619,13 @@ function countBySource(): Record<LogSource, number> {
     GROUP BY source
   `).all() as unknown as Array<{ source: LogSource, total: number }>
 
-  const result: Record<LogSource, number> = { web: 0, api: 0, twikoo: 0 }
+  const result: Record<LogSource, number> = { web: 0, api: 0 }
   for (const row of rows) {
-    result[row.source] = row.total
+    const raw = row.source as string
+    const source = raw === 'twikoo' ? 'api' : row.source
+    if (source === 'web' || source === 'api') {
+      result[source] += row.total
+    }
   }
   return result
 }

@@ -3,7 +3,6 @@ const STORAGE_KEY = 'pichost.upload-preferences'
 export type CopyFormat = 'url' | 'markdown' | 'html'
 
 export interface UploadPreferences {
-  defaultFolder: string
   compressEnabled: boolean
   autoCopyMarkdown: boolean
   copyFormat: CopyFormat
@@ -11,7 +10,6 @@ export interface UploadPreferences {
 }
 
 const DEFAULTS: UploadPreferences = {
-  defaultFolder: 'images',
   compressEnabled: false,
   autoCopyMarkdown: false,
   copyFormat: 'markdown',
@@ -36,9 +34,6 @@ function readStored(): UploadPreferences {
     if (!raw) return { ...DEFAULTS }
     const parsed = JSON.parse(raw) as Partial<UploadPreferences>
     return {
-      defaultFolder: typeof parsed.defaultFolder === 'string' && parsed.defaultFolder.trim()
-        ? parsed.defaultFolder.trim()
-        : DEFAULTS.defaultFolder,
       compressEnabled: parsed.compressEnabled === true,
       autoCopyMarkdown: parsed.autoCopyMarkdown === true,
       copyFormat: isCopyFormat(parsed.copyFormat) ? parsed.copyFormat : DEFAULTS.copyFormat,
@@ -55,7 +50,6 @@ function writeStored(prefs: UploadPreferences) {
 }
 
 export function useUploadPreferences() {
-  const defaultFolder = useState('upload-pref-folder', () => DEFAULTS.defaultFolder)
   const compressEnabled = useState('upload-pref-compress', () => DEFAULTS.compressEnabled)
   const autoCopyMarkdown = useState('upload-pref-auto-md', () => DEFAULTS.autoCopyMarkdown)
   const copyFormat = useState<CopyFormat>('upload-pref-copy-format', () => DEFAULTS.copyFormat)
@@ -64,7 +58,6 @@ export function useUploadPreferences() {
 
   function loadPreferences() {
     const stored = readStored()
-    defaultFolder.value = stored.defaultFolder
     compressEnabled.value = stored.compressEnabled
     autoCopyMarkdown.value = stored.autoCopyMarkdown
     copyFormat.value = stored.copyFormat
@@ -74,7 +67,6 @@ export function useUploadPreferences() {
 
   function savePreferences() {
     writeStored({
-      defaultFolder: defaultFolder.value.trim() || DEFAULTS.defaultFolder,
       compressEnabled: compressEnabled.value,
       autoCopyMarkdown: autoCopyMarkdown.value,
       copyFormat: copyFormat.value,
@@ -82,14 +74,13 @@ export function useUploadPreferences() {
     })
   }
 
-  watch([defaultFolder, compressEnabled, autoCopyMarkdown, copyFormat, clientWebpQuality], () => {
+  watch([compressEnabled, autoCopyMarkdown, copyFormat, clientWebpQuality], () => {
     if (loaded.value) {
       savePreferences()
     }
   })
 
   return {
-    defaultFolder,
     compressEnabled,
     autoCopyMarkdown,
     copyFormat,

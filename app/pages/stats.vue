@@ -12,17 +12,7 @@ interface StatsResponse {
   bySource: {
     web: number
     api: number
-    twikoo: number
   }
-  byFolder: Array<{
-    folder: string
-    count: number
-    bytes: number
-  }>
-  byFolderUploads: Array<{
-    folder: string
-    count: number
-  }>
 }
 
 const {
@@ -38,7 +28,6 @@ const {
   fetchList,
   fetchSearch,
   fetchTotal,
-  setActiveFolder,
   submitSearch,
   goToPage,
   removeItems,
@@ -63,14 +52,7 @@ const deleteModalOpen = ref(false)
 const deleteTargetKeys = ref<string[]>([])
 const batchDeleting = ref(false)
 const showScrollTop = ref(false)
-const currentFolder = ref('all')
 const currentStorage = ref('all')
-const folderOptions = ref<string[]>(['images'])
-
-const folderSelectItems = computed(() => [
-  { label: t('stats.allFolders'), value: 'all' },
-  ...folderOptions.value.map(folder => ({ label: folder, value: folder }))
-])
 
 const storageSelectItems = computed(() => [
   { label: t('stats.filterStorageAll'), value: 'all' },
@@ -82,41 +64,29 @@ const storageSelectItems = computed(() => [
 
 const selectedCount = computed(() => selectedKeys.value.size)
 
-const FOLDER_CHART_COLORS = [
+const SOURCE_CHART_COLORS = [
   'var(--ui-primary)',
-  '#10b981',
-  '#f59e0b',
-  '#8b5cf6',
-  '#ec4899',
-  '#06b6d4'
+  '#10b981'
 ]
 
-const folderUploadItems = computed(() =>
-  (stats.value?.byFolderUploads ?? []).map((item, index) => ({
-    key: item.folder,
-    label: item.folder,
-    count: item.count,
-    color: FOLDER_CHART_COLORS[index % FOLDER_CHART_COLORS.length]!
-  }))
+const sourceUploadItems = computed(() => {
+  const bySource = stats.value?.bySource
+  if (!bySource) return []
+  return [
+    { key: 'web', label: t('stats.sourceWeb'), count: bySource.web, color: SOURCE_CHART_COLORS[0]! },
+    { key: 'api', label: t('stats.sourceApi'), count: bySource.api, color: SOURCE_CHART_COLORS[1]! }
+  ]
+})
+
+const sourceUploadTotal = computed(() =>
+  sourceUploadItems.value.reduce((sum, item) => sum + item.count, 0)
 )
 
-const donutSegments = computed(() =>
-  folderUploadItems.value.map(item => ({
-    label: item.label,
-    value: item.count,
-    color: item.color
-  }))
-)
-
-const folderStats = computed(() => stats.value?.byFolder ?? [])
-
-const folderMaxBytes = computed(() =>
-  Math.max(...folderStats.value.map(item => item.bytes), 1)
-)
-
-const uploadChartTotal = computed(() =>
-  folderUploadItems.value.reduce((sum, item) => sum + item.count, 0)
-)
+function sourcePercent(count: number) {
+  const total = sourceUploadTotal.value
+  if (!total) return 0
+  return Math.round((count / total) * 100)
+}
 
 const statCards = computed(() => {
   const s = stats.value
@@ -143,17 +113,6 @@ function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-function folderPercent(bytes: number) {
-  return Math.round((bytes / folderMaxBytes.value) * 100)
-}
-
-async function loadFolders() {
-  const data = await $fetch<{ folders: string[] }>('/api/folders', {
-    credentials: 'include'
-  })
-  folderOptions.value = [...data.folders]
-}
-
 async function fetchStats() {
   stats.value = await $fetch<StatsResponse>('/api/stats', {
     credentials: 'include'
@@ -178,7 +137,7 @@ async function refreshGallery() {
   if (!isAuthenticated.value) return
   selectedKeys.value = new Set()
   try {
-    await Promise.all([refreshList(), loadFolders(), loadStorageBackendOptions()])
+    await Promise.all([refreshList(), loadStorageBackendOptions()])
     currentStorage.value = activeStorageBackend.value
   } catch (error: unknown) {
     handleAuthError(error)
@@ -202,7 +161,6 @@ async function refreshAll() {
     await Promise.all([
       fetchStats(),
       reloadGallery(),
-      loadFolders(),
       loadStorageBackendOptions()
     ])
     currentStorage.value = activeStorageBackend.value
@@ -213,17 +171,6 @@ async function refreshAll() {
     }
   } finally {
     statsLoading.value = false
-  }
-}
-
-async function handleFolderChange(folder: string) {
-  if (!isAuthenticated.value) return
-  currentFolder.value = folder
-  selectedKeys.value = new Set()
-  try {
-    await setActiveFolder(folder)
-  } catch (error: unknown) {
-    handleAuthError(error)
   }
 }
 
@@ -406,67 +353,60 @@ watch(isAuthenticated, async (authed, prev) => {
         />
       </div>
 
-      <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div
-          v-for="item in statCards"
-          :key="item.label"
-          class="rounded-xl border border-default bg-elevated p-4"
-        >
-          <p class="text-xs text-muted">
-            {{ item.label }}
-          </p>
-          <p class="mt-1 text-2xl font-semibold tabular-nums">
-            {{ item.value }}
-          </p>
-        </div>
-      </section>
-
-      <section class="grid gap-4 lg:grid-cols-2">
-        <div class="rounded-xl border border-default bg-elevated p-4">
-          <h2 class="mb-3 text-sm font-medium text-muted">
-            {{ t('stats.folderDistribution') }}
-          </h2>
+      <section class="grid gap-3 lg:grid-cols-3 lg:items-stretch">
+        <div class="grid grid-cols-2 gap-3 lg:col-span-2 lg:grid-cols-4">
           <div
-            v-if="!uploadChartTotal"
-            class="py-6 text-center text-xs text-muted"
+            v-for="item in statCards"
+            :key="item.label"
+            class="rounded-xl border border-default bg-elevated p-4"
           >
-            {{ t('stats.noData') }}
+            <p class="text-xs text-muted">
+              {{ item.label }}
+            </p>
+            <p class="mt-1 text-2xl font-semibold tabular-nums">
+              {{ item.value }}
+            </p>
           </div>
-          <StatsDonut
-            v-else
-            :segments="donutSegments"
-            :size="88"
-          />
         </div>
 
-        <div class="rounded-xl border border-default bg-elevated p-4">
-          <h2 class="mb-3 text-sm font-medium text-muted">
-            {{ t('stats.folderUsage') }}
+        <div class="flex h-full min-h-0 flex-col rounded-xl border border-default bg-elevated p-4 lg:col-span-1">
+          <h2 class="shrink-0 text-sm font-medium text-muted">
+            {{ t('stats.sourceDistribution') }}
           </h2>
           <div
-            v-if="!folderStats.length"
-            class="py-6 text-center text-xs text-muted"
+            v-if="!sourceUploadTotal"
+            class="flex flex-1 items-center justify-center text-center text-xs text-muted"
           >
             {{ t('stats.noData') }}
           </div>
           <ul
             v-else
-            class="space-y-2.5"
+            class="mt-4 flex min-h-0 flex-1 flex-col"
           >
             <li
-              v-for="item in folderStats"
-              :key="item.folder"
+              v-for="item in sourceUploadItems"
+              :key="item.key"
+              class="flex flex-1 flex-col justify-center gap-2 py-1"
             >
-              <div class="mb-1 flex items-center justify-between gap-2 text-xs">
-                <span class="font-medium">{{ item.folder }}</span>
-                <span class="tabular-nums text-muted">
-                  {{ t('stats.folderCount', { count: item.count, size: formatFileSize(item.bytes) }) }}
+              <div class="flex items-center justify-between gap-2 text-xs">
+                <span class="flex min-w-0 items-center gap-1.5">
+                  <span
+                    class="size-2 shrink-0 rounded-full"
+                    :style="{ background: item.color }"
+                  />
+                  <span class="truncate">{{ item.label }}</span>
+                </span>
+                <span class="shrink-0 tabular-nums text-muted">
+                  {{ item.count }} ({{ sourcePercent(item.count) }}%)
                 </span>
               </div>
-              <div class="h-1.5 overflow-hidden rounded-full bg-muted/50">
+              <div class="h-2 rounded-full bg-muted/40">
                 <div
-                  class="h-full rounded-full bg-primary/70"
-                  :style="{ width: `${Math.max(folderPercent(item.bytes), item.bytes ? 4 : 0)}%` }"
+                  class="h-full rounded-full transition-[width]"
+                  :style="{
+                    width: `${sourcePercent(item.count)}%`,
+                    backgroundColor: item.color
+                  }"
                 />
               </div>
             </li>
@@ -500,14 +440,6 @@ watch(isAuthenticated, async (authed, prev) => {
             >
               {{ t('stats.selected', { n: selectedCount }) }}
             </UBadge>
-            <USelect
-              v-model="currentFolder"
-              :items="folderSelectItems"
-              class="w-[5.5rem] shrink-0 sm:w-32"
-              size="sm"
-              :aria-label="t('stats.folder')"
-              @update:model-value="handleFolderChange"
-            />
             <USelect
               v-model="currentStorage"
               :items="storageSelectItems"

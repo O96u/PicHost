@@ -88,7 +88,7 @@
     "domainSeparationProxyHint": "Point both domains to this host and reverse-proxy to port 6892 (Nginx, Caddy, NPM, etc.)",
     "domainSeparationProxyExample": "View example",
     "siteBaseUrl": "Site URL",
-    "siteBaseUrlHint": "No trailing slash; admin UI, API docs, and Twikoo upload endpoint",
+    "siteBaseUrlHint": "No trailing slash; admin UI and API upload endpoint",
     "siteBaseUrlPlaceholder": "https://admin.example.com",
     "imageBaseUrl": "Image URL",
     "imageBaseUrlHint": "No trailing slash; public image link prefix",
@@ -179,21 +179,16 @@
   "settings": {
     "title": "System settings",
     "subtitle": "Saved to database; environment variables take precedence",
-    "uploadAccount": "Upload & accounts",
     "featureToggles": "Feature toggles",
-    "defaultFolder": "Default upload folder",
-    "defaultFolderHint": "Stored in this browser only; affects your upload target",
     "allowRegistration": "Open registration",
     "allowRegistrationHint": "Allow new users to register (regular users see only their images)",
     "accessControl": "Access control",
     "refererHint": "Referer hotlink protection; comma-separated hostnames, empty = no restriction",
     "refererPlaceholder": "example.com, www.example.com",
-    "linkGeneration": "Domains & links",
     "domainSettings": "Domain settings",
-    "storagePathSettings": "Storage paths & direct links",
     "domainSeparationActive": "Domain separation enabled: image host serves images only; site host serves admin and API",
     "siteBaseUrl": "Site URL",
-    "siteBaseUrlHint": "No trailing slash; admin UI, API docs, and Twikoo upload endpoint",
+    "siteBaseUrlHint": "No trailing slash; admin UI and API upload endpoint",
     "siteBaseUrlPlaceholder": "https://admin.example.com",
     "siteBaseUrlActive": "Active: {url}",
     "imageBaseUrl": "Image URL",
@@ -202,10 +197,7 @@
     "imageBaseUrlPlaceholder": "https://pic.example.com",
     "imageBaseUrlActive": "Active: {url}",
     "hideFolderInUrl": "Hide folder in image URLs",
-    "hideFolderInUrlHint": "Links become /file.webp without folder or date paths; legacy full paths still work",
-    "hideFolderConfirmTitle": "Hide folder prefix in URLs?",
-    "hideFolderConfirmDesc": "If two folders share the same filename (e.g. images/a.webp and blog/a.webp), the short URL /a.webp resolves to the images folder first—you may get the wrong file. Enable only with a single upload folder or globally unique filenames.",
-    "hideFolderConfirmEnable": "Enable anyway",
+    "hideFolderInUrlHint": "Links become /file.webp without folder or date paths; legacy full paths still work. Identical filenames under different subpaths may collide on short URLs",
     "storageUseDatePath": "Group uploads by year/month",
     "storageUseDatePathHint": "When enabled, files are stored as images/2026/08/file.webp; when disabled, as images/file.webp. Applies only to new uploads after enabling",
     "badgeEnv": ".env",
@@ -317,12 +309,11 @@
     "deleteTotal": "Total deleted",
     "userCount": "Registered users",
     "uploadBytes": "Total upload size",
-    "folderDistribution": "Uploads by folder",
-    "folderUsage": "Storage by folder",
+    "sourceDistribution": "Uploads by source",
+    "sourceWeb": "Web",
+    "sourceApi": "API",
     "noData": "No data",
-    "folderCount": "{count} · {size}",
     "gallery": "Gallery",
-    "folder": "Folder",
     "filterStorageAll": "All storage",
     "storage": "Storage",
     "searchPlaceholder": "Search filename",
@@ -336,12 +327,11 @@
     "deletePartialFail": "{n} image(s) failed to delete",
     "deleteFailed": "Delete failed",
     "deletedSingle": "Deleted",
-    "allFolders": "All",
     "counting": "Counting…",
-    "summarySearch": "{folder} · Search “{q}” · {total} images",
-    "summaryTotal": "{folder} · {total} images",
-    "summarySearchStorage": "{folder} · {storage} · Search “{q}” · {total} images",
-    "summaryTotalStorage": "{folder} · {storage} · {total} images"
+    "summarySearch": "Search “{q}” · {total} images",
+    "summaryTotal": "{total} images",
+    "summarySearchStorage": "{storage} · Search “{q}” · {total} images",
+    "summaryTotalStorage": "{storage} · {total} images"
   },
   "logs": {
     "pageTitle": "Activity log",
@@ -359,7 +349,6 @@
     "actionDelete": "Delete",
     "sourceWeb": "Web",
     "sourceApi": "API",
-    "sourceTwikoo": "Twikoo",
     "colTime": "Time",
     "colUser": "User",
     "colStorage": "Storage",
@@ -418,15 +407,11 @@
     "docs": {
       "upload": {
         "title": "Upload images",
-        "descAdmin": "Upload one or more images. Use image field; folder creates directory if missing. Also accepts file, files, type.",
-        "descUser": "Upload one or more images via image field. Also accepts file, files. Stored under images/.",
-        "curlCustomFolder": "# Upload to custom folder blog/"
+        "desc": "Upload one or more images via image field. Also accepts file, files. Stored under images/."
       },
       "list": {
         "title": "List images",
-        "descAdmin": "Paginated gallery; optional folder filter. limit default 20, max 100.",
-        "descUser": "Paginated list of your images. limit default 20, max 100.",
-        "curlFolderFilter": "# Filter by folder"
+        "desc": "Paginated gallery. limit default 20, max 100."
       },
       "search": {
         "title": "Search images",
@@ -442,7 +427,7 @@
       },
       "twikoo": {
         "title": "Twikoo-compatible upload",
-        "desc": "Twikoo / EasyImage 2.0 protocol; stored under twikoo/. Fields: image + token."
+        "desc": "Twikoo / EasyImage 2.0 protocol; stored under images/. Fields: image + token."
       }
     }
   },

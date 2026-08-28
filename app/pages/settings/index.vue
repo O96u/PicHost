@@ -27,12 +27,10 @@ interface SettingsResponse {
 }
 
 const { isChecking, isAuthenticated, checkSession, handleAuthError, fetchStatus, isAdmin } = useAuth()
-const { defaultFolder, loadPreferences } = useUploadPreferences()
 const toast = useToast()
 const { t } = useI18n()
 
 const settings = ref<SettingsResponse | null>(null)
-const folderOptions = ref<string[]>(['images'])
 const savingServer = ref(false)
 
 const refererDraft = ref('')
@@ -42,7 +40,6 @@ const hideFolderInUrlDraft = ref(false)
 const storageUseDatePathDraft = ref(true)
 const allowRegistrationDraft = ref(false)
 const domainSeparationDraft = ref(false)
-const hideFolderConfirmOpen = ref(false)
 
 interface ReleaseCheckResponse {
   currentVersion: string
@@ -52,10 +49,6 @@ interface ReleaseCheckResponse {
 }
 
 const releaseCheck = ref<ReleaseCheckResponse | null>(null)
-
-const folderSelectItems = computed(() =>
-  folderOptions.value.map(folder => ({ label: folder, value: folder }))
-)
 
 const hasServerChanges = computed(() => {
   if (!settings.value) return false
@@ -131,28 +124,6 @@ function handlePatchError(error: unknown, fallback: string) {
   toast.add({ title: fallback, color: 'error' })
 }
 
-function onHideFolderDraftChange(next: boolean | 'indeterminate') {
-  if (next !== true) {
-    hideFolderInUrlDraft.value = false
-    return
-  }
-  if (folderOptions.value.length > 1) {
-    hideFolderConfirmOpen.value = true
-    return
-  }
-  hideFolderInUrlDraft.value = true
-}
-
-function confirmHideFolderEnable() {
-  hideFolderInUrlDraft.value = true
-  hideFolderConfirmOpen.value = false
-}
-
-function cancelHideFolderEnable() {
-  hideFolderInUrlDraft.value = false
-  hideFolderConfirmOpen.value = false
-}
-
 function onDomainSeparationDraftChange(next: boolean | 'indeterminate') {
   const enabled = next === true
   domainSeparationDraft.value = enabled
@@ -186,16 +157,6 @@ async function saveServerSettings() {
   }
 }
 
-async function loadFolders() {
-  const data = await $fetch<{ folders: string[] }>('/api/folders', {
-    credentials: 'include'
-  })
-  folderOptions.value = [...data.folders]
-  if (!folderOptions.value.includes(defaultFolder.value)) {
-    defaultFolder.value = folderOptions.value[0] ?? 'images'
-  }
-}
-
 async function loadSettings() {
   try {
     const data = await $fetch<SettingsResponse>('/api/settings', {
@@ -225,8 +186,7 @@ async function loadPage() {
     await navigateTo('/')
     return
   }
-  loadPreferences()
-  await Promise.all([loadSettings(), loadFolders(), checkLatestRelease()])
+  await Promise.all([loadSettings(), checkLatestRelease()])
 }
 
 onMounted(async () => {
@@ -354,7 +314,7 @@ watch(isAuthenticated, async (authed, prev) => {
                     :model-value="hideFolderInUrlDraft"
                     class="mt-0.5 shrink-0"
                     :disabled="settings.hideFolderInUrlSource === 'env'"
-                    @update:model-value="onHideFolderDraftChange"
+                    @update:model-value="(v) => hideFolderInUrlDraft = v === true"
                   />
                   <span class="min-w-0">
                     <span class="flex flex-wrap items-center gap-2 text-sm font-medium">
@@ -375,50 +335,11 @@ watch(isAuthenticated, async (authed, prev) => {
                 </label>
               </div>
 
-              <div class="settings-side-panel flex h-full min-w-0 flex-col rounded-xl border border-default/60 bg-muted/10 p-4 sm:p-5">
-                <div class="shrink-0 space-y-1.5">
-                  <label class="text-sm font-medium">{{ t('settings.defaultFolder') }}</label>
-                  <p class="text-xs leading-relaxed text-muted">
-                    {{ t('settings.defaultFolderHint') }}
-                  </p>
-                  <USelect
-                    v-model="defaultFolder"
-                    :items="folderSelectItems"
-                    class="settings-folder-select w-40 max-w-full"
-                  />
-                </div>
+              <div class="flex h-full min-w-0 flex-col space-y-4 rounded-xl border border-default/60 bg-muted/10 p-4 sm:p-5">
+                <h3 class="text-sm font-semibold">
+                  {{ t('settings.domainSettings') }}
+                </h3>
 
-                <div class="settings-referer-section mt-4 space-y-1.5 border-t border-default/60 pt-4">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <label class="text-sm font-medium">{{ t('settings.accessControl') }}</label>
-                    <UBadge
-                      :color="sourceBadge(settings.refererSource).color"
-                      variant="subtle"
-                      size="xs"
-                    >
-                      {{ sourceBadge(settings.refererSource).label }}
-                    </UBadge>
-                  </div>
-                  <p class="text-xs leading-relaxed text-muted">
-                    {{ t('settings.refererHint') }}
-                  </p>
-                  <UTextarea
-                    v-model="refererDraft"
-                    :placeholder="t('settings.refererPlaceholder')"
-                    :rows="4"
-                    :autoresize="false"
-                    class="settings-referer-field flex min-h-0 w-full max-w-xl flex-1 flex-col font-mono text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div class="rounded-xl border border-default/60 bg-muted/10 p-4 sm:p-5">
-              <h3 class="text-sm font-semibold">
-                {{ t('settings.domainSettings') }}
-              </h3>
-
-              <div class="mt-4 space-y-4">
                 <label class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-default/50 bg-default/40 p-3">
                   <UCheckbox
                     :model-value="domainSeparationDraft"
@@ -469,7 +390,7 @@ watch(isAuthenticated, async (authed, prev) => {
                     <UInput
                       v-model="siteBaseUrlDraft"
                       :placeholder="t('settings.siteBaseUrlPlaceholder')"
-                      class="w-full max-w-xl font-mono text-sm"
+                      class="w-full font-mono text-sm"
                     />
                     <p
                       v-if="settings.siteBaseUrl"
@@ -497,7 +418,7 @@ watch(isAuthenticated, async (authed, prev) => {
                     <UInput
                       v-model="imageBaseUrlDraft"
                       :placeholder="t('settings.imageBaseUrlPlaceholder')"
-                      class="w-full max-w-xl font-mono text-sm"
+                      class="w-full font-mono text-sm"
                     />
                     <p
                       v-if="settings.imageBaseUrl"
@@ -529,7 +450,7 @@ watch(isAuthenticated, async (authed, prev) => {
                   <UInput
                     v-model="imageBaseUrlDraft"
                     :placeholder="t('settings.imageBaseUrlPlaceholder')"
-                    class="w-full max-w-xl font-mono text-sm"
+                    class="w-full font-mono text-sm"
                   />
                   <p
                     v-if="settings.imageBaseUrl"
@@ -540,6 +461,31 @@ watch(isAuthenticated, async (authed, prev) => {
                   </p>
                 </div>
               </div>
+            </div>
+
+            <div class="settings-referer-section space-y-1.5 rounded-xl border border-default/60 bg-muted/10 p-4 sm:p-5">
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="text-sm font-semibold">
+                  {{ t('settings.accessControl') }}
+                </h3>
+                <UBadge
+                  :color="sourceBadge(settings.refererSource).color"
+                  variant="subtle"
+                  size="xs"
+                >
+                  {{ sourceBadge(settings.refererSource).label }}
+                </UBadge>
+              </div>
+              <p class="text-xs leading-relaxed text-muted">
+                {{ t('settings.refererHint') }}
+              </p>
+              <UTextarea
+                v-model="refererDraft"
+                :placeholder="t('settings.refererPlaceholder')"
+                :rows="4"
+                :autoresize="false"
+                class="settings-referer-field w-full font-mono text-sm"
+              />
             </div>
           </div>
         </div>
@@ -618,57 +564,11 @@ watch(isAuthenticated, async (authed, prev) => {
         </div>
       </section>
     </AppShell>
-
-    <UModal
-      :open="hideFolderConfirmOpen"
-      :title="t('settings.hideFolderConfirmTitle')"
-      :description="t('settings.hideFolderConfirmDesc')"
-      @update:open="(open) => { if (!open) cancelHideFolderEnable() }"
-    >
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton
-            :label="t('common.cancel')"
-            color="neutral"
-            variant="outline"
-            @click="cancelHideFolderEnable"
-          />
-          <UButton
-            :label="t('settings.hideFolderConfirmEnable')"
-            color="warning"
-            @click="confirmHideFolderEnable"
-          />
-        </div>
-      </template>
-    </UModal>
   </div>
 </template>
 
 <style scoped>
-.settings-side-panel {
-  overflow: hidden;
-}
-
-.settings-folder-select {
-  min-width: 0;
-}
-
-.settings-folder-select :deep(button),
-.settings-folder-select :deep([role='combobox']) {
-  justify-content: space-between;
-}
-
 .settings-referer-section {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-  min-width: 0;
-}
-
-.settings-referer-field {
-  flex: 1;
-  min-height: 0;
   min-width: 0;
 }
 
@@ -680,7 +580,6 @@ watch(isAuthenticated, async (authed, prev) => {
 }
 
 .settings-referer-field :deep(textarea) {
-  height: 100%;
   min-height: 5.5rem;
   resize: none;
 }

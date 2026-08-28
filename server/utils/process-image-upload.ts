@@ -62,7 +62,6 @@ export async function processSingleImageUpload(
   input: {
     bytes: Uint8Array
     filename?: string
-    prefix?: string
     source?: LogSource
     userId?: number | null
   }
@@ -123,12 +122,7 @@ export async function processSingleImageUpload(
 
   const uploadedAt = new Date().toISOString()
   const layout = getStorageLayout(event)
-  const key = generateImageKey(
-    compressed.mime,
-    new Date(uploadedAt),
-    input.prefix ?? 'images',
-    layout
-  )
+  const key = generateImageKey(compressed.mime, new Date(uploadedAt), layout)
 
   let backendId: string
   try {

@@ -1,6 +1,7 @@
 import { createReadStream, promises as fs } from 'node:fs'
 import type { ReadStream } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { contentTypeFromKey } from '../content-type'
 import { getDataDir } from '../data-dir'
 import { validateImageKey } from '../image-key'
 import type { StoredImage, StoredImageMeta, StorageBackend } from './types'
@@ -9,27 +10,6 @@ const META_SUFFIX = '.meta.json'
 
 function keyToFilePath(key: string): string {
   return join(getDataDir(), ...key.split('/'))
-}
-
-function contentTypeFromKey(key: string): string {
-  const ext = key.split('.').pop()?.toLowerCase()
-  switch (ext) {
-    case 'jpg':
-    case 'jpeg':
-      return 'image/jpeg'
-    case 'png':
-      return 'image/png'
-    case 'gif':
-      return 'image/gif'
-    case 'webp':
-      return 'image/webp'
-    case 'svg':
-      return 'image/svg+xml'
-    case 'ico':
-      return 'image/x-icon'
-    default:
-      return 'application/octet-stream'
-  }
 }
 
 async function readMeta(key: string): Promise<Partial<StoredImageMeta>> {
@@ -57,11 +37,10 @@ export class LocalStorageBackend implements StorageBackend {
     this.publicUrl = publicUrl
   }
 
-  async put(key: string, bytes: Uint8Array, meta: StoredImageMeta): Promise<void> {
+  async put(key: string, bytes: Uint8Array, _meta: StoredImageMeta): Promise<void> {
     const filePath = keyToFilePath(key)
     await fs.mkdir(dirname(filePath), { recursive: true })
     await fs.writeFile(filePath, bytes)
-    await fs.writeFile(filePath + META_SUFFIX, JSON.stringify(meta))
   }
 
   async head(key: string): Promise<StoredImage | null> {

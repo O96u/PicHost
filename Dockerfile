@@ -24,6 +24,7 @@ ENV NODE_ENV=production \
 
 COPY --from=build /app/.output ./.output
 COPY server/cli/reset-password.mjs ./server/cli/reset-password.mjs
+COPY server/cli/migrate-to-single-images.mjs ./server/cli/migrate-to-single-images.mjs
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 

@@ -6,7 +6,7 @@
 
 | 分支 | 说明 |
 | ---- | ---- |
-| [**main**](https://github.com/O96u/PicHost/tree/main)（默认） | **v1.1.0** 主线：本地磁盘 + 多对象存储（R2 / COS / OSS / AWS）、`/storage` 管理页、混合直链 |
+| [**main**](https://github.com/O96u/PicHost/tree/main)（默认） | **v1.2.0**（开发中）主线：统一 `images/` 存储、多对象存储、[`/storage`](docs/README.md)、[`迁移指南`](migration-to-v1.2.md) |
 | [**cloudflare**](https://github.com/O96u/PicHost/tree/cloudflare) | **Cloudflare R2 专用线**：面向「只用 R2」的部署场景，配置更聚焦 R2 |
 
 - 需要多种云存储或完整管理界面 → 使用 **main**
@@ -14,7 +14,7 @@
 
 ## 截图一览
 
-以下为 **main（v1.1.0）** 界面截图。
+以下为 **main** 界面截图。
 
 | 文件 | 说明 |
 | ---- | ---- |
@@ -31,10 +31,12 @@
 
 | 文档 | 说明 |
 | ---- | ---- |
+| [migration-to-v1.2.md](migration-to-v1.2.md) | v1.2.0 本地磁盘迁移（CLI 搬文件 + 启动同步索引） |
+| [migration-to-v1.2.en.md](migration-to-v1.2.en.md) | v1.2.0 migration guide (English) |
 | [domain-separation.md](domain-separation.md) | 双域名分离推荐架构（Nginx / Lucky / 环境变量） |
 | [domain-separation.en.md](domain-separation.en.md) | Dual-domain deployment (English) |
 
-## 相关页面路由（main / v1.1.0）
+## 相关页面路由（main）
 
 | 路由 | 权限 | 说明 |
 | ---- | ---- | ---- |

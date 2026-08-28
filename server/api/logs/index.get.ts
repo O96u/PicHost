@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
     : undefined
 
   const sourceRaw = typeof query.source === 'string' ? query.source : ''
-  const source = (sourceRaw === 'web' || sourceRaw === 'api' || sourceRaw === 'twikoo')
+  const source = (sourceRaw === 'web' || sourceRaw === 'api')
     ? sourceRaw as LogSource
     : undefined
 

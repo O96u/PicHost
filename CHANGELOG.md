@@ -2,6 +2,23 @@
 
 本仓库自 **v1.0.0** 起作为正式版维护；此前历史提交已归档重置。
 
+## [1.2.0] - 2026-08-28
+
+### 变更
+
+- 图片统一存放在 `data/images/`；遗留 `blog/`、`twikoo/` 等并列目录需迁移后升级
+
+### 新增
+
+- CLI 迁移工具：`docker exec pichost migrate` / `migrate --apply`（`server/cli/migrate-to-single-images.mjs`）
+- 扫描 `data/` 下除 `images` 外所有顶层目录中的图片，输出 `data/mapping.json`
+- 启动时自动同步图片索引（扫描磁盘、归一化遗留 key、清理孤儿记录），并打印同步日志
+- 迁移文档：[`docs/migration-to-v1.2.md`](docs/migration-to-v1.2.md)
+
+### 改进
+
+- 启动时归一化遗留 SQLite key、清理无文件的孤儿索引；支持删除仅索引无文件的记录
+
 ## [1.1.5] - 2026-08-28
 
 ### 修复
@@ -123,6 +140,7 @@
 - 中英文界面（`@nuxtjs/i18n`），语言切换与主题切换独立菜单
 - 移动端导航：汉堡菜单 + 分组用户菜单（语言 / 外观 / 账户）
 - Docker 忘记密码：`docker exec pichost reset-password`（随机密码，见 `server/cli/`）
+- Docker 升级到 v1.2.0 前迁移遗留目录：`docker exec pichost migrate` / `migrate --apply`
 
 ### 改进
 
@@ -159,9 +177,9 @@
 
 ### 路线图
 
-- **v1.1.2**（当前 `main`）：操作日志、图库存储筛选、上传限流
+- **v1.2.0**（开发中）：统一 `images/` 存储、遗留目录迁移 CLI、启动索引同步
 
-[1.1.2]: https://github.com/O96u/PicHost/releases/tag/v1.1.2
+[1.2.0]: https://github.com/O96u/PicHost/releases/tag/v1.2.0
 [1.1.1]: https://github.com/O96u/PicHost/releases/tag/v1.1.1
 [1.1.0]: https://github.com/O96u/PicHost/releases/tag/v1.1.0
 [1.0.4]: https://github.com/O96u/PicHost/releases/tag/v1.0.4
