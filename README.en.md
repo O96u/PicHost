@@ -32,7 +32,7 @@
 
 | Branch | Notes |
 | ------ | ----- |
-| [**main**](https://github.com/O96u/PicHost/tree/main) (default) | **v1.1.3** — local disk + multi-backend storage, dual-domain separation, [`/storage`](docs/README.md) UI, hybrid URLs |
+| [**main**](https://github.com/O96u/PicHost/tree/main) (default) | **v1.1.4** — local disk + multi-backend storage, bidirectional dual-domain isolation, [`/storage`](docs/README.md) UI, hybrid URLs |
 | [**cloudflare**](https://github.com/O96u/PicHost/tree/cloudflare) | **Cloudflare R2–only line** — streamlined for deployments that use R2 exclusively |
 
 Use **main** for the full product and multiple cloud backends.
@@ -228,7 +228,8 @@ npm test             # Unit tests
 
 | Version    | Plan                                                           |
 | ---------- | -------------------------------------------------------------- |
-| **v1.1.3** | Dual-domain separation, optional `images/` URL prefix, update check (current `main`) |
+| **v1.1.4** | Flat vs date storage paths, basename public URLs, bidirectional domain isolation (current `main`) |
+| **v1.1.3** | Dual-domain separation, optional `images/` URL prefix, update check |
 | **v1.1.2** | Activity logs, gallery storage filter, upload rate limits |
 | **v1.1.1** | Session check fixes, storage placeholder cleanup, Docker logging |
 | **v1.1.0** | Multi-backend object storage, hybrid URLs, storage UI |
