@@ -70,7 +70,7 @@ PicHost 双域名隔离**只对已配置的网站域、图片域做路径分流*
 
 **main** 分支建议：
 
-- **Description**：`Self-hosted image hosting — Docker, multi-user, S3/R2 storage, Twikoo/EasyImage compatible.`
+- **Description**：`Lightweight self-hosted image hosting — Docker, multi-user, gallery & API, local disk or S3-compatible storage.`
 - **Website**：`https://o96u.github.io/PicHost/`（文档站，非图床演示）
 
 勿写「部署在 Cloudflare Pages/Workers」—— PicHost 应用跑在 Docker/VPS；**cloudflare** 分支在线演示为 [pic.roven.cc](https://pic.roven.cc)。

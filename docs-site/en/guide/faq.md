@@ -69,7 +69,7 @@ If you get 404, GitHub Pages may not be deployed yet: set **Settings → Pages �
 
 For **main**:
 
-- **Description**: `Self-hosted image hosting — Docker, multi-user, S3/R2 storage, Twikoo/EasyImage compatible.`
+- **Description**: `Lightweight self-hosted image hosting — Docker, multi-user, gallery & API, local disk or S3-compatible storage.`
 - **Website**: `https://o96u.github.io/PicHost/` (docs, not a live demo)
 
 Do not claim the app runs on Cloudflare Pages/Workers. The **cloudflare** branch demo is [pic.roven.cc](https://pic.roven.cc).
