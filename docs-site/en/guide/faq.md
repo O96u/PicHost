@@ -62,3 +62,14 @@ Use `data/mapping.json` from `migrate` preview. Keys are **storage paths**, not 
 ## Docs vs README?
 
 This **VitePress site** is the full guide; README is a short overview. Online: <https://o96u.github.io/PicHost/>
+
+If you get 404, GitHub Pages may not be deployed yet: set **Settings → Pages → Source** to **GitHub Actions** and ensure the `docs` workflow `deploy` job succeeded. See [Local dev · Publish to GitHub Pages](./local-dev.md#publish-to-github-pages).
+
+## What should the GitHub repo About say?
+
+For **main**:
+
+- **Description**: `Self-hosted image hosting — Docker, multi-user, S3/R2 storage, Twikoo/EasyImage compatible.`
+- **Website**: `https://o96u.github.io/PicHost/` (docs, not a live demo)
+
+Do not claim the app runs on Cloudflare Pages/Workers. The **cloudflare** branch demo is [pic.roven.cc](https://pic.roven.cc).

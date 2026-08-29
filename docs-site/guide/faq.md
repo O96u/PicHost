@@ -63,3 +63,14 @@ PicHost 双域名隔离**只对已配置的网站域、图片域做路径分流*
 ## 文档与仓库 README 哪个为准？
 
 **本 VitePress 文档站** 为完整用户指南；README 保留摘要与快速开始。在线地址：<https://o96u.github.io/PicHost/>
+
+若访问 404，说明 GitHub Pages 尚未部署成功：请在仓库 **Settings → Pages** 将 Source 设为 **GitHub Actions**，并确认 `docs` workflow 的 deploy 步骤已通过。详见 [本地开发 · 发布到 GitHub Pages](./local-dev.md#发布到-github-pages)。
+
+## GitHub 仓库 About 怎么写？
+
+**main** 分支建议：
+
+- **Description**：`Self-hosted image hosting — Docker, multi-user, S3/R2 storage, Twikoo/EasyImage compatible.`
+- **Website**：`https://o96u.github.io/PicHost/`（文档站，非图床演示）
+
+勿写「部署在 Cloudflare Pages/Workers」—— PicHost 应用跑在 Docker/VPS；**cloudflare** 分支在线演示为 [pic.roven.cc](https://pic.roven.cc)。
