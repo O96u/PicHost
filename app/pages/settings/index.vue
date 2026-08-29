@@ -28,7 +28,13 @@ interface SettingsResponse {
 
 const { isChecking, isAuthenticated, checkSession, handleAuthError, fetchStatus, isAdmin } = useAuth()
 const toast = useToast()
-const { t } = useI18n()
+const { t, locale } = useI18n()
+
+const domainSeparationDocUrl = computed(() =>
+  locale.value === 'en'
+    ? 'https://o96u.github.io/PicHost/en/guide/domain-separation'
+    : 'https://o96u.github.io/PicHost/guide/domain-separation'
+)
 
 const settings = ref<SettingsResponse | null>(null)
 const savingServer = ref(false)
@@ -360,7 +366,7 @@ watch(isAuthenticated, async (authed, prev) => {
                 >
                   {{ t('setup.domainSeparationProxyHint') }}
                   <a
-                    href="https://github.com/O96u/PicHost/blob/main/docs/domain-separation.md"
+                    :href="domainSeparationDocUrl"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="text-primary hover:underline"

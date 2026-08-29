@@ -251,6 +251,10 @@ async function confirmDelete() {
         color: 'success'
       })
       await refreshStats()
+      await reloadGallery()
+      if (items.value.length === 0 && galleryPage.value > 1) {
+        await goToPage(galleryPage.value - 1)
+      }
     }
 
     if (failed.length) {

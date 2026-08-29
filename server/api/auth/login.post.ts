@@ -1,3 +1,4 @@
+import type { H3Event } from 'h3'
 import {
   checkAdminSecret,
   setLegacyAuthCookie
@@ -10,12 +11,15 @@ import {
 } from '../../utils/auth'
 import { findUserByUsername } from '../../utils/db'
 import { getAdminSecret } from '../../utils/env'
+import { verifyLoginCaptcha } from '../../utils/login-captcha'
 import { clientIp, logInfo, logWarn } from '../../utils/logger'
 
 interface LoginBody {
   username?: string
   password?: string
   secret?: string
+  captchaId?: string
+  captchaPosition?: number
 }
 
 const loginAttempts = new Map<string, { count: number, resetAt: number }>()
@@ -38,11 +42,20 @@ function checkRateLimit(ip: string): void {
   }
 }
 
+function verifyCaptchaOrFail(event: H3Event, body: LoginBody) {
+  const id = body.captchaId?.trim() ?? ''
+  const position = Number(body.captchaPosition)
+  if (!id || !verifyLoginCaptcha(id, position)) {
+    createApiError(event, 'INVALID_REQUEST', '请先完成滑块验证', 400)
+  }
+}
+
 export default defineEventHandler(async (event) => {
   const ip = clientIp(event)
   checkRateLimit(ip)
 
   const body = await readBody<LoginBody>(event)
+  verifyCaptchaOrFail(event, body ?? {})
   const initialized = isInitialized()
 
   if (!initialized) {

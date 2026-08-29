@@ -2,6 +2,29 @@
 
 本仓库自 **v1.0.0** 起作为正式版维护；此前历史提交已归档重置。
 
+## [Unreleased]
+
+## [1.2.1] - 2026-08-29
+
+### 新增
+
+- 登录滑动拼图验证（缺口对齐）；验证与登录分两步，登录接口校验 `captchaId` / `captchaPosition`
+- VitePress 文档站（`docs-site/`）：中英文指南，部署至 GitHub Pages <https://o96u.github.io/PicHost/>
+- `npm run docs:dev` / `docs:build` / `docs:preview`；CI 增加 `docs:build`；`.github/workflows/docs.yml` 发布文档
+
+### 修复
+
+- 修复统计页删除图片后图库不刷新的问题
+- 修复分页跳转输入框在 `type="number"` 下无法跳转的问题
+- 修复非首页路由下复制链接格式偏好不持久化的问题（`useUploadPreferences` 首次使用时自动加载）
+- 滑动验证 UI：滑块垂直居中、缺口尺寸与滑块一致
+
+### 改进
+
+- README 精简为产品宣传页，详细说明指向文档站
+- 双域名文档补充：未知 Host 风险、Cloudflare 橙云部署、勿用 Pages/Workers 整站反代
+- 文档截图更新（登录页等）；旧 `docs/*.md` 长文迁入 `docs-site/`
+
 ## [1.2.0] - 2026-08-28
 
 ### 变更
@@ -13,7 +36,7 @@
 - CLI 迁移工具：`docker exec pichost migrate` / `migrate --apply`（`server/cli/migrate-to-single-images.mjs`）
 - 扫描 `data/` 下除 `images` 外所有顶层目录中的图片，输出 `data/mapping.json`
 - 启动时自动同步图片索引（扫描磁盘、归一化遗留 key、清理孤儿记录），并打印同步日志
-- 迁移文档：[`docs/migration-to-v1.2.md`](docs/migration-to-v1.2.md)
+- 迁移文档：[文档站 · v1.2 迁移](https://o96u.github.io/PicHost/guide/migration)
 
 ### 改进
 
@@ -52,7 +75,7 @@
 - `/setup` 与系统设置支持启用/关闭域名分离，设置页可后续关闭并恢复单域
 - 可选隐藏外链中的 `images/` 前缀（多文件夹时确认提示）
 - 设置页加载时检测 GitHub 最新版本并提示更新
-- 双域名部署文档（Nginx / Lucky / 本地 hosts 测试）：`docs/domain-separation.md`
+- 双域名部署文档（Nginx / Lucky / 本地 hosts 测试）：[文档站 · 双域名分离](https://o96u.github.io/PicHost/guide/domain-separation)
 
 ### 改进
 

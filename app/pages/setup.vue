@@ -7,7 +7,13 @@ const route = useRoute()
 const router = useRouter()
 const { setup, migrate, fetchStatus } = useAuth()
 const toast = useToast()
-const { t } = useI18n()
+const { t, locale } = useI18n()
+
+const domainSeparationDocUrl = computed(() =>
+  locale.value === 'en'
+    ? 'https://o96u.github.io/PicHost/en/guide/domain-separation'
+    : 'https://o96u.github.io/PicHost/guide/domain-separation'
+)
 
 const needsMigration = ref(false)
 const isMigrate = computed(() => needsMigration.value || route.query.migrate === '1')
@@ -196,7 +202,7 @@ async function submit() {
             <p class="text-xs leading-relaxed text-warning">
               {{ t('setup.domainSeparationProxyHint') }}
               <a
-                href="https://github.com/O96u/PicHost/blob/main/docs/domain-separation.md"
+                :href="domainSeparationDocUrl"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="text-primary hover:underline"

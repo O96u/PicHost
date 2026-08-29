@@ -65,6 +65,10 @@ export function useUploadPreferences() {
     loaded.value = true
   }
 
+  if (import.meta.client && !loaded.value) {
+    loadPreferences()
+  }
+
   function savePreferences() {
     writeStored({
       compressEnabled: compressEnabled.value,

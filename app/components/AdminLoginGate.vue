@@ -11,13 +11,28 @@ const username = ref('')
 const password = ref('')
 const secret = ref('')
 const loading = ref(false)
+const captchaRef = ref<{ reset: () => Promise<void> } | null>(null)
+const captchaPayload = ref<{ captchaId: string, captchaPosition: number } | null>(null)
 
 const legacyMode = computed(() => authStatus.value?.legacyMode ?? false)
 const allowRegistration = computed(() => authStatus.value?.allowRegistration ?? false)
 
 const canSubmit = computed(() =>
-  legacyMode.value ? Boolean(secret.value) : Boolean(username.value && password.value)
+  Boolean(captchaPayload.value)
+  && (legacyMode.value ? Boolean(secret.value) : Boolean(username.value && password.value))
 )
+
+function onCaptchaVerified(payload: { id: string, positionPercent: number }) {
+  captchaPayload.value = {
+    captchaId: payload.id,
+    captchaPosition: payload.positionPercent
+  }
+}
+
+async function resetCaptcha() {
+  captchaPayload.value = null
+  await captchaRef.value?.reset()
+}
 
 onMounted(async () => {
   const status = await fetchStatus()
@@ -27,13 +42,14 @@ onMounted(async () => {
 })
 
 async function submit() {
-  if (!canSubmit.value || loading.value) return
+  if (!canSubmit.value || loading.value || !captchaPayload.value) return
   loading.value = true
 
   try {
+    const captcha = captchaPayload.value
     const result = legacyMode.value
-      ? await login({ secret: secret.value })
-      : await login({ username: username.value.trim(), password: password.value })
+      ? await login({ secret: secret.value }, captcha)
+      : await login({ username: username.value.trim(), password: password.value }, captcha)
 
     if (result.ok) {
       if (result.needsMigration) {
@@ -43,8 +59,10 @@ async function submit() {
       username.value = ''
       password.value = ''
       secret.value = ''
+      await resetCaptcha()
       toast.add({ title: t('auth.loginSuccess'), color: 'success' })
     } else {
+      await resetCaptcha()
       toast.add({
         title: result.error ?? (legacyMode.value ? t('auth.loginFailedSecret') : t('auth.loginFailedCredentials')),
         color: 'error'
@@ -151,6 +169,11 @@ async function submit() {
             />
           </div>
         </template>
+
+        <SliderCaptcha
+          ref="captchaRef"
+          @verified="onCaptchaVerified"
+        />
 
         <UButton
           type="submit"

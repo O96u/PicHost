@@ -40,3 +40,8 @@ git-hooks/
 # 本地维护脚本（assign-image-owner、fpk 打包等，不进仓库）
 scripts/
 dist-fpk/
+
+# VitePress docs site
+docs-site/.vitepress/cache
+docs-site/.vitepress/dist
+docs-site/public/screenshots

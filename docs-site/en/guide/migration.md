@@ -126,4 +126,4 @@ Skip step 1 if you only use object storage or everything is already under `data/
 
 With “hide folder” mode, short URLs like `/TeKJ2fD6cB6j.webp` may still resolve by filename. Use `mapping.json` for bulk replacements.
 
-Chinese version: [migration-to-v1.2.md](migration-to-v1.2.md)
+Chinese version: [v1.2 迁移指南](/guide/migration)

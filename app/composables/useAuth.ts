@@ -66,6 +66,11 @@ export function getFetchErrorMessage(error: unknown, fallback: string): string {
 
 export type AuthActionResult = { ok: true } | { ok: false, error: string }
 
+export interface LoginCaptchaPayload {
+  captchaId: string
+  captchaPosition: number
+}
+
 export function useAuth() {
   const { t } = useI18n()
   const status = useState<AuthStatus>('auth-status', () => 'checking')
@@ -117,7 +122,8 @@ export function useAuth() {
 
   async function login(
     credentials: { username: string, password: string }
-      | { secret: string }
+      | { secret: string },
+    captcha: LoginCaptchaPayload
   ): Promise<{ ok: boolean, needsMigration?: boolean, error?: string }> {
     try {
       const result = await $fetch<{
@@ -127,7 +133,11 @@ export function useAuth() {
       }>('/api/auth/login', {
         method: 'POST',
         credentials: 'include',
-        body: credentials
+        body: {
+          ...credentials,
+          captchaId: captcha.captchaId,
+          captchaPosition: captcha.captchaPosition
+        }
       })
       if (result.needsMigration) {
         return { ok: true, needsMigration: true }

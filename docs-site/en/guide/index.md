@@ -1,0 +1,39 @@
+# PicHost documentation
+
+Welcome to the PicHost user guide. This site is the single source of truth; the repository README keeps a short overview and quick start.
+
+## Suggested reading order
+
+1. [Quick start](./getting-started.md) — Docker and first-time setup
+2. [Environment variables](./configuration.md) — Production config vs in-app settings
+3. [Storage](./storage.md) — Backends and URL modes
+4. [API](./api.md) — REST endpoints and tokens
+
+## Screenshots
+
+**main** has no public demo. Below are v1.2.0 product screenshots.
+
+| First-time setup | Login |
+| :--------------: | :---: |
+| ![Setup](/screenshots/setup.png) | ![Login](/screenshots/login.png) |
+
+| API | Stats & gallery |
+| :-: | :-------------: |
+| ![API](/screenshots/api.png) | ![Stats & gallery](/screenshots/stats.png) |
+
+| Storage | Settings |
+| :-----: | :------: |
+| ![Storage](/screenshots/storage.png) | ![Settings](/screenshots/settings-en.png) |
+
+| Activity log |
+| :----------: |
+| ![Activity log](/screenshots/logs.png) |
+
+## Branches
+
+| Branch | Notes |
+| ------ | ----- |
+| [**main**](https://github.com/O96u/PicHost/tree/main) | Full product; screenshots above |
+| [**cloudflare**](https://github.com/O96u/PicHost/tree/cloudflare) | R2-only; live demo [pic.roven.cc](https://pic.roven.cc) |
+
+Use **main** for multiple cloud backends; use **cloudflare** if you only deploy with Cloudflare R2.

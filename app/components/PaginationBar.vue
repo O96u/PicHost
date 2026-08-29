@@ -14,13 +14,30 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const unitLabel = computed(() => props.unit ?? t('common.itemsUnit'))
+const jumpInput = ref('')
 
 function goTo(target: number) {
-  if (target < 1 || target > props.totalPages || target === props.page || props.loading) {
+  if (target < 1 || target > props.totalPages || props.loading) {
+    return
+  }
+  if (target === props.page) {
+    jumpInput.value = ''
     return
   }
   emit('update:page', target)
 }
+
+function submitJump() {
+  const raw = String(jumpInput.value ?? '').trim()
+  if (!raw) return
+  const parsed = Number.parseInt(raw, 10)
+  if (!Number.isFinite(parsed)) return
+  goTo(parsed)
+}
+
+watch(() => props.page, () => {
+  jumpInput.value = ''
+})
 </script>
 
 <template>
@@ -43,7 +60,7 @@ function goTo(target: number) {
 
     <div
       v-if="totalPages > 1"
-      class="flex items-center gap-1"
+      class="flex flex-wrap items-center justify-center gap-1"
     >
       <UButton
         icon="i-lucide-chevrons-left"
@@ -77,6 +94,31 @@ function goTo(target: number) {
         :disabled="page >= totalPages || loading"
         @click="goTo(totalPages)"
       />
+      <form
+        class="ml-1 flex items-center gap-1"
+        @submit.prevent="submitJump"
+      >
+        <UInput
+          v-model="jumpInput"
+          type="number"
+          :min="1"
+          :max="totalPages"
+          size="sm"
+          class="w-16"
+          :placeholder="t('pagination.pagePlaceholder')"
+          :disabled="loading"
+          :aria-label="t('pagination.pagePlaceholder')"
+          @keyup.enter="submitJump"
+        />
+        <UButton
+          type="button"
+          size="sm"
+          variant="outline"
+          :label="t('pagination.goTo')"
+          :disabled="loading || !String(jumpInput ?? '').trim()"
+          @click="submitJump"
+        />
+      </form>
     </div>
   </div>
 </template>

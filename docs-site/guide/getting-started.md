@@ -1,0 +1,75 @@
+# 快速开始
+
+PicHost 适合在 NAS、家用服务器或 VPS 上自托管图床。推荐用 Docker 部署，首次访问通过 Web 向导创建管理员。
+
+## 在线体验
+
+| 分支 | 说明 |
+| ---- | ---- |
+| **main** | 无公网演示；产品界面见 [文档首页](./index.md#截图预览) 或仓库 README |
+| **cloudflare** | R2 专用线在线演示：[pic.roven.cc](https://pic.roven.cc) |
+
+## Docker（推荐）
+
+```bash
+docker run -d \
+  --name pichost \
+  -p 6892:6892 \
+  -v ./data:/data \
+  --restart unless-stopped \
+  muxui/pichost:latest
+```
+
+默认端口 **6892**。浏览器打开 `http://<主机IP>:6892`，按引导创建管理员即可。
+
+已克隆仓库时也可用：
+
+```bash
+docker compose up -d
+```
+
+见仓库内 `docker-compose.yml`。
+
+## 首次设置
+
+1. 访问实例 URL（Docker 默认 `http://<主机>:6892`）。
+2. 在 `/setup` 填写管理员用户名与密码。
+3. （可选）配置网站域名、图片域名、防盗链等 — 详见 [环境变量](./configuration.md) 与 [双域名分离](./domain-separation.md)。
+4. 登录后可在首页上传图片；管理员可进入 **存储**、**设置**、**API** 页。
+
+## 登录
+
+访问上传、统计、设置等管理页面前需登录。在登录卡片中填写用户名与密码，**拖动滑块对齐缺口**完成验证后点击 **登录**。
+
+![登录页](/screenshots/login.png)
+
+若管理员开启了开放注册，可前往注册页创建账号。遗留部署仍可能使用密钥登录（见界面提示）。
+
+## 忘记密码
+
+需能执行 `docker exec`（相当于服务器权限）：
+
+```bash
+# 无参数：重置管理员（仅当系统中只有一个管理员时）
+docker exec pichost reset-password
+
+# 指定用户名：可重置管理员或普通用户
+docker exec pichost reset-password 用户名
+```
+
+终端会打印随机新密码；用户不存在时会报错。登录后请到「修改密码」更换。
+
+本地开发：`npm run reset-password` 或 `npm run reset-password -- 用户名`
+
+## 升级到 v1.2.0
+
+若 `data/` 下存在与 `images` 并列的遗留目录（如 `blog/`、`twikoo/`），升级前请阅读 [v1.2 迁移指南](./migration.md)。
+
+仅对象存储、或图片已在 `data/images/` 下时，拉取新镜像并重启即可。
+
+## 下一步
+
+- [本地开发](./local-dev.md) — `npm run dev` 与 `.env`
+- [环境变量](./configuration.md) — 生产配置
+- [存储](./storage.md) — 多后端与直链
+- [API](./api.md) — Token 与 REST 接口

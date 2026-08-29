@@ -64,6 +64,8 @@
     "loginFailedSecret": "Sign-in failed. Check your secret",
     "loginFailedCredentials": "Invalid username or password",
     "loginFailed": "Sign-in failed. Check username and password",
+    "captchaHint": "Drag the slider to the slot",
+    "captchaSuccess": "Verified",
     "registerFailed": "Registration failed. Check your input",
     "setupFailed": "Setup failed. Check your input",
     "migrateFailed": "Migration failed. Check your input",
@@ -376,7 +378,9 @@
     "first": "First page",
     "prev": "Previous page",
     "next": "Next page",
-    "last": "Last page"
+    "last": "Last page",
+    "goTo": "Go",
+    "pagePlaceholder": "Page"
   },
   "api": {
     "tokenTitle": "API Token",

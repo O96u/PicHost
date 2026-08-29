@@ -64,6 +64,8 @@
     "loginFailedSecret": "登录失败，请检查密钥",
     "loginFailedCredentials": "用户名或密码错误",
     "loginFailed": "登录失败，请检查用户名和密码",
+    "captchaHint": "拖动滑块对齐缺口",
+    "captchaSuccess": "验证通过",
     "registerFailed": "注册失败，请检查输入",
     "setupFailed": "初始化失败，请检查输入",
     "migrateFailed": "迁移失败，请检查输入",
@@ -376,7 +378,9 @@
     "first": "第一页",
     "prev": "上一页",
     "next": "下一页",
-    "last": "最后一页"
+    "last": "最后一页",
+    "goTo": "跳转",
+    "pagePlaceholder": "页码"
   },
   "api": {
     "tokenTitle": "API Token",
