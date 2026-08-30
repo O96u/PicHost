@@ -4,6 +4,14 @@ Version history and notable changes. The full log is also in the repo root [CHAN
 
 ---
 
+## [1.2.3] — 2026-08-30
+
+### Fix
+
+- **Short links + date-based storage**: bare filename URLs (e.g. `https://host/xxx.webp`) no longer map to flat `images/xxx.webp`; SQLite index resolves the full `images/YYYY/MM/xxx.webp` key so thumbnails and short links work again
+
+---
+
 ## [1.2.2] — 2026-08-30
 
 > **Restart the service** after upgrading so middleware and API updates take effect.

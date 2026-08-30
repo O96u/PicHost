@@ -8,7 +8,7 @@ import {
 } from './env'
 import { findImageKeyByDatePath, findImageKeyByFilename } from './image-index'
 import { validateImageKey } from './image-key'
-import { toStorageKeyFromPublicPath } from './image-public-path'
+import { isBareImageFilename, toStorageKeyFromPublicPath } from './image-public-path'
 import { buildPublicImageUrl } from './image-response'
 import { createImageStream, headImage } from './storage'
 import { getBackendRowForKey } from './storage/resolver'
@@ -84,6 +84,13 @@ export function requestPathToImageKey(
   if (!raw) return null
 
   if (validateImageKey(raw)) return raw
+
+  // 简短链接：纯文件名须先走索引反查，不能猜成 images/文件名（与按年/月存储冲突）
+  if (options?.hideFolder && isBareImageFilename(raw)) {
+    const byFilename = findImageKeyByFilename(raw)
+    if (byFilename && validateImageKey(byFilename)) return byFilename
+    return null
+  }
 
   const fromPublic = toStorageKeyFromPublicPath(raw)
   if (fromPublic) return fromPublic
