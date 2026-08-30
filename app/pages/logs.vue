@@ -100,9 +100,12 @@ function storageIcon(storage: ActivityLogStorage | null) {
 }
 
 function publicPathFromKey(key: string) {
-  if (!hideFolderInUrl.value) return key
-  const slash = key.lastIndexOf('/')
-  return slash >= 0 ? key.slice(slash + 1) : key
+  if (hideFolderInUrl.value) {
+    const slash = key.lastIndexOf('/')
+    return slash >= 0 ? key.slice(slash + 1) : key
+  }
+  const prefix = 'images/'
+  return key.startsWith(prefix) ? key.slice(prefix.length) : key
 }
 
 function imageUrl(key: string) {
@@ -115,10 +118,10 @@ function imageUrl(key: string) {
 async function loadImageLinkBase() {
   try {
     if (isAdmin.value) {
-      const data = await $fetch<{ imageBaseUrl: string, hideFolderInUrl: boolean }>('/api/settings', {
+      const data = await $fetch<{ effectiveImageBaseUrl: string, hideFolderInUrl: boolean }>('/api/settings', {
         credentials: 'include'
       })
-      imageLinkBase.value = data.imageBaseUrl
+      imageLinkBase.value = data.effectiveImageBaseUrl
       hideFolderInUrl.value = data.hideFolderInUrl
       return
     }

@@ -19,14 +19,16 @@ describe('requestPathToImageKey hide folder', () => {
       .toBe('images/demo.webp')
   })
 
-  it('does not resolve short paths when hide folder is disabled', () => {
+  it('resolves public paths when hide folder is disabled', () => {
     expect(requestPathToImageKey('/2026/08/demo.webp', { hideFolder: false }))
-      .toBeNull()
+      .toBe('images/2026/08/demo.webp')
+    expect(requestPathToImageKey('/blog/demo.webp', { hideFolder: false }))
+      .toBe('images/blog/demo.webp')
     expect(requestPathToImageKey('/demo.webp', { hideFolder: false }))
-      .toBeNull()
+      .toBe('images/demo.webp')
   })
 
-  it('accepts flat full key when hide folder is disabled', () => {
+  it('accepts legacy full key when hide folder is disabled', () => {
     expect(requestPathToImageKey('/images/demo.webp', { hideFolder: false }))
       .toBe('images/demo.webp')
   })

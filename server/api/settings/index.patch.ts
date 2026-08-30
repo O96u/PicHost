@@ -23,7 +23,7 @@ import {
   parseAutoDeleteDays,
   parseWebpQuality,
   setGlobalAutoDeletePolicy,
-  validateDomainSeparationPair
+  validateSettingsDomainPatch
 } from '../../utils/env'
 
 interface SettingsPatchBody {
@@ -31,6 +31,7 @@ interface SettingsPatchBody {
   allowedRefererHosts?: unknown
   siteBaseUrl?: unknown
   imageBaseUrl?: unknown
+  domainSeparation?: unknown
   hideFolderInUrl?: unknown
   storageUseDatePath?: unknown
   autoDeleteDays?: unknown
@@ -71,6 +72,11 @@ export default defineEventHandler(async (event) => {
     setSetting(SETTINGS_ALLOWED_REFERER_HOSTS, normalized)
   }
 
+  const existingSite = normalizeSiteBaseUrl(getSetting(SETTINGS_SITE_BASE_URL) ?? '')
+  const existingImage = normalizeImageBaseUrl(getSetting(SETTINGS_IMAGE_BASE_URL) ?? '')
+  let nextSite = existingSite
+  let nextImage = existingImage
+
   if (body.siteBaseUrl !== undefined) {
     const configured = normalizeSiteBaseUrl(
       typeof body.siteBaseUrl === 'string' ? body.siteBaseUrl : ''
@@ -79,11 +85,11 @@ export default defineEventHandler(async (event) => {
       createApiError(
         event,
         'INVALID_REQUEST',
-        'SITE_BASE_URL 需为 http(s) 地址，或留空使用当前请求域名',
+        'SITE_BASE_URL 需为 http(s) 地址，且末尾不加 /',
         400
       )
     }
-    setSetting(SETTINGS_SITE_BASE_URL, configured)
+    nextSite = configured
   }
 
   if (body.imageBaseUrl !== undefined) {
@@ -98,22 +104,36 @@ export default defineEventHandler(async (event) => {
         400
       )
     }
-    setSetting(SETTINGS_IMAGE_BASE_URL, configured)
+    nextImage = configured
   }
 
-  if (body.siteBaseUrl !== undefined || body.imageBaseUrl !== undefined) {
-    const siteConfigured = normalizeSiteBaseUrl(
-      getSetting(SETTINGS_SITE_BASE_URL) ?? ''
-    )
-    const imageConfigured = normalizeImageBaseUrl(
-      getSetting(SETTINGS_IMAGE_BASE_URL) ?? ''
-    )
-    if (siteConfigured && imageConfigured) {
-      const pairError = validateDomainSeparationPair(siteConfigured, imageConfigured)
-      if (pairError) {
-        createApiError(event, 'INVALID_REQUEST', pairError, 400)
-      }
-    }
+  const domainSeparationProvided = body.domainSeparation !== undefined
+  const wantSeparation = domainSeparationProvided
+    ? Boolean(body.domainSeparation)
+    : null
+
+  const patchError = validateSettingsDomainPatch({
+    existingSite,
+    existingImage,
+    nextSite,
+    nextImage,
+    wantSeparation,
+    siteBaseUrlProvided: body.siteBaseUrl !== undefined
+  })
+  if (patchError) {
+    createApiError(event, 'INVALID_REQUEST', patchError, 400)
+  }
+
+  if (wantSeparation === false) {
+    nextSite = ''
+  }
+
+  if (body.siteBaseUrl !== undefined || body.domainSeparation !== undefined) {
+    setSetting(SETTINGS_SITE_BASE_URL, nextSite)
+  }
+
+  if (body.imageBaseUrl !== undefined) {
+    setSetting(SETTINGS_IMAGE_BASE_URL, nextImage)
   }
 
   if (body.autoDeleteDays !== undefined) {

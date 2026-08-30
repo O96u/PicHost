@@ -22,11 +22,15 @@ docker exec pichost reset-password 用户名
 
 ## 双域名下为什么用 pages.dev / workers.dev / IP 也能进后台？
 
-PicHost 双域名隔离**只对已配置的网站域、图片域做路径分流**；其它 Host（`localhost`、公网 IP、Cloudflare Pages 的 `*.pages.dev`、Workers 的 `*.workers.dev` 等）**当前不会拦截**，因此可能出现「奇怪地址也能开后台」。
+**v1.2.2 起：** 双域名开启时，PicHost 中间件会对**未配置的网站域、图片域之外**的 Host 返回 **404**（开发环境 `localhost` / `127.0.0.1` 例外）。详见 [更新日志](./changelog.md#1-2-2-2026-08-30)。
 
-常见原因：在橙云之外又用 **Pages/Workers 整站反代** 到源站，或源站未限制 `server_name` / 允许裸 IP 访问。
+若仍能访问，常见原因：
 
-处理：仅用正式两个域名访问；反代加 default server；橙云时源站只放行 CF IP。详见 [双域名分离 · 安全与注意事项](./domain-separation.md#安全与注意事项)。
+1. **未启用双域名**（仅配置了图片域、网站域为空）— 隔离与第三 Host 拦截均不生效
+2. **反代把 Host 改成管理域** — 例如 Pages/Worker 对图片域 `fetch(admin…)`，PicHost 看到的是管理域
+3. **源站裸暴露 `6892`** — 绕过 Cloudflare 与 Nginx `server_name`
+
+处理：在设置中正确配置双域名；反代加 default server；橙云时源站只放行 CF IP；勿用 Pages/Workers 整站反代。详见 [双域名分离](./domain-separation.md#中间件隔离与第三-host)、[Cloudflare 部署](./cloudflare-deployment.md) 与 [更新日志](./changelog.md#1-2-2-2026-08-30)。
 
 ## 能把 PicHost 部署到 Cloudflare Workers / Pages 吗？
 
@@ -63,8 +67,6 @@ PicHost 双域名隔离**只对已配置的网站域、图片域做路径分流*
 ## 文档与仓库 README 哪个为准？
 
 **本 VitePress 文档站** 为完整用户指南；README 保留摘要与快速开始。在线地址：<https://o96u.github.io/PicHost/>
-
-若访问 404，说明 GitHub Pages 尚未部署成功：请在仓库 **Settings → Pages** 将 Source 设为 **GitHub Actions**，并确认 `docs` workflow 的 deploy 步骤已通过。详见 [本地开发 · 发布到 GitHub Pages](./local-dev.md#发布到-github-pages)。
 
 ## GitHub 仓库 About 怎么写？
 

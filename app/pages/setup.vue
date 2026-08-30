@@ -49,10 +49,11 @@ onMounted(async () => {
     await router.replace('/')
     return
   }
-  if (import.meta.client) {
-    siteBaseUrl.value = window.location.origin
-  }
 })
+
+const detectedOriginPlaceholder = computed(() =>
+  import.meta.client ? window.location.origin : ''
+)
 
 async function submit() {
   if (!canSubmit.value || loading.value) return
@@ -217,7 +218,7 @@ async function submit() {
               </p>
               <UInput
                 v-model="siteBaseUrl"
-                :placeholder="t('setup.siteBaseUrlPlaceholder')"
+                :placeholder="detectedOriginPlaceholder || t('setup.siteBaseUrlPlaceholder')"
                 class="w-full font-mono text-sm"
               />
             </div>

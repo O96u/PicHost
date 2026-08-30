@@ -21,11 +21,15 @@ Check the **Referer whitelist** (`ALLOWED_REFERER_HOSTS` or Settings). Referring
 
 ## Why can admin load on pages.dev / workers.dev / IP with dual-domain?
 
-Dual-domain isolation only splits paths on the **configured site and image hostnames**. Other Host values (`localhost`, public IP, Cloudflare **Pages** `*.pages.dev`, **Workers** `*.workers.dev`, etc.) are **not blocked today**, so admin may appear on unexpected URLs.
+**From v1.2.2:** when dual-domain is on, PicHost returns **404** for Host values **other than** the configured site and image hostnames (`localhost` / `127.0.0.1` exempt in development). See [Changelog](./changelog.md#1-2-2-2026-08-30).
 
-Common cause: **full-site reverse proxy** via Pages/Workers on top of orange-cloud DNS, or an origin that accepts any Host / bare IP.
+If admin still loads:
 
-Fix: use only the two configured domains; add a default `server_name` block; with orange cloud, allow only CF IPs on the origin. See [Security notes](./domain-separation.md#security-notes).
+1. **Dual-domain not active** (image URL set but site URL empty) — neither path split nor third-host blocking applies
+2. **Proxy rewrote Host to site hostname** — e.g. Pages/Worker `fetch(admin…)` on the image hostname
+3. **Port `6892` exposed publicly** — bypasses Cloudflare and Nginx `server_name`
+
+Fix: configure both URLs in Settings; add a default server block; with orange cloud, allow only CF IPs on origin; do not full-proxy through Pages/Workers. See [Dual-domain separation](./domain-separation.md#middleware-isolation-and-third-hosts), [Cloudflare deployment](./cloudflare-deployment.md), and [Changelog](./changelog.md#1-2-2-2026-08-30).
 
 ## Can I deploy PicHost on Cloudflare Workers / Pages?
 
@@ -62,8 +66,6 @@ Use `data/mapping.json` from `migrate` preview. Keys are **storage paths**, not 
 ## Docs vs README?
 
 This **VitePress site** is the full guide; README is a short overview. Online: <https://o96u.github.io/PicHost/>
-
-If you get 404, GitHub Pages may not be deployed yet: set **Settings → Pages → Source** to **GitHub Actions** and ensure the `docs` workflow `deploy` job succeeded. See [Local dev · Publish to GitHub Pages](./local-dev.md#publish-to-github-pages).
 
 ## What should the GitHub repo About say?
 

@@ -6,8 +6,9 @@ Welcome to the PicHost user guide. This site is the single source of truth; the 
 
 1. [Quick start](./getting-started.md) — Docker and first-time setup
 2. [Environment variables](./configuration.md) — Production config vs in-app settings
-3. [Storage](./storage.md) — Backends and URL modes
-4. [API](./api.md) — REST endpoints and tokens
+3. [Changelog](./changelog.md) — Version history and upgrade notes
+4. [Storage](./storage.md) — Backends and URL modes
+5. [API](./api.md) — REST endpoints and tokens
 
 ## Screenshots
 

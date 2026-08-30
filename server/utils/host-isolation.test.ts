@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { H3Event } from 'h3'
 import {
   shouldBlockImageHostRequest,
-  shouldBlockSiteHostImageRequest
+  shouldBlockSiteHostImageRequest,
+  shouldBlockUnknownHostRequest
 } from './host-isolation'
 
 function mockEvent(): H3Event {
@@ -96,6 +97,18 @@ describe('shouldBlockSiteHostImageRequest', () => {
     })).toBe(true)
   })
 
+  it('blocks public image paths on site host', () => {
+    const event = mockEvent()
+    expect(shouldBlockSiteHostImageRequest(event, {
+      separationActive: true,
+      siteHost,
+      requestHost: siteHost,
+      method: 'GET',
+      pathname: '/2026/08/demo.webp',
+      hideFolder: false
+    })).toBe(true)
+  })
+
   it('blocks legacy date short paths on site host', () => {
     const event = mockEvent()
     expect(shouldBlockSiteHostImageRequest(event, {
@@ -128,5 +141,73 @@ describe('shouldBlockSiteHostImageRequest', () => {
       method: 'GET',
       pathname: '/images/2026/08/demo.webp'
     })).toBe(false)
+  })
+})
+
+describe('shouldBlockUnknownHostRequest', () => {
+  const imageHost = 'image.example.com'
+  const siteHost = 'admin.example.com'
+
+  it('does not block when separation is inactive', () => {
+    const event = mockEvent()
+    expect(shouldBlockUnknownHostRequest(event, {
+      separationActive: false,
+      requestHost: 'pages.dev',
+      siteHost,
+      imageHost
+    })).toBe(false)
+  })
+
+  it('blocks unconfigured third host when separation is active', () => {
+    const event = mockEvent()
+    expect(shouldBlockUnknownHostRequest(event, {
+      separationActive: true,
+      requestHost: 'pages.dev',
+      siteHost,
+      imageHost
+    })).toBe(true)
+  })
+
+  it('blocks admin paths on image host when host is unconfigured', () => {
+    const event = mockEvent()
+    expect(shouldBlockUnknownHostRequest(event, {
+      separationActive: true,
+      requestHost: 'old-img.example.com',
+      siteHost,
+      imageHost
+    })).toBe(true)
+  })
+
+  it('allows configured site host', () => {
+    const event = mockEvent()
+    expect(shouldBlockUnknownHostRequest(event, {
+      separationActive: true,
+      requestHost: siteHost,
+      siteHost,
+      imageHost
+    })).toBe(false)
+  })
+
+  it('allows configured image host', () => {
+    const event = mockEvent()
+    expect(shouldBlockUnknownHostRequest(event, {
+      separationActive: true,
+      requestHost: imageHost,
+      siteHost,
+      imageHost
+    })).toBe(false)
+  })
+
+  it('allows localhost in development', () => {
+    const previous = process.env.NODE_ENV
+    process.env.NODE_ENV = 'development'
+    const event = mockEvent()
+    expect(shouldBlockUnknownHostRequest(event, {
+      separationActive: true,
+      requestHost: 'localhost',
+      siteHost,
+      imageHost
+    })).toBe(false)
+    process.env.NODE_ENV = previous
   })
 })

@@ -41,18 +41,18 @@ See [Dual-domain separation](./domain-separation.md).
 
 ## Cloudflare orange cloud
 
-Run PicHost on **your server / Docker** (port `6892`). On Cloudflare:
+See [Cloudflare deployment](./cloudflare-deployment.md).
 
 | Practice | Notes |
 | -------- | ----- |
 | **Proxied DNS** | Both admin and image hostnames → origin proxy to `6892`, SSL **Full (strict)** |
-| Preferred edge IPs | Compatible; Host remains your real domain |
+| Preferred edge IPs | Compatible; keep **admin → admin**, **img → img** on origin |
 | **R2** | Object storage backend in **Storage**; not the same as hosting the app on Pages |
 | Origin firewall | Allow only [Cloudflare IPs](https://www.cloudflare.com/ips/); do not expose `6892` publicly |
 
 **Avoid:**
 
-- **Cloudflare Pages** (`*.pages.dev`) or **Workers** (`*.workers.dev`) as a **full-site reverse proxy** to PicHost — extra hostnames can bypass dual-domain isolation ([Security notes](./domain-separation.md#security-notes))
+- **Cloudflare Pages** (`*.pages.dev`) or **Workers** (`*.workers.dev`) as a **full-site reverse proxy**, or chaining the image host to `fetch(admin…)` — rewrites Host and bypasses dual-domain isolation ([guide](./cloudflare-deployment.md))
 - “Create Worker” from Git on this repo — `node-server` preset is not Workers-ready
 
 ## Origin hardening (dual-domain)

@@ -16,6 +16,8 @@ Set during `/setup` or in **Settings**:
 - **Site URL**: `https://admin.example.com`
 - **Image URL**: `https://pic.example.com`
 
+Setup and Settings **do not** auto-fill the site URL from `window.location.origin`; use manual input or “Use detected URL”. Disabling dual-domain requires confirmation and clears the site URL. Saves include `domainSeparation: true/false`. See [Changelog](./changelog.md#1-2-2-2026-08-30).
+
 ## Nginx example
 
 ```nginx
@@ -53,35 +55,41 @@ server {
 
 ## Security notes
 
-### Middleware only splits the two configured hostnames
+### Middleware isolation and third hosts
 
 PicHost uses the request **Host** (and `X-Forwarded-Host` when proxied) to decide site vs image domain:
 
 - **Image host**: non-image paths (e.g. `/`, `/settings`) → 404
 - **Site host**: image URL paths (e.g. `/images/...`) → 404
+- **Unconfigured third hosts** (e.g. `*.pages.dev`, bare IP, old image domains): **from v1.2.x the app returns 404 for all methods** (`localhost` / `127.0.0.1` are exempt in development for `npm run dev`)
 
-If the Host is **neither** the configured site nor image hostname (e.g. `localhost`, the server **public IP**, Cloudflare **Pages** `*.pages.dev`, **Workers** `*.workers.dev`, or any other unlisted name), **the app does not block the request today** — admin and API may still be reachable. This is not about hyphenated or long domain names; it is an extra entry point outside your dual-domain pair.
+This is independent of hyphenated or long domain names. Older versions did not block third hosts; rely on a reverse-proxy default server as a complement in production.
 
 **Production recommendations:**
 
-1. Configure `server_name` only for the site and image hosts; add a **default server** to reject other Host values and bare IP access (see Nginx example above)
+1. Configure `server_name` only for the site and image hosts; add a **default server** to reject other Host values and bare IP access (see Nginx example above; complements app-layer blocking)
 2. With Cloudflare **orange-cloud** DNS, restrict the origin firewall to **[Cloudflare IP ranges](https://www.cloudflare.com/ips/)** so traffic cannot bypass the CDN
 3. Sign in only on the **site hostname** from Settings; do not mix `localhost`, IP, or unlisted domains
-4. Do **not** put Cloudflare Pages / Workers in front of PicHost as a **full-site reverse proxy** (extra `pages.dev` / `workers.dev` entry points worsen this issue)
-5. PicHost **cannot** run as-is on Pages/Workers (needs `node-server`, SQLite, `sharp`, local `data/`). Keep Docker/VPS; use orange-cloud DNS and optional R2 storage on CF
+4. Do **not** put Cloudflare Pages / Workers in front of PicHost as a **full-site reverse proxy** (`IMAGE_BASE_URL` may point at a CDN URL, but the app itself should run on Docker/VPS)
+5. If you must proxy at the edge, preserve the client **`Host` or `X-Forwarded-Host`** or host isolation will fail
+6. PicHost **cannot** run as-is on Pages/Workers (needs `node-server`, SQLite, `sharp`, local `data/`). Keep Docker/VPS; use orange-cloud DNS and optional R2 storage on CF
 
 ### Cloudflare orange cloud (incl. preferred edge IPs)
 
-**Recommended:** both `admin.example.com` and `pic.example.com` **DNS Proxied** → origin Nginx / 1Panel → port `6892`, SSL **Full (strict)** (origin cert or Cloudflare Origin Certificate).
+Full guide: [Cloudflare deployment](./cloudflare-deployment.md).
+
+**Recommended:** both `admin.example.com` and `pic.example.com` **DNS Proxied** → origin Nginx / 1Panel → port `6892`, SSL **Full (strict)**.
 
 | Feature | Notes |
 | ------- | ----- |
 | Orange-cloud CDN | Compatible with dual-domain; preserve `Host` and `X-Forwarded-Proto` on origin |
-| DNS “preferred IP” setups | Only changes which CF edge IP clients hit; Host stays your real domain |
+| DNS “preferred IP” setups | Only changes which CF edge IP clients hit; origin identity must stay **admin → admin**, **img → img** |
 | R2 storage | Add an R2 backend under **Storage**; independent of orange cloud |
 | `cloudflare` Git branch | R2-focused deployment line; still Docker, **not** Workers hosting |
 
 **Do not confuse** “Create Worker” in the CF dashboard (Git + `wrangler deploy`) with deploying PicHost — the repo uses `nitro.preset: 'node-server'` and is not Workers-ready.
+
+**Do not** chain the image hostname to `fetch(admin…)` via Pages/Workers — that rewrites Host and breaks isolation ([bad topologies](./cloudflare-deployment.md#6-typical-bad-topologies)).
 
 See [Reverse proxy](./reverse-proxy.md#cloudflare-orange-cloud) for origin hardening.
 
@@ -152,7 +160,7 @@ Always open admin on the **site hostname**, not `localhost` (cookies and Host mu
 | `http://admin.pichost.test:3000/images/...` or `/2026/08/xxx.webp` | **404** (use image host) |
 | `http://pic.pichost.test:3000/` | **404** (image host has no admin) |
 | `http://pic.pichost.test:3000/images/...` | Image served |
-| `http://localhost:3000/` or `http://127.0.0.1:3000/` | **Admin still loads** (third Host — isolation skipped; OK for dev only; block at proxy in production) |
+| `http://localhost:3000/` or `http://127.0.0.1:3000/` | **Admin still loads** (development exception; block unconfigured hosts at proxy in production) |
 
 After upload, copied links should use `pic.pichost.test`; gallery thumbnails should load.
 

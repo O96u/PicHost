@@ -51,16 +51,4 @@ npm run docs:build    # 构建静态站点
 npm run docs:preview  # 预览构建结果
 ```
 
-文档源码在 `docs-site/`；截图源文件在 `docs/screenshots/`（含 `login.png` 登录页），构建前会复制到 `docs-site/public/screenshots/`。
-
-## 发布到 GitHub Pages
-
-在线文档地址：<https://o96u.github.io/PicHost/>
-
-**首次启用**（部署 job 失败、访问 404 时检查）：
-
-1. 仓库 **Settings → Pages**
-2. **Build and deployment → Source** 选择 **GitHub Actions**（不要选 Deploy from a branch）
-3. 推送 `main` 触发 `docs` workflow，或在 Actions 页手动 **Run workflow**
-
-构建成功后约 1–2 分钟可访问。`docs` workflow 的 `deploy` 步骤失败且日志提示 Pages 未启用时，多为未完成上述设置。
+文档源码在 `docs-site/`；截图源文件在 `docs/screenshots/`（含 `login.png` 登录页），构建前会复制到 `docs-site/public/screenshots/`。在线文档：<https://o96u.github.io/PicHost/>

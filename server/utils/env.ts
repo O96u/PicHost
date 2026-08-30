@@ -465,12 +465,102 @@ export function validateDomainSeparationPair(
   return null
 }
 
+export type RequestHostRole = 'site' | 'image' | 'unknown' | 'single'
+
+export function getIsolationRequestHost(event: H3Event): string {
+  const requestUrl = getRequestURL(event, {
+    xForwardedHost: true,
+    xForwardedProto: true
+  })
+  return requestUrl.hostname.toLowerCase()
+}
+
+export function validateSettingsDomainPatch(input: {
+  existingSite: string
+  existingImage: string
+  nextSite: string
+  nextImage: string
+  wantSeparation: boolean | null
+  siteBaseUrlProvided: boolean
+}): string | null {
+  const {
+    existingSite,
+    existingImage,
+    nextSite,
+    nextImage,
+    wantSeparation,
+    siteBaseUrlProvided
+  } = input
+
+  const hadDualDomain = (() => {
+    const siteHost = hostnameFromBaseUrl(existingSite)
+    const imageHost = hostnameFromBaseUrl(existingImage)
+    return Boolean(siteHost && imageHost && siteHost !== imageHost)
+  })()
+
+  if (wantSeparation === true) {
+    if (!nextSite || !nextImage) {
+      return '启用域名分离时需同时填写网站域名与图片域名'
+    }
+    return validateDomainSeparationPair(nextSite, nextImage)
+  }
+
+  if (wantSeparation === false) {
+    return null
+  }
+
+  if (siteBaseUrlProvided && !nextSite && existingSite && hadDualDomain) {
+    return '已启用域名分离时不能单独清空管理域名，请显式关闭域名分离'
+  }
+
+  if (nextSite && nextImage) {
+    return validateDomainSeparationPair(nextSite, nextImage)
+  }
+
+  return null
+}
+
+export function getRequestRuntime(event: H3Event) {
+  const requestUrl = getRequestURL(event, {
+    xForwardedHost: true,
+    xForwardedProto: true
+  })
+  const currentHost = requestUrl.hostname.toLowerCase()
+  const currentOrigin = requestUrl.origin
+
+  if (!isDomainSeparationActive(event)) {
+    return {
+      currentOrigin,
+      currentHost,
+      hostRole: 'single' as const
+    }
+  }
+
+  const siteHost = hostnameFromBaseUrl(getSiteBaseUrlConfigured(event))
+  const imageHost = hostnameFromBaseUrl(getImageBaseUrlConfigured(event))
+
+  let hostRole: RequestHostRole = 'unknown'
+  if (currentHost === siteHost) {
+    hostRole = 'site'
+  } else if (currentHost === imageHost) {
+    hostRole = 'image'
+  }
+
+  return {
+    currentOrigin,
+    currentHost,
+    hostRole
+  }
+}
+
 export function getSettingsPayload(event: H3Event) {
   const config = useRuntimeConfig(event)
   const webpQuality = getWebpQuality(event)
   const allowedRefererHosts = getAllowedRefererHostsRaw(event)
-  const siteBaseUrl = getSiteBaseUrl(event)
-  const imageBaseUrl = getImageBaseUrl(event)
+  const siteBaseUrlConfigured = getSiteBaseUrlConfigured(event)
+  const imageBaseUrlConfigured = getImageBaseUrlConfigured(event)
+  const effectiveSiteBaseUrl = getSiteBaseUrl(event)
+  const effectiveImageBaseUrl = getImageBaseUrl(event)
   const autoDeleteDays = getAutoDeleteDays(event)
   const appVersion = config.appVersion as string
   const domainSeparation = isDomainSeparationActive(event)
@@ -488,13 +578,16 @@ export function getSettingsPayload(event: H3Event) {
     allowedRefererHosts,
     refererSource: getRefererSource(),
     refererEnvFallback: getRefererHostsFromEnv(),
-    siteBaseUrl,
-    siteBaseUrlConfigured: getSiteBaseUrlConfigured(event),
+    siteBaseUrl: siteBaseUrlConfigured,
+    siteBaseUrlConfigured,
     siteBaseUrlSource: getSiteBaseUrlSource(event),
-    imageBaseUrl,
-    imageBaseUrlConfigured: getImageBaseUrlConfigured(event),
+    imageBaseUrl: imageBaseUrlConfigured,
+    imageBaseUrlConfigured,
     imageBaseUrlSource: getImageBaseUrlSource(event),
+    effectiveSiteBaseUrl,
+    effectiveImageBaseUrl,
     domainSeparation,
+    runtime: getRequestRuntime(event),
     hideFolderInUrl,
     hideFolderInUrlSource,
     storageUseDatePath,
@@ -507,8 +600,8 @@ export function getSettingsPayload(event: H3Event) {
     env: {
       webpQuality,
       refererConfigured: allowedRefererHosts.length > 0,
-      siteBaseUrl,
-      imageBaseUrl,
+      siteBaseUrl: effectiveSiteBaseUrl,
+      imageBaseUrl: effectiveImageBaseUrl,
       hideFolderInUrl,
       appVersion
     }

@@ -4,6 +4,22 @@
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-08-30
+
+### 修复
+
+- 双域名：设置页保存时误清空管理域（`site_base_url`）；仅改图片域时保护已有网站域配置
+- 双域名：设置 API 配置值与 request origin fallback 混淆，导致「当前生效」显示错误
+- 双域名：未配置的第三 Host（`pages.dev`、裸 IP 等）可绕过 Host 隔离访问后台
+
+### 改进
+
+- 设置 API 拆分 `siteBaseUrl` / `imageBaseUrl`（配置值）、`effective*`（直链）、`runtime`（当前访问检测）
+- `PATCH /api/settings` 增加 `domainSeparation` 字段与保存校验
+- 设置页：检测地址展示、关闭双域名确认、反代 Host 不一致警告；首次设置不再自动填入 origin
+- Host 中间件：双域名开启时对未知 Host 返回 404（开发 `localhost` 例外）
+- 文档站：新增 [更新日志](https://o96u.github.io/PicHost/guide/changelog)；重写 Cloudflare 部署说明；同步 FAQ / 双域名文档
+
 ## [1.2.1] - 2026-08-29
 
 ### 新增

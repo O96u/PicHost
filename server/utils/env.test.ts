@@ -8,6 +8,7 @@ import {
   getAutoDeleteDays,
   getAutoDeleteDaysSource,
   getRefererSource,
+  getSettingsPayload,
   getSiteBaseUrl,
   getSiteBaseUrlConfigured,
   getSiteBaseUrlSource,
@@ -17,13 +18,15 @@ import {
   isAutoDeleteDaysEnvConfigured,
   isRefererEnvConfigured,
   isWebpQualityEnvConfigured,
-  validateDomainSeparationPair
+  validateDomainSeparationPair,
+  validateSettingsDomainPatch
 } from './env'
 import {
   getSetting,
   SETTINGS_ALLOWED_REFERER_HOSTS,
   SETTINGS_API_UPLOAD_TOKEN,
   SETTINGS_AUTO_DELETE_DAYS,
+  SETTINGS_IMAGE_BASE_URL,
   SETTINGS_SITE_BASE_URL,
   SETTINGS_WEBP_QUALITY,
   generateApiUploadToken
@@ -253,5 +256,67 @@ describe('validateDomainSeparationPair', () => {
       'https://admin.example.com',
       'https://pic.example.com'
     )).toBeNull()
+  })
+})
+
+describe('validateSettingsDomainPatch', () => {
+  const dualExisting = {
+    existingSite: 'https://admin.example.com',
+    existingImage: 'https://pic.example.com'
+  }
+
+  it('requires both URLs when enabling domain separation', () => {
+    expect(validateSettingsDomainPatch({
+      ...dualExisting,
+      nextSite: '',
+      nextImage: 'https://pic.example.com',
+      wantSeparation: true,
+      siteBaseUrlProvided: true
+    })).toContain('同时填写')
+  })
+
+  it('blocks clearing site without explicit disable when dual domain is active', () => {
+    expect(validateSettingsDomainPatch({
+      ...dualExisting,
+      nextSite: '',
+      nextImage: 'https://pic.example.com',
+      wantSeparation: null,
+      siteBaseUrlProvided: true
+    })).toContain('不能单独清空管理域名')
+  })
+
+  it('allows clearing site when explicitly disabling domain separation', () => {
+    expect(validateSettingsDomainPatch({
+      ...dualExisting,
+      nextSite: '',
+      nextImage: 'https://pic.example.com',
+      wantSeparation: false,
+      siteBaseUrlProvided: true
+    })).toBeNull()
+  })
+})
+
+describe('getSettingsPayload configured vs effective', () => {
+  afterEach(() => {
+    vi.clearAllMocks()
+    delete process.env.SITE_BASE_URL
+    delete process.env.IMAGE_BASE_URL
+  })
+
+  it('returns configured site URL without request fallback', () => {
+    vi.mocked(getSetting).mockImplementation((key) => {
+      if (key === SETTINGS_SITE_BASE_URL) return 'https://admin.example.com'
+      if (key === SETTINGS_IMAGE_BASE_URL) return 'https://pic.example.com'
+      return null
+    })
+    vi.stubGlobal('getRequestURL', () => new URL('https://pages.dev'))
+
+    const event = mockEvent()
+    const payload = getSettingsPayload(event)
+
+    expect(payload.siteBaseUrl).toBe('https://admin.example.com')
+    expect(payload.effectiveSiteBaseUrl).toBe('https://admin.example.com')
+    expect(payload.runtime.currentHost).toBe('pages.dev')
+    expect(payload.runtime.hostRole).toBe('unknown')
   })
 })

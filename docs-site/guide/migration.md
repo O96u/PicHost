@@ -174,5 +174,3 @@ CLI 只负责**搬文件**；索引对齐、遗留 key、孤儿记录由启动�
 | `docker exec pichost migrate` | 预览磁盘迁移 |
 | `docker exec pichost migrate --apply` | 执行磁盘迁移 |
 | `docker exec pichost reset-password` | 重置密码（与迁移无关） |
-
-英文版：[v1.2 migration guide](/en/guide/migration)

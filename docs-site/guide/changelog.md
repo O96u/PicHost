@@ -1,0 +1,113 @@
+# 更新日志
+
+PicHost 版本历史与重要变更说明。完整记录亦见仓库根目录 [CHANGELOG.md](https://github.com/O96u/PicHost/blob/main/CHANGELOG.md)。
+
+---
+
+## [1.2.2] — 2026-08-30
+
+> 升级后请**重启服务**使中间件与 API 生效。
+
+### 双域名配置与 Host 隔离
+
+#### 修复
+
+| 问题 | 说明 |
+| ---- | ---- |
+| 管理域被误清空 | 设置页保存时，关闭双域名或仅改图片域可能把 `site_base_url` 写成空字符串，导致 UI 切回单域、管理域「消失」 |
+| 配置与生效 URL 混淆 | `GET /api/settings` 的 `siteBaseUrl` / `imageBaseUrl` 曾混入当前请求的 `origin`，设置页「当前生效」与数据库配置难以区分 |
+| 第三 Host 绕过隔离 | `pages.dev`、裸 IP、旧图片域等未纳入配置的 Host 此前不被中间件拦截，后台/API 可能仍可访问 |
+
+#### 改进
+
+**设置 API（`GET /api/settings`）**
+
+| 字段 | 含义 |
+| ---- | ---- |
+| `siteBaseUrl` / `imageBaseUrl` | **配置值**（DB → 环境变量），不含 request fallback |
+| `effectiveSiteBaseUrl` / `effectiveImageBaseUrl` | **直链生成用**，未配置时回退到当前请求 origin |
+| `runtime.currentOrigin` | 检测到的当前访问地址（仅展示，不写入配置） |
+| `runtime.hostRole` | `site` / `image` / `unknown` / `single` |
+
+**保存 API（`PATCH /api/settings`）**
+
+- 新增 body 字段 `domainSeparation`（`true` / `false`），显式表达是否启用双域名
+- `domainSeparation: true` 时网站域与图片域**均必填**，且主机名不能相同
+- `domainSeparation: false` 时允许清空网站域
+- 未传 `domainSeparation` 且双域名已配置时，**禁止**单独把 `siteBaseUrl` 置空
+
+**设置页 / 首次设置**
+
+- 表单回填配置值；「当前生效」显示 `effective*` 字段
+- 展示「检测到当前访问」地址，**不再**自动写入 `window.location.origin`
+- 提供「填入检测地址」按钮（用户主动点击才填）
+- 关闭双域名需确认弹窗
+- 双域名开启且 `hostRole === 'unknown'` 时显示反代绕过警告
+
+**Host 中间件**
+
+- 双域名开启时，非 site/image 的 Host **应用层一律 404**（所有 HTTP 方法）
+- 开发环境 `localhost` / `127.0.0.1` 例外，便于 `npm run dev`
+- 与 Nginx `default_server` **互补**，建议两层都配置
+
+#### 文档
+
+- 重写 [Cloudflare / CF 优选部署](./cloudflare-deployment.md)（精简结构、检查清单、双层防护）
+- 更新 [双域名分离](./domain-separation.md) 第三 Host 与应用层拦截说明
+- 新增本页 **更新日志**
+
+#### 升级说明
+
+- **无需**数据库迁移或 CLI 操作
+- 若管理域此前已被误清空：在 **设置** 中重新填写网站域，或设置环境变量 `SITE_BASE_URL` 后重启
+- 生产双域名部署：确认反代 `server_name` 与设置一致；建议保留 Nginx default server
+
+---
+
+## [1.2.1] — 2026-08-29
+
+### 新增
+
+- 登录滑动拼图验证（缺口对齐）；验证与登录分两步
+- VitePress 文档站（`docs-site/`），部署至 GitHub Pages
+- `npm run docs:dev` / `docs:build` / `docs:preview`
+
+### 修复
+
+- 统计页删除图片后图库不刷新
+- 分页跳转输入框在 `type="number"` 下无法跳转
+- 非首页路由下复制链接格式偏好不持久化
+- 滑动验证 UI：滑块垂直居中、缺口尺寸与滑块一致
+
+### 改进
+
+- README 精简，详细说明迁入文档站
+- 双域名文档补充未知 Host 风险与 Cloudflare 部署说明
+
+---
+
+## [1.2.0] — 2026-08-28
+
+### 变更
+
+- 图片统一存放在 `data/images/`；遗留 `blog/`、`twikoo/` 等并列目录需迁移
+
+### 新增
+
+- CLI：`docker exec pichost migrate` / `migrate --apply`
+- 启动时自动同步图片索引（扫描磁盘、归一化遗留 key、清理孤儿记录）
+
+详见 [v1.2 迁移](./migration.md)。
+
+---
+
+## [1.1.x] 摘要
+
+| 版本 | 要点 |
+| ---- | ---- |
+| 1.1.5 | API 上传后预览偶发失败修复；出图前校验文件存在 |
+| 1.1.4 | 按年/月分组存储；网站域禁止直链出图 |
+| 1.1.3 | 双域名分离（`SITE_BASE_URL` / `IMAGE_BASE_URL`）；Host 中间件 |
+| 1.1.0 | 多存储后端（S3 / R2 等） |
+
+更早版本见 [GitHub CHANGELOG](https://github.com/O96u/PicHost/blob/main/CHANGELOG.md)。

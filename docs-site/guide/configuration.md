@@ -9,8 +9,8 @@ PicHost 支持通过环境变量（Docker / `.env`）与后台 **设置** 页配
 | API 上传 Token | 环境变量 → SQLite | **是**（设了则后台无法重新生成） |
 | WebP 质量 | SQLite → 环境变量 → 默认 80 | 否（未在 DB 存时读 env） |
 | 防盗链白名单 | SQLite → 环境变量 | 否 |
-| 网站 / 图片域名 | SQLite → 环境变量 → 当前请求 | 否 |
-| 隐藏 `images/` 前缀 | SQLite → 环境变量 → 默认 false | 否 |
+| 网站 / 图片域名 | SQLite → 环境变量（设置 API 配置值）；直链生成另用 `effective*` 或请求 origin | 否 |
+| 简短图片链接 | SQLite → 环境变量 → 默认 false | 否 |
 | 按年/月分组存储 | SQLite → 环境变量 → 默认 true | 否 |
 | 全局自动删除天数 | SQLite → 环境变量 → 默认 0 | 否 |
 
@@ -33,11 +33,13 @@ PicHost 支持通过环境变量（Docker / `.env`）与后台 **设置** 页配
 - **网站域名**：管理后台、API、Twikoo 上传入口
 - **图片域名**：复制链接与直链使用的公网地址
 
-双域名分离需两者主机名不同，详见 [双域名分离](./domain-separation.md)。填写后须与反代 `server_name` 一致；**勿**通过 `localhost`、IP 或未配置的域名访问生产后台。
+双域名分离需两者主机名不同，详见 [双域名分离](./domain-separation.md) 与 [Cloudflare / CF 优选部署](./cloudflare-deployment.md)。填写后须与反代 `server_name` 一致；**勿**通过 `localhost`、IP 或未配置的域名访问生产后台。
+
+在后台 **设置** 中保存时须显式勾选「启用后台与图片域名分离」，并同时填写两个域名；关闭双域名会清除网站域配置（需确认）。设置 API 返回的配置值与「当前生效」直链地址已分离，详见 [更新日志](./changelog.md#1-2-2-2026-08-30)。
 
 ### `HIDE_FOLDER_IN_URL`
 
-`true` 时直链隐藏 `images/` 前缀（如 `images/2026/08/a.webp` → `/2026/08/a.webp` 或仅文件名，取决于路径模式）。
+`true` 时使用简短图片链接（仅域名 + 文件名，如 `img.example.com/a8K3xP.webp`）；`false` 时保留日期或自定义目录（如 `img.example.com/2026/08/a8K3xP.webp`）。对外 URL **不会** 暴露内部 `images/` 前缀；旧版含 `images/` 的直链仍兼容。
 
 ### `STORAGE_USE_DATE_PATH` / `STORAGE_LAYOUT`
 

@@ -6,8 +6,9 @@
 
 1. [快速开始](./getting-started.md) — Docker 部署与首次设置
 2. [环境变量](./configuration.md) — 生产环境配置与后台设置对照
-3. [存储](./storage.md) — 多后端与直链模式
-4. [API](./api.md) — REST 接口与 Token
+3. [更新日志](./changelog.md) — 版本变更与升级说明
+4. [存储](./storage.md) — 多后端与直链模式
+5. [API](./api.md) — REST 接口与 Token
 
 ## 截图预览
 

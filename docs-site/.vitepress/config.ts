@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 
 const docsBase = 'https://o96u.github.io/PicHost'
 
@@ -16,7 +17,8 @@ const zhSidebar = [
     items: [
       { text: '环境变量', link: '/guide/configuration' },
       { text: '反向代理', link: '/guide/reverse-proxy' },
-      { text: '双域名分离', link: '/guide/domain-separation' }
+      { text: '双域名分离', link: '/guide/domain-separation' },
+      { text: 'Cloudflare / CF 优选', link: '/guide/cloudflare-deployment' }
     ]
   },
   {
@@ -31,6 +33,7 @@ const zhSidebar = [
   {
     text: '升级',
     items: [
+      { text: '更新日志', link: '/guide/changelog' },
       { text: 'v1.2 迁移', link: '/guide/migration' },
       { text: '常见问题', link: '/guide/faq' }
     ]
@@ -51,7 +54,8 @@ const enSidebar = [
     items: [
       { text: 'Environment variables', link: '/en/guide/configuration' },
       { text: 'Reverse proxy', link: '/en/guide/reverse-proxy' },
-      { text: 'Dual-domain separation', link: '/en/guide/domain-separation' }
+      { text: 'Dual-domain separation', link: '/en/guide/domain-separation' },
+      { text: 'Cloudflare deployment', link: '/en/guide/cloudflare-deployment' }
     ]
   },
   {
@@ -66,17 +70,25 @@ const enSidebar = [
   {
     text: 'Upgrade',
     items: [
+      { text: 'Changelog', link: '/en/guide/changelog' },
       { text: 'v1.2 migration', link: '/en/guide/migration' },
       { text: 'FAQ', link: '/en/guide/faq' }
     ]
   }
 ]
 
-export default defineConfig({
+export default withMermaid(
+  defineConfig({
   base: '/PicHost/',
   title: 'PicHost',
   description: '自托管图床文档 · Self-hosted image hosting docs',
   head: [['link', { rel: 'icon', href: '/PicHost/favicon.ico' }]],
+  vite: {
+    optimizeDeps: {
+      // mermaid → fastdom 为 CJS；dev 模式须预构建，否则整站白屏
+      include: ['mermaid', 'fastdom']
+    }
+  },
   locales: {
     root: {
       label: '简体中文',
@@ -126,4 +138,5 @@ export default defineConfig({
       text: '在 GitHub 上编辑此页'
     }
   }
-})
+  })
+)

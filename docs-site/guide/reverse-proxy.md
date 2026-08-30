@@ -41,18 +41,18 @@ IMAGE_BASE_URL=https://pic.example.com
 
 ## Cloudflare 橙云
 
-PicHost 应用运行在 **自有服务器 / Docker**（端口 `6892`），Cloudflare 侧推荐：
+详见专章：[Cloudflare / CF 优选部署](./cloudflare-deployment.md)。
 
 | 做法 | 说明 |
 | ---- | ---- |
-| **DNS 橙云** | `admin` / `pic` 两个子域 Proxied → 源站反代 `6892`，SSL **Full (strict)** |
-| **DNS 优选** | 与 PicHost 兼容；Host 仍为正式域名 |
+| **DNS 橙云** | `admin` / `img` 两个子域 Proxied → 源站反代 `6892`，SSL **Full (strict)** |
+| **DNS 优选** | 与 PicHost 兼容；须保持 **admin → admin、img → img** 回源 |
 | **R2** | 在存储页作对象后端，非 Pages 托管应用 |
 | **源站防火墙** | 仅放行 [Cloudflare IP](https://www.cloudflare.com/ips/)，禁止公网直连 `6892` |
 
 **不建议：**
 
-- 用 **Cloudflare Pages**（`*.pages.dev`）或 **Workers**（`*.workers.dev`）对 PicHost **整站反代** — 会多出第三 Host，且可能绕过双域名隔离（见 [双域名分离 · 安全与注意事项](./domain-separation.md#安全与注意事项)）
+- 用 **Cloudflare Pages**（`*.pages.dev`）或 **Workers**（`*.workers.dev`）对 PicHost **整站反代**，或让图片域 **fetch 到管理域** — 会改写 Host、绕过双域名隔离（见 [Cloudflare 部署说明](./cloudflare-deployment.md)）
 - 在 CF 控制台「从 Git 创建 Worker」部署本仓库 — 当前为 `node-server` 预设，无法直接 `wrangler deploy`
 
 ## 源站安全（双域名推荐）

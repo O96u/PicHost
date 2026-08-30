@@ -9,8 +9,8 @@ Configure PicHost via environment variables (Docker / `.env`) or the in-app **Se
 | API upload token | Env → SQLite | **Yes** (cannot regenerate in UI) |
 | WebP quality | SQLite → env → default 80 | No |
 | Referer whitelist | SQLite → env | No |
-| Site / image base URL | SQLite → env → request origin | No |
-| Hide `images/` prefix | SQLite → env → default false | No |
+| Site / image base URL | SQLite → env (configured in API); links use `effective*` or request origin | No |
+| Short image links | SQLite → env → default false | No |
 | Date-based paths | SQLite → env → default true | No |
 | Global auto-delete days | SQLite → env → default 0 | No |
 
@@ -33,11 +33,13 @@ Comma-separated Referer whitelist. Own hostnames are allowed automatically. Opti
 - **Site URL**: admin UI, API, Twikoo upload
 - **Image URL**: copied links and public image URLs
 
-Single-domain: set `IMAGE_BASE_URL` only or leave empty (request origin). Dual-domain: hostnames must differ — see [Dual-domain separation](./domain-separation.md). Values must match proxy `server_name`; do not use `localhost`, IP, or unlisted hostnames for production admin access.
+Single-domain: set `IMAGE_BASE_URL` only or leave empty (request origin). Dual-domain: hostnames must differ — see [Dual-domain separation](./domain-separation.md) and [Cloudflare deployment](./cloudflare-deployment.md). Values must match proxy `server_name`; do not use `localhost`, IP, or unlisted hostnames for production admin access.
+
+In **Settings**, enable dual-domain explicitly and fill both URLs; disabling clears the site URL (with confirmation). Configured values vs effective link URLs are separate in the API — see [Changelog](./changelog.md#1-2-2-2026-08-30).
 
 ### `HIDE_FOLDER_IN_URL`
 
-`true` hides the `images/` prefix in public URLs.
+`true`: short links (domain + filename only), e.g. `img.example.com/a8K3xP.webp`. `false`: keep date or custom folders, e.g. `img.example.com/2026/08/a8K3xP.webp`. Public URLs never expose the internal `images/` prefix; legacy `/images/...` paths still work.
 
 ### `STORAGE_USE_DATE_PATH` / `STORAGE_LAYOUT`
 

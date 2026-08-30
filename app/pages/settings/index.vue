@@ -14,10 +14,17 @@ interface SettingsResponse {
   imageBaseUrl: string
   imageBaseUrlConfigured: string
   imageBaseUrlSource: SettingSource
+  effectiveImageBaseUrl: string
   siteBaseUrl: string
   siteBaseUrlConfigured: string
   siteBaseUrlSource: SettingSource
+  effectiveSiteBaseUrl: string
   domainSeparation: boolean
+  runtime: {
+    currentOrigin: string
+    currentHost: string
+    hostRole: 'site' | 'image' | 'unknown' | 'single'
+  }
   hideFolderInUrl: boolean
   hideFolderInUrlSource: SettingSource
   storageUseDatePath: boolean
@@ -46,6 +53,8 @@ const hideFolderInUrlDraft = ref(false)
 const storageUseDatePathDraft = ref(true)
 const allowRegistrationDraft = ref(false)
 const domainSeparationDraft = ref(false)
+const disableDomainSeparationOpen = ref(false)
+const pendingDomainSeparationDisable = ref(false)
 
 interface ReleaseCheckResponse {
   currentVersion: string
@@ -60,8 +69,8 @@ const hasServerChanges = computed(() => {
   if (!settings.value) return false
   return refererDraft.value !== settings.value.allowedRefererHosts
     || domainSeparationDraft.value !== settings.value.domainSeparation
-    || siteBaseUrlDraft.value !== (settings.value.domainSeparation ? settings.value.siteBaseUrlConfigured : '')
-    || imageBaseUrlDraft.value !== settings.value.imageBaseUrlConfigured
+    || siteBaseUrlDraft.value !== (settings.value.domainSeparation ? settings.value.siteBaseUrl : '')
+    || imageBaseUrlDraft.value !== settings.value.imageBaseUrl
     || hideFolderInUrlDraft.value !== settings.value.hideFolderInUrl
     || storageUseDatePathDraft.value !== settings.value.storageUseDatePath
     || allowRegistrationDraft.value !== settings.value.allowRegistration
@@ -101,8 +110,8 @@ function errorStatus(error: unknown): number {
 function applySettings(data: SettingsResponse) {
   settings.value = data
   refererDraft.value = data.allowedRefererHosts
-  siteBaseUrlDraft.value = data.domainSeparation ? data.siteBaseUrlConfigured : ''
-  imageBaseUrlDraft.value = data.imageBaseUrlConfigured
+  siteBaseUrlDraft.value = data.domainSeparation ? data.siteBaseUrl : ''
+  imageBaseUrlDraft.value = data.imageBaseUrl
   hideFolderInUrlDraft.value = data.hideFolderInUrl
   storageUseDatePathDraft.value = data.storageUseDatePath
   allowRegistrationDraft.value = data.allowRegistration
@@ -130,25 +139,49 @@ function handlePatchError(error: unknown, fallback: string) {
   toast.add({ title: fallback, color: 'error' })
 }
 
+function fillDetectedSiteOrigin() {
+  if (settings.value?.runtime.currentOrigin) {
+    siteBaseUrlDraft.value = settings.value.runtime.currentOrigin
+  }
+}
+
 function onDomainSeparationDraftChange(next: boolean | 'indeterminate') {
   const enabled = next === true
-  domainSeparationDraft.value = enabled
-  if (!enabled) {
-    siteBaseUrlDraft.value = ''
+  if (!enabled && domainSeparationDraft.value) {
+    pendingDomainSeparationDisable.value = true
+    disableDomainSeparationOpen.value = true
     return
   }
-  if (!siteBaseUrlDraft.value && import.meta.client) {
-    siteBaseUrlDraft.value = window.location.origin
-  }
+  domainSeparationDraft.value = enabled
+}
+
+function confirmDisableDomainSeparation() {
+  domainSeparationDraft.value = false
+  siteBaseUrlDraft.value = ''
+  disableDomainSeparationOpen.value = false
+  pendingDomainSeparationDisable.value = false
+}
+
+function cancelDisableDomainSeparation() {
+  disableDomainSeparationOpen.value = false
+  pendingDomainSeparationDisable.value = false
 }
 
 async function saveServerSettings() {
   if (!isAuthenticated.value || !hasServerChanges.value) return
 
+  if (domainSeparationDraft.value) {
+    if (!siteBaseUrlDraft.value.trim() || !imageBaseUrlDraft.value.trim()) {
+      toast.add({ title: t('settings.domainSeparationRequired'), color: 'error' })
+      return
+    }
+  }
+
   savingServer.value = true
   try {
     await patchSettings({
       allowedRefererHosts: refererDraft.value,
+      domainSeparation: domainSeparationDraft.value,
       siteBaseUrl: domainSeparationDraft.value ? siteBaseUrlDraft.value : '',
       imageBaseUrl: imageBaseUrlDraft.value,
       hideFolderInUrl: hideFolderInUrlDraft.value,
@@ -375,6 +408,20 @@ watch(isAuthenticated, async (authed, prev) => {
                   </a>
                 </p>
 
+                <p
+                  v-if="settings.runtime.currentOrigin"
+                  class="text-xs text-muted"
+                >
+                  {{ t('settings.runtimeDetected', { url: settings.runtime.currentOrigin }) }}
+                </p>
+
+                <p
+                  v-if="domainSeparationDraft && settings.runtime.hostRole === 'unknown'"
+                  class="rounded-lg border border-error/25 bg-error/5 px-3 py-2.5 text-xs leading-relaxed text-error"
+                >
+                  {{ t('settings.hostRoleUnknown') }}
+                </p>
+
                 <div
                   v-if="domainSeparationDraft"
                   class="grid gap-4 sm:grid-cols-2"
@@ -393,17 +440,28 @@ watch(isAuthenticated, async (authed, prev) => {
                     <p class="text-xs leading-relaxed text-muted">
                       {{ t('settings.siteBaseUrlHint') }}
                     </p>
-                    <UInput
-                      v-model="siteBaseUrlDraft"
-                      :placeholder="t('settings.siteBaseUrlPlaceholder')"
-                      class="w-full font-mono text-sm"
-                    />
+                    <div class="flex gap-2">
+                      <UInput
+                        v-model="siteBaseUrlDraft"
+                        :placeholder="t('settings.siteBaseUrlPlaceholder')"
+                        class="min-w-0 flex-1 font-mono text-sm"
+                      />
+                      <UButton
+                        v-if="settings.runtime.currentOrigin"
+                        :label="t('settings.fillDetectedOrigin')"
+                        color="neutral"
+                        variant="outline"
+                        size="sm"
+                        class="shrink-0"
+                        @click="fillDetectedSiteOrigin"
+                      />
+                    </div>
                     <p
-                      v-if="settings.siteBaseUrl"
+                      v-if="settings.effectiveSiteBaseUrl"
                       class="truncate text-xs text-muted"
-                      :title="settings.siteBaseUrl"
+                      :title="settings.effectiveSiteBaseUrl"
                     >
-                      {{ t('settings.siteBaseUrlActive', { url: settings.siteBaseUrl }) }}
+                      {{ t('settings.siteBaseUrlActive', { url: settings.effectiveSiteBaseUrl }) }}
                     </p>
                   </div>
 
@@ -427,11 +485,11 @@ watch(isAuthenticated, async (authed, prev) => {
                       class="w-full font-mono text-sm"
                     />
                     <p
-                      v-if="settings.imageBaseUrl"
+                      v-if="settings.effectiveImageBaseUrl"
                       class="truncate text-xs text-muted"
-                      :title="settings.imageBaseUrl"
+                      :title="settings.effectiveImageBaseUrl"
                     >
-                      {{ t('settings.imageBaseUrlActive', { url: settings.imageBaseUrl }) }}
+                      {{ t('settings.imageBaseUrlActive', { url: settings.effectiveImageBaseUrl }) }}
                     </p>
                   </div>
                 </div>
@@ -459,11 +517,11 @@ watch(isAuthenticated, async (authed, prev) => {
                     class="w-full font-mono text-sm"
                   />
                   <p
-                    v-if="settings.imageBaseUrl"
+                    v-if="settings.effectiveImageBaseUrl"
                     class="truncate text-xs text-muted"
-                    :title="settings.imageBaseUrl"
+                    :title="settings.effectiveImageBaseUrl"
                   >
-                    {{ t('settings.imageBaseUrlActive', { url: settings.imageBaseUrl }) }}
+                    {{ t('settings.imageBaseUrlActive', { url: settings.effectiveImageBaseUrl }) }}
                   </p>
                 </div>
               </div>
@@ -570,6 +628,29 @@ watch(isAuthenticated, async (authed, prev) => {
         </div>
       </section>
     </AppShell>
+
+    <UModal
+      :open="disableDomainSeparationOpen"
+      :title="t('settings.disableDomainSeparationTitle')"
+      :description="t('settings.disableDomainSeparationDesc')"
+      @update:open="(v) => { if (!v) cancelDisableDomainSeparation() }"
+    >
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton
+            :label="t('common.cancel')"
+            color="neutral"
+            variant="outline"
+            @click="cancelDisableDomainSeparation"
+          />
+          <UButton
+            :label="t('settings.disableDomainSeparationConfirm')"
+            color="warning"
+            @click="confirmDisableDomainSeparation"
+          />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 

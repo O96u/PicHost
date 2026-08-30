@@ -8,6 +8,7 @@ import {
 } from './env'
 import { findImageKeyByDatePath, findImageKeyByFilename } from './image-index'
 import { validateImageKey } from './image-key'
+import { toStorageKeyFromPublicPath } from './image-public-path'
 import { buildPublicImageUrl } from './image-response'
 import { createImageStream, headImage } from './storage'
 import { getBackendRowForKey } from './storage/resolver'
@@ -80,15 +81,20 @@ export function requestPathToImageKey(
   options?: { hideFolder?: boolean }
 ): string | null {
   const raw = decodeURIComponent(pathname).replace(/^\/+/, '')
+  if (!raw) return null
+
   if (validateImageKey(raw)) return raw
 
-  if (options?.hideFolder) {
-    const byFilename = findImageKeyByFilename(raw)
-    if (byFilename && validateImageKey(byFilename)) return byFilename
+  const fromPublic = toStorageKeyFromPublicPath(raw)
+  if (fromPublic) return fromPublic
 
-    const byDatePath = findImageKeyByDatePath(raw)
-    if (byDatePath && validateImageKey(byDatePath)) return byDatePath
-  }
+  if (!options?.hideFolder) return null
+
+  const byFilename = findImageKeyByFilename(raw)
+  if (byFilename && validateImageKey(byFilename)) return byFilename
+
+  const byDatePath = findImageKeyByDatePath(raw)
+  if (byDatePath && validateImageKey(byDatePath)) return byDatePath
 
   return null
 }

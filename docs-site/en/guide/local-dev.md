@@ -51,16 +51,4 @@ npm run docs:build
 npm run docs:preview
 ```
 
-Sources live in `docs-site/`; screenshot sources are in `docs/screenshots/` (including `login.png`), copied to `docs-site/public/screenshots/` before build.
-
-## Publish to GitHub Pages
-
-Live docs: <https://o96u.github.io/PicHost/>
-
-**First-time setup** (if deploy fails or the site 404s):
-
-1. Repo **Settings → Pages**
-2. **Build and deployment → Source** → **GitHub Actions** (not “Deploy from a branch”)
-3. Push to `main` or run the `docs` workflow manually from Actions
-
-Allow 1–2 minutes after a successful deploy. If the `deploy` job fails immediately, Pages is usually not enabled yet.
+Sources live in `docs-site/`; screenshot sources are in `docs/screenshots/` (including `login.png`), copied to `docs-site/public/screenshots/` before build. Live docs: <https://o96u.github.io/PicHost/>
