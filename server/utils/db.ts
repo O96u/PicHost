@@ -445,6 +445,34 @@ export function insertActivityLog(input: ActivityLogInput): void {
   }
 }
 
+/** 按图片 key 查最近一次上传记录的来源（网页 / API） */
+export function getUploadSourcesForKeys(keys: string[]): Map<string, LogSource> {
+  const result = new Map<string, LogSource>()
+  if (!keys.length) return result
+
+  const placeholders = keys.map(() => '?').join(', ')
+  const rows = getDb().prepare(`
+    SELECT al.key, al.source
+    FROM activity_logs al
+    INNER JOIN (
+      SELECT key, MAX(id) AS max_id
+      FROM activity_logs
+      WHERE action = 'upload' AND key IN (${placeholders})
+      GROUP BY key
+    ) latest ON al.id = latest.max_id
+  `).all(...keys) as Array<{ key: string, source: string }>
+
+  for (const row of rows) {
+    const raw = row.source
+    const source = raw === 'twikoo' ? 'api' : raw
+    if (source === 'web' || source === 'api') {
+      result.set(row.key, source)
+    }
+  }
+
+  return result
+}
+
 export function listActivityLogs(options: {
   limit: number
   page?: number

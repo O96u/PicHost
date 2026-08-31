@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ImageItem } from '~/types/image'
+
 interface StatsResponse {
   uploadToday: number
   uploadMonth: number
@@ -53,6 +55,8 @@ const deleteTargetKeys = ref<string[]>([])
 const batchDeleting = ref(false)
 const showScrollTop = ref(false)
 const currentStorage = ref('all')
+const previewOpen = ref(false)
+const previewImage = ref<ImageItem | null>(null)
 
 const storageSelectItems = computed(() => [
   { label: t('stats.filterStorageAll'), value: 'all' },
@@ -203,6 +207,8 @@ async function clearSearch() {
 
 function requestDelete(key: string) {
   if (!isAuthenticated.value) return
+  previewOpen.value = false
+  previewImage.value = null
   deleteTargetKeys.value = [key]
   deleteModalOpen.value = true
 }
@@ -215,6 +221,23 @@ function requestBatchDelete() {
   }
   deleteTargetKeys.value = Array.from(selectedKeys.value)
   deleteModalOpen.value = true
+}
+
+function selectAllOnPage() {
+  selectedKeys.value = new Set(items.value.map(item => item.key))
+}
+
+function invertSelectionOnPage() {
+  const next = new Set(selectedKeys.value)
+  for (const item of items.value) {
+    if (next.has(item.key)) next.delete(item.key)
+    else next.add(item.key)
+  }
+  selectedKeys.value = next
+}
+
+function clearSelection() {
+  selectedKeys.value = new Set()
 }
 
 async function confirmDelete() {
@@ -279,11 +302,23 @@ async function confirmDelete() {
 
 async function handleGalleryPageChange(targetPage: number) {
   selectedKeys.value = new Set()
+  previewOpen.value = false
+  previewImage.value = null
   try {
     await goToPage(targetPage)
   } catch (error: unknown) {
     handleAuthError(error)
   }
+}
+
+function openPreview(image: ImageItem) {
+  previewImage.value = image
+  previewOpen.value = true
+}
+
+function requestPreviewDelete() {
+  if (!previewImage.value) return
+  requestDelete(previewImage.value.key)
 }
 
 onMounted(async () => {
@@ -422,7 +457,7 @@ watch(isAuthenticated, async (authed, prev) => {
         <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <div class="min-w-0">
             <h2 class="text-lg font-medium">
-              {{ t('stats.gallery') }}
+              {{ t('stats.imagesSection') }}
             </h2>
             <p
               v-if="!galleryLoading"
@@ -485,6 +520,45 @@ watch(isAuthenticated, async (authed, prev) => {
             </UButton>
             <UButton
               type="button"
+              icon="i-lucide-check-check"
+              size="sm"
+              variant="outline"
+              color="neutral"
+              class="shrink-0"
+              :disabled="!items.length || galleryLoading"
+              :aria-label="t('stats.selectAll')"
+              @click="selectAllOnPage"
+            >
+              <span class="hidden sm:inline">{{ t('stats.selectAll') }}</span>
+            </UButton>
+            <UButton
+              type="button"
+              icon="i-lucide-shuffle"
+              size="sm"
+              variant="outline"
+              color="neutral"
+              class="shrink-0"
+              :disabled="!items.length || galleryLoading"
+              :aria-label="t('stats.invertSelection')"
+              @click="invertSelectionOnPage"
+            >
+              <span class="hidden sm:inline">{{ t('stats.invertSelection') }}</span>
+            </UButton>
+            <UButton
+              v-if="selectedCount"
+              type="button"
+              icon="i-lucide-x-circle"
+              size="sm"
+              variant="ghost"
+              color="neutral"
+              class="shrink-0"
+              :aria-label="t('stats.clearSelection')"
+              @click="clearSelection"
+            >
+              <span class="hidden sm:inline">{{ t('stats.clearSelection') }}</span>
+            </UButton>
+            <UButton
+              type="button"
               icon="i-lucide-trash-2"
               color="error"
               variant="soft"
@@ -516,9 +590,16 @@ watch(isAuthenticated, async (authed, prev) => {
           show-storage
           :items="items"
           :selected-keys="selectedKeys"
-          :deleting-keys="deletingKeys"
           @update:selected-keys="selectedKeys = $event"
-          @delete="requestDelete"
+          @preview="openPreview"
+        />
+
+        <ImagePreviewModal
+          v-model:open="previewOpen"
+          :image="previewImage"
+          show-storage
+          :deleting="previewImage ? deletingKeys.has(previewImage.key) : false"
+          @delete="requestPreviewDelete"
         />
 
         <PaginationBar

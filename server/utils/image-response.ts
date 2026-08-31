@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import type { ImageItem } from '~/types/image'
+import type { LogSource } from './db'
 import type { AllowedMimeType } from './constants'
 import type { StoredImage } from './storage'
 import { getImageBaseUrl, isHideFolderInUrl } from './env'
@@ -50,6 +51,7 @@ export function mapStoredImageToItem(
   options?: {
     ownerMap?: Map<number, string>
     backendMap?: Map<string, { name: string, type: StorageBackendType }>
+    sourceMap?: Map<string, LogSource>
   }
 ): ImageItem {
   const item = buildImageItem({
@@ -64,16 +66,14 @@ export function mapStoredImageToItem(
 
   const owner = resolveImageOwner(stored.userId, options?.ownerMap)
   const storage = resolveImageStorage(stored.backendId, options?.backendMap)
+  const uploadSource = options?.sourceMap?.get(stored.key)
 
-  if (owner || storage) {
-    return {
-      ...item,
-      ...(owner ? { owner } : {}),
-      ...(storage ? { storage } : {})
-    }
+  return {
+    ...item,
+    ...(owner ? { owner } : {}),
+    ...(storage ? { storage } : {}),
+    ...(uploadSource ? { uploadSource } : {})
   }
-
-  return item
 }
 
 export function buildImageUrl(

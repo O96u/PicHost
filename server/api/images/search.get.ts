@@ -6,7 +6,7 @@ import {
   MAX_LIST_LIMIT
 } from '../../utils/constants'
 import { createApiError } from '../../utils/api-error'
-import { listUserIdUsernameMap } from '../../utils/db'
+import { getUploadSourcesForKeys, listUserIdUsernameMap } from '../../utils/db'
 import { mapStoredImageToItem } from '../../utils/image-response'
 import { listStorageBackendNameMap } from '../../utils/storage-backends'
 import { readBackendIdQuery } from '../../utils/image-query'
@@ -47,8 +47,9 @@ export default defineEventHandler(async (event) => {
   const user = await getCurrentUser(event)
   const ownerMap = user?.role === 'admin' ? listUserIdUsernameMap() : undefined
   const backendMap = listStorageBackendNameMap()
+  const sourceMap = getUploadSourcesForKeys(result.items.map(item => item.key))
   const items = result.items.map(stored =>
-    mapStoredImageToItem(event, stored, { ownerMap, backendMap })
+    mapStoredImageToItem(event, stored, { ownerMap, backendMap, sourceMap })
   )
 
   items.sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))

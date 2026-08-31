@@ -20,6 +20,7 @@
   <a href="https://o96u.github.io/PicHost/en/">Docs</a> ·
   <a href="#screenshots">Screenshots</a> ·
   <a href="#features">Features</a> ·
+  <a href="#tech-stack">Tech Stack</a> ·
   <a href="#quick-start">Quick Start</a> ·
   <a href="README.md">简体中文</a>
 </p>
@@ -46,6 +47,19 @@
 - **Gallery & stats** — browse, search, batch delete; upload trends and source breakdown
 - **API & Twikoo** — global / per-user tokens; `POST /api/index.php` compatible
 - **Zero-config Docker** — first-run web wizard, no secrets upfront
+
+## Tech Stack
+
+| Layer | Technologies |
+| ----- | ------------ |
+| Frontend | [Nuxt 4](https://nuxt.com) · [Nuxt UI 4](https://ui.nuxt.com) · [Vue 3](https://vuejs.org) · [Tailwind CSS 4](https://tailwindcss.com) · TypeScript |
+| Backend | [Nitro](https://nitro.build) (`node-server`) · REST API |
+| Data | SQLite · local `data/pichost.db` |
+| Images | [sharp](https://sharp.pixelplumbing.com) (server-side WebP) |
+| Storage | Local disk · S3-compatible ([AWS SDK](https://aws.amazon.com/sdk-for-javascript/) · R2 / COS / OSS, etc.) |
+| i18n | [@nuxtjs/i18n](https://i18n.nuxtjs.org) (zh-CN / English) |
+| Quality & docs | [Vitest](https://vitest.dev) · [VitePress](https://vitepress.dev) docs site |
+| Deploy | Docker · Node.js 22 |
 
 ## Quick Start
 

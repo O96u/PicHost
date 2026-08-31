@@ -169,14 +169,17 @@ export async function processSingleImageUpload(
   })
 
   return {
-    item: buildImageItem({
-      key,
-      event,
-      originalName,
-      contentType: compressed.mime,
-      size: compressed.bytes.byteLength,
-      uploadedAt
-    })
+    item: {
+      ...buildImageItem({
+        key,
+        event,
+        originalName,
+        contentType: compressed.mime,
+        size: compressed.bytes.byteLength,
+        uploadedAt
+      }),
+      uploadSource: input.source ?? 'web'
+    }
   }
 }
 

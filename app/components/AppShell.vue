@@ -13,7 +13,7 @@ const mobileUserOpen = ref(false)
 const navItems = computed(() => {
   const items = [
     { label: t('nav.api'), to: '/api', icon: 'i-lucide-code-2' },
-    { label: t('nav.stats'), to: '/stats', icon: 'i-lucide-chart-column' }
+    { label: t('nav.gallery'), to: '/gallery', icon: 'i-lucide-images' }
   ]
   if (isAdmin.value) {
     items.push({ label: t('nav.storage'), to: '/storage', icon: 'i-lucide-hard-drive' })

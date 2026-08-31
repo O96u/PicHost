@@ -4,6 +4,22 @@ Version history and notable changes. The full log is also in the repo root [CHAN
 
 ---
 
+## [1.2.5] — 2026-08-31
+
+### Added
+
+- **Gallery page**: nav “Stats” renamed to “Gallery” (`/gallery`); click a thumbnail for a detail modal (full image, dimensions, upload source, storage path, link copy)
+- **List actions**: select all / invert selection; single-image delete moved into the detail modal
+- **Upload source**: gallery API returns web / API upload source (from activity logs)
+
+### Improved
+
+- README tech stack section
+
+### Removed
+
+- `/stats` route (no compatibility redirect)
+
 ## [1.2.4] — 2026-08-31
 
 ### Fix

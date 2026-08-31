@@ -20,6 +20,7 @@
   <a href="https://o96u.github.io/PicHost/">文档</a> ·
   <a href="#界面预览">预览</a> ·
   <a href="#特性">特性</a> ·
+  <a href="#技术栈">技术栈</a> ·
   <a href="#快速开始">快速开始</a> ·
   <a href="README.en.md">English</a>
 </p>
@@ -46,6 +47,19 @@
 - **图库与统计**：浏览、搜索、批量删除；上传趋势与来源分布
 - **API 与 Twikoo**：全局 / 个人 Token；`POST /api/index.php` 兼容
 - **Docker 零配置**：首次访问 Web 引导创建管理员
+
+## 技术栈
+
+| 层级 | 技术 |
+| ---- | ---- |
+| 前端 | [Nuxt 4](https://nuxt.com) · [Nuxt UI 4](https://ui.nuxt.com) · [Vue 3](https://vuejs.org) · [Tailwind CSS 4](https://tailwindcss.com) · TypeScript |
+| 后端 | [Nitro](https://nitro.build)（`node-server`）· REST API |
+| 数据 | SQLite · 本地 `data/pichost.db` |
+| 图片处理 | [sharp](https://sharp.pixelplumbing.com)（服务端 WebP 压缩） |
+| 存储 | 本地磁盘 · S3 兼容（[AWS SDK](https://aws.amazon.com/sdk-for-javascript/) · R2 / COS / OSS 等） |
+| 国际化 | [@nuxtjs/i18n](https://i18n.nuxtjs.org)（简体中文 / English） |
+| 质量与文档 | [Vitest](https://vitest.dev) · [VitePress](https://vitepress.dev) 文档站 |
+| 部署 | Docker · Node.js 22 |
 
 ## 快速开始
 

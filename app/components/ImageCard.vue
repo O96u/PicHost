@@ -5,7 +5,6 @@ import type { CopyFormat } from '~/composables/useUploadPreferences'
 const props = withDefaults(defineProps<{
   image: ImageItem
   selected: boolean
-  deleting?: boolean
   selectable?: boolean
   showKey?: boolean
   showStorage?: boolean
@@ -19,7 +18,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   'update:selected': [value: boolean]
-  'delete': []
+  'preview': []
 }>()
 
 const { formatFileSize } = useFileSize()
@@ -118,14 +117,22 @@ function toggleSelected(value: boolean | 'indeterminate') {
 
 <template>
   <div class="flex flex-col overflow-hidden rounded-xl border border-default bg-elevated shadow-sm">
-    <div class="relative aspect-square shrink-0 overflow-hidden bg-muted">
+    <div
+      class="relative aspect-square shrink-0 overflow-hidden bg-muted"
+      role="button"
+      tabindex="0"
+      :aria-label="t('image.openPreview')"
+      @click="emit('preview')"
+      @keydown.enter="emit('preview')"
+      @keydown.space.prevent="emit('preview')"
+    >
       <img
         v-if="!imageError"
         :key="`${image.key}-${retryCount}`"
         :src="previewSrc"
         :alt="image.originalName"
         loading="lazy"
-        class="absolute inset-0 size-full object-cover object-center"
+        class="absolute inset-0 size-full cursor-zoom-in object-cover object-center"
         @error="onPreviewError"
       >
       <div
@@ -137,26 +144,17 @@ function toggleSelected(value: boolean | 'indeterminate') {
       <div
         v-if="selectable"
         class="absolute top-2 left-2"
+        @click.stop
       >
         <UCheckbox
           :model-value="selected"
           @update:model-value="toggleSelected"
         />
       </div>
-      <div class="absolute top-2 right-2">
-        <UButton
-          size="xs"
-          color="error"
-          variant="solid"
-          icon="i-lucide-trash-2"
-          :aria-label="t('common.delete')"
-          :loading="deleting"
-          @click="emit('delete')"
-        />
-      </div>
       <div
         v-if="image.owner"
         class="absolute bottom-2 left-2 max-w-[calc(50%-0.5rem)]"
+        @click.stop
       >
         <span
           class="inline-flex max-w-full items-center gap-1 rounded-md bg-black/65 px-2 py-0.5 text-xs font-medium text-white shadow-sm backdrop-blur-sm"
@@ -173,6 +171,7 @@ function toggleSelected(value: boolean | 'indeterminate') {
         v-if="showStorage && image.storage"
         class="absolute bottom-2 max-w-[calc(50%-0.5rem)]"
         :class="image.owner ? 'right-2' : 'left-2'"
+        @click.stop
       >
         <span
           class="inline-flex max-w-full items-center gap-1 rounded-md bg-black/65 px-2 py-0.5 text-xs font-medium text-white shadow-sm backdrop-blur-sm"

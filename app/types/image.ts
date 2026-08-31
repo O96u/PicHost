@@ -42,6 +42,8 @@ export interface ImageItem {
     name: string
     type: 'local' | 's3'
   }
+  /** 上传来源：网页或 API（来自活动日志） */
+  uploadSource?: 'web' | 'api'
 }
 
 export interface UploadErrorItem {

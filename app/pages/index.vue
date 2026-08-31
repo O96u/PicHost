@@ -15,6 +15,8 @@ const { t } = useI18n()
 const sessionItems = ref<ImageItem[]>([])
 const deletingKeys = ref<Set<string>>(new Set())
 const emptySelection = ref(new Set<string>())
+const previewOpen = ref(false)
+const previewImage = ref<ImageItem | null>(null)
 
 const showProgress = computed(
   () =>
@@ -123,6 +125,10 @@ async function handleDelete(key: string) {
       query: { key }
     })
     sessionItems.value = sessionItems.value.filter(item => item.key !== key)
+    if (previewImage.value?.key === key) {
+      previewOpen.value = false
+      previewImage.value = null
+    }
     toast.add({ title: t('stats.deletedSingle'), color: 'success' })
   } catch (error: unknown) {
     handleAuthError(error)
@@ -131,6 +137,16 @@ async function handleDelete(key: string) {
     deletingKeys.value.delete(key)
     deletingKeys.value = new Set(deletingKeys.value)
   }
+}
+
+function openPreview(image: ImageItem) {
+  previewImage.value = image
+  previewOpen.value = true
+}
+
+function requestPreviewDelete() {
+  if (!previewImage.value) return
+  void handleDelete(previewImage.value.key)
 }
 </script>
 
@@ -178,14 +194,20 @@ async function handleDelete(key: string) {
         <ImageGrid
           :items="sessionItems"
           :selected-keys="emptySelection"
-          :deleting-keys="deletingKeys"
           :selectable="false"
           :show-key="false"
           :empty-text="t('upload.sessionEmpty')"
           @update:selected-keys="() => {}"
-          @delete="handleDelete"
+          @preview="openPreview"
         />
       </section>
+
+      <ImagePreviewModal
+        v-model:open="previewOpen"
+        :image="previewImage"
+        :deleting="previewImage ? deletingKeys.has(previewImage.key) : false"
+        @delete="requestPreviewDelete"
+      />
     </AppShell>
   </div>
 </template>

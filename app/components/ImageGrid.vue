@@ -4,7 +4,6 @@ import type { ImageItem } from '~/types/image'
 const props = withDefaults(defineProps<{
   items: ImageItem[]
   selectedKeys: Set<string>
-  deletingKeys: Set<string>
   selectable?: boolean
   showKey?: boolean
   showStorage?: boolean
@@ -21,7 +20,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   'update:selectedKeys': [value: Set<string>]
-  'delete': [key: string]
+  'preview': [image: ImageItem]
 }>()
 
 const { t } = useI18n()
@@ -47,13 +46,12 @@ function updateSelection(key: string, selected: boolean) {
       :key="image.key"
       :image="image"
       :selected="selectedKeys.has(image.key)"
-      :deleting="deletingKeys.has(image.key)"
       :selectable="selectable"
       :show-key="showKey"
       :show-storage="showStorage"
       :compact="compact"
       @update:selected="updateSelection(image.key, $event)"
-      @delete="emit('delete', image.key)"
+      @preview="emit('preview', image)"
     />
   </div>
   <div
