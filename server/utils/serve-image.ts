@@ -4,7 +4,8 @@ import {
   getAllowedRefererHostsRaw,
   getImageBaseUrlConfigured,
   getSiteBaseUrlConfigured,
-  hostnameFromBaseUrl
+  hostnameFromBaseUrl,
+  isRefererConfigured
 } from './env'
 import { findImageKeyByDatePath, findImageKeyByFilename } from './image-index'
 import { validateImageKey } from './image-key'
@@ -58,6 +59,12 @@ export function isRefererAllowed(referer: string | null, allowedHosts: Set<strin
   }
 }
 
+/** 未配置防盗链白名单时不拦截；已配置时校验 Referer（缺失 Referer 仍放行） */
+export function isHotlinkBlocked(event: H3Event, referer: string | null): boolean {
+  if (!isRefererConfigured(event)) return false
+  return !isRefererAllowed(referer, getAllowedHosts(event))
+}
+
 function parseRangeHeader(
   rangeHeader: string | undefined,
   size: number
@@ -108,7 +115,7 @@ export function requestPathToImageKey(
 
 export async function serveImageByKey(event: H3Event, key: string) {
   const referer = getHeader(event, 'referer') ?? null
-  if (!isRefererAllowed(referer, getAllowedHosts(event))) {
+  if (isHotlinkBlocked(event, referer)) {
     setHeader(event, 'Cache-Control', ERROR_CACHE_CONTROL)
     throw createError({
       statusCode: 403,

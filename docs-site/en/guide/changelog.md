@@ -4,6 +4,12 @@ Version history and notable changes. The full log is also in the repo root [CHAN
 
 ---
 
+## [1.2.4] — 2026-08-31
+
+### Fix
+
+- **Empty referer whitelist still blocked hotlinks**: with no Referer whitelist configured, direct browser access worked but embedded images on blogs/forums returned 403; protection now runs only when a whitelist is configured
+
 ## [1.2.3] — 2026-08-30
 
 ### Fix
