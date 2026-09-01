@@ -35,11 +35,11 @@ See `docker-compose.yml` in the repository.
 1. Open your instance URL (Docker default `http://<host>:6892`).
 2. Complete `/setup` with admin username and password.
 3. (Optional) Configure site URL, image URL, Referer rules — see [Environment variables](./configuration.md) and [Dual-domain separation](./domain-separation.md).
-4. Upload from the home page; admins can open **Storage**, **Settings**, and **API**.
+4. Upload from the home page; use the top nav for **Gallery**, **Storage** (admin), **Settings**, and **API**.
 
 ## Sign in
 
-Management pages (upload, stats, settings, etc.) require login. Enter username and password, **drag the slider to align with the gap**, then click **Sign in**.
+Management pages (upload, gallery, settings, etc.) require login. Enter username and password, **drag the slider to align with the gap**, then click **Sign in**.
 
 ![Login](/screenshots/login.png)
 

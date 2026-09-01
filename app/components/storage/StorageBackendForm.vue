@@ -6,6 +6,7 @@ type StorageProvider = 'r2' | 'cos' | 'oss' | 'aws' | 'custom'
 
 export interface StorageFormPayload {
   name: string
+  provider: StorageProvider
   config: {
     endpoint: string
     region: string
@@ -158,6 +159,7 @@ watch(provider, (value) => {
 function handleSubmit() {
   emit('submit', {
     name: name.value.trim() || providerLabel(provider.value),
+    provider: provider.value,
     config: {
       endpoint: endpoint.value.trim(),
       region: region.value.trim() || 'auto',

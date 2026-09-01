@@ -218,17 +218,17 @@ function onImageLoad(event: Event) {
       #body
     >
       <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start">
-          <div class="preview-checkerboard flex items-center justify-center overflow-hidden rounded-xl border border-default p-4">
-            <img
-              :src="image.url"
-              :alt="image.originalName"
-              class="max-h-[min(60vh,24rem)] w-full object-contain"
-              @load="onImageLoad"
-            >
-          </div>
+        <div class="preview-checkerboard flex items-center justify-center overflow-hidden rounded-xl border border-default p-4">
+          <img
+            :src="image.url"
+            :alt="image.originalName"
+            class="max-h-[min(60vh,24rem)] w-full object-contain"
+            @load="onImageLoad"
+          >
+        </div>
 
-          <div class="flex min-w-0 flex-col gap-5">
-            <dl class="divide-y divide-default text-sm">
+        <div class="flex min-w-0 flex-col gap-5">
+          <dl class="divide-y divide-default text-sm">
             <div class="flex gap-4 py-2.5 first:pt-0">
               <dt class="w-20 shrink-0 text-muted">
                 {{ t('image.previewOriginalName') }}
@@ -330,40 +330,40 @@ function onImageLoad(event: Event) {
                 />
               </dd>
             </div>
-            </dl>
+          </dl>
 
-            <div class="border-t border-default pt-4">
-              <p class="mb-2.5 text-sm font-medium">
-                {{ t('image.previewLinks') }}
-              </p>
-              <div class="flex gap-1 rounded-lg border border-default bg-default p-0.5">
-                <UButton
-                  v-for="item in embedFormatItems"
-                  :key="item.value"
-                  size="xs"
-                  class="flex-1 justify-center"
-                  :variant="embedFormat === item.value ? 'solid' : 'ghost'"
-                  :color="embedFormat === item.value ? 'primary' : 'neutral'"
-                  :label="item.label"
-                  @click="selectEmbedFormat(item.value)"
-                />
-              </div>
-              <div class="mt-2 flex items-center gap-2">
-                <UInput
-                  :model-value="previewValue"
-                  readonly
-                  size="sm"
-                  class="min-w-0 flex-1 font-mono text-xs"
-                />
-                <CopyButton
-                  :label="t('common.copy')"
-                  :value="previewValue"
-                  :success-title="copySuccessTitle"
-                />
-              </div>
+          <div class="border-t border-default pt-4">
+            <p class="mb-2.5 text-sm font-medium">
+              {{ t('image.previewLinks') }}
+            </p>
+            <div class="flex gap-1 rounded-lg border border-default bg-default p-0.5">
+              <UButton
+                v-for="item in embedFormatItems"
+                :key="item.value"
+                size="xs"
+                class="flex-1 justify-center"
+                :variant="embedFormat === item.value ? 'solid' : 'ghost'"
+                :color="embedFormat === item.value ? 'primary' : 'neutral'"
+                :label="item.label"
+                @click="selectEmbedFormat(item.value)"
+              />
+            </div>
+            <div class="mt-2 flex items-center gap-2">
+              <UInput
+                :model-value="previewValue"
+                readonly
+                size="sm"
+                class="min-w-0 flex-1 font-mono text-xs"
+              />
+              <CopyButton
+                :label="t('common.copy')"
+                :value="previewValue"
+                :success-title="copySuccessTitle"
+              />
             </div>
           </div>
         </div>
+      </div>
     </template>
 
     <template

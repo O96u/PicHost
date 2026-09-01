@@ -14,10 +14,10 @@ PicHost uses role-based access control (RBAC): **admin** and **user**. Enforceme
 | Allow registration | ✓ | — |
 | Global API token | ✓ | — |
 | Personal API token | ✓ | ✓ |
-| Stats (incl. user count) | ✓ | partial |
-| Activity log | ✓ | — |
+| Gallery stats overview (incl. user count) | ✓ | partial |
+| Activity log (Settings → Activity log) | ✓ | — |
 
-Regular users see **API**, **Stats** in the nav; user menu: **Change password**, **Sign out**.
+Regular users see **API**, **Gallery** in the nav; user menu: **Change password**, **Sign out**.
 
 ## Auth scenarios
 
@@ -39,7 +39,7 @@ Regular users see **API**, **Stats** in the nav; user menu: **Change password**,
 
 ## Upload preferences & auto-delete
 
-- **Upload preferences** (home card flip): client compression, auto-copy links, per user
+- **Upload preferences**: admins configure client compression and auto-copy in **Settings → Basic**; regular users can flip the home upload card for personal preferences
 - **Auto-delete**: global (admin) and per-user policies; affects **new uploads after enable** only
 
 ## API tokens

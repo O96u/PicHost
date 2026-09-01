@@ -10,6 +10,7 @@ import type { ServingMode } from '../../../utils/storage/types'
 
 interface StorageCreateBody {
   name?: string
+  provider?: string
   config?: {
     endpoint?: string
     region?: string
@@ -70,6 +71,7 @@ export default defineEventHandler(async (event) => {
 
   const id = insertStorageBackend({
     name,
+    provider: body.provider?.trim(),
     config,
     secrets: { accessKeyId, secretAccessKey },
     servingMode: body.servingMode,

@@ -1,6 +1,6 @@
 # Storage
 
-PicHost supports **local disk** and **S3-compatible object storage** (Cloudflare R2, Tencent COS, Alibaba OSS, AWS S3, etc.). Admins manage backends at **Storage** (`/storage`); new uploads go to the **default** backend.
+PicHost supports **local disk** and **S3-compatible object storage** (Cloudflare R2, Tencent COS, Alibaba OSS, AWS S3, etc.). Admins manage backends at **Storage** (`/storage`); new uploads go to the **default** backend. The page shows a **storage overview** (total, used, remaining, usage rate, capacity chart) plus per-backend cards and supported backend types.
 
 ![Storage management](/screenshots/storage.png)
 
@@ -24,6 +24,8 @@ All **keys** start with `images/`. The upload API does **not** accept a `folder`
 2. Choose **local disk** or **S3-compatible** (R2 / COS / OSS presets).
 3. Enter connection details (bucket, endpoint, keys).
 4. **Set as default** so new uploads use it.
+
+New object-storage backends get an auto-generated **storage ID** prefix: `local` for disk; `r2-*` for R2; `cos-*` for COS; `oss-*` for OSS; `s3-*` for AWS S3 and custom S3-compatible endpoints (immutable after creation; the image index references this ID).
 
 ### Cloudflare R2
 
@@ -52,7 +54,7 @@ Copied links use **IMAGE_BASE_URL**. “Hide folder prefix” may shorten URLs; 
 ## Usage & gallery filter
 
 - Per-backend usage on the Storage page
-- Gallery filter by backend (admin)
+- Gallery filters by **storage backend** and **upload source**; grid/list view toggle
 
 ## Backup
 

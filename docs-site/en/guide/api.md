@@ -1,6 +1,6 @@
 # API
 
-PicHost exposes REST endpoints and a Twikoo-compatible upload. After deployment, open the in-app **API** page for your token and copyable cURL snippets.
+PicHost exposes REST endpoints and a Twikoo-compatible upload. After sign-in, open **API** in the nav: a sidebar lists endpoints and token controls, the center shows parameters and copyable cURL, and the right panel supports **live debugging**.
 
 ## Authentication
 

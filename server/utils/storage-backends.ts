@@ -368,16 +368,39 @@ function getNextSortOrder(): number {
   return row.max_order + 1
 }
 
-export function generateStorageBackendId(): string {
+export type ObjectStorageIdPrefix = 'r2' | 'cos' | 'oss' | 's3'
+
+/** 根据表单预设或 endpoint 推断新建后端的 id 前缀 */
+export function resolveObjectStorageIdPrefix(
+  config: Pick<S3BackendConfig, 'endpoint'>,
+  provider?: string
+): ObjectStorageIdPrefix {
+  const normalized = provider?.trim().toLowerCase()
+  if (normalized === 'r2' || normalized === 'cos' || normalized === 'oss') {
+    return normalized
+  }
+  if (normalized === 'aws' || normalized === 's3') {
+    return 's3'
+  }
+
+  const endpoint = config.endpoint.trim().toLowerCase()
+  if (endpoint.includes('r2.cloudflarestorage.com')) return 'r2'
+  if (endpoint.includes('myqcloud.com')) return 'cos'
+  if (endpoint.includes('aliyuncs.com')) return 'oss'
+  return 's3'
+}
+
+export function generateStorageBackendId(prefix: ObjectStorageIdPrefix = 's3'): string {
   const bytes = new Uint8Array(4)
   crypto.getRandomValues(bytes)
   const suffix = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
-  return `s3-${suffix}`
+  return `${prefix}-${suffix}`
 }
 
 export function insertStorageBackend(input: {
   id?: string
   name: string
+  provider?: string
   config: S3BackendConfig
   secrets: { accessKeyId: string, secretAccessKey: string }
   servingMode?: ServingMode
@@ -387,7 +410,8 @@ export function insertStorageBackend(input: {
   isDefault?: boolean
 }): string {
   ensureDefaultBackends()
-  const id = input.id ?? generateStorageBackendId()
+  const idPrefix = resolveObjectStorageIdPrefix(input.config, input.provider)
+  const id = input.id ?? generateStorageBackendId(idPrefix)
   const sortOrder = getNextSortOrder()
 
   getDb().prepare(`

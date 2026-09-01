@@ -48,6 +48,7 @@ function buildPatchBody(payload: StorageFormPayload) {
   const quotaBytes = quotaToBytes(payload.quotaValue, payload.quotaUnit)
   const body: Record<string, unknown> = {
     name: payload.name,
+    provider: payload.provider,
     servingMode: payload.servingMode,
     publicUrl: payload.publicUrl,
     quotaBytes,

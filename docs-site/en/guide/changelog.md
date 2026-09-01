@@ -4,6 +4,20 @@ Version history and notable changes. The full log is also in the repo root [CHAN
 
 ---
 
+## [1.2.6] — 2026-09-01
+
+### Added
+
+- **Admin UI**: redesigned Settings, API, Gallery, and Storage pages; API page includes live debugging
+- **Gallery filter**: filter by storage backend
+- **Storage IDs**: new R2 / COS / OSS / S3 backends get `r2-*`, `cos-*`, `oss-*`, or `s3-*` prefixes
+
+### Improved
+
+- Activity log table styling and path truncation
+- Storage backend card metadata layout
+- Docs site and README screenshots updated
+
 ## [1.2.5] — 2026-08-31
 
 ### Added

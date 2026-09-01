@@ -31,20 +31,20 @@
 
 **main** 分支暂无公网演示；**cloudflare** 分支在线体验：[pic.roven.cc](https://pic.roven.cc)
 
-| 首页 | 存储 |
+| API | 图库 |
 | :--: | :--: |
-| ![首页](docs/screenshots/upload.png) | ![存储](docs/screenshots/storage.png) |
+| ![API](docs/screenshots/api.png) | ![图库](docs/screenshots/gallery.png) |
 
-| 统计 | 设置 |
+| 存储 | 设置 |
 | :--: | :--: |
-| ![统计](docs/screenshots/stats.png) | ![设置](docs/screenshots/settings.png) |
+| ![存储](docs/screenshots/storage.png) | ![设置](docs/screenshots/settings.png) |
 
 ## 特性
 
 - **拖拽 / 点击 / Ctrl+V 粘贴**上传；服务端 WebP 压缩、Referer 防盗链
 - **多用户**：账号密码登录（滑动验证）、可选开放注册；普通用户仅见自己的图片
 - **多后端存储**：本地磁盘 + S3 兼容（R2 / COS / OSS / AWS）；混合直链 `proxy` / `public`
-- **图库与统计**：浏览、搜索、批量删除；上传趋势与来源分布
+- **图库**：浏览、搜索、按存储/来源筛选、网格/列表切换、批量删除；统计概览与来源分布
 - **API 与 Twikoo**：全局 / 个人 Token；`POST /api/index.php` 兼容
 - **Docker 零配置**：首次访问 Web 引导创建管理员
 

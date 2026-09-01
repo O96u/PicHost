@@ -31,20 +31,20 @@
 
 **main** has no public demo. **cloudflare** branch live demo: [pic.roven.cc](https://pic.roven.cc)
 
-| Home | Storage |
+| API | Gallery |
 | :--: | :-----: |
-| ![Home](docs/screenshots/upload.png) | ![Storage](docs/screenshots/storage.png) |
+| ![API](docs/screenshots/api.png) | ![Gallery](docs/screenshots/gallery.png) |
 
-| Stats | Settings |
-| :---: | :-------: |
-| ![Stats](docs/screenshots/stats.png) | ![Settings](docs/screenshots/settings-en.png) |
+| Storage | Settings |
+| :-----: | :-------: |
+| ![Storage](docs/screenshots/storage.png) | ![Settings](docs/screenshots/settings-en.png) |
 
 ## Features
 
 - **Drag, click, or Ctrl+V paste** — server-side WebP, Referer hotlink protection
 - **Multi-user** — login with slider captcha, optional registration; users see only their images
 - **Multi-backend storage** — local disk + S3-compatible (R2 / COS / OSS / AWS); hybrid `proxy` / `public` URLs
-- **Gallery & stats** — browse, search, batch delete; upload trends and source breakdown
+- **Gallery** — browse, search, filter by storage/source, grid/list views, batch delete; stats overview and source breakdown
 - **API & Twikoo** — global / per-user tokens; `POST /api/index.php` compatible
 - **Zero-config Docker** — first-run web wizard, no secrets upfront
 

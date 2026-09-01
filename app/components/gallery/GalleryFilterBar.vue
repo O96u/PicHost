@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const props = withDefaults(defineProps<{
   searchQuery: string
+  storageBackend: string
+  storageBackendItems: Array<{ label: string, value: string }>
   uploadSource: string
   uploadSourceItems: Array<{ label: string, value: string }>
   viewMode: 'grid' | 'list'
@@ -13,6 +15,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   'update:searchQuery': [value: string]
+  'update:storageBackend': [value: string]
   'update:uploadSource': [value: string]
   'update:viewMode': [mode: 'grid' | 'list']
   'search': []
@@ -47,6 +50,16 @@ function viewButtonClass(active: boolean) {
       size="sm"
       :disabled="loading"
       @update:model-value="emit('update:searchQuery', $event)"
+    />
+
+    <USelect
+      :model-value="storageBackend"
+      :items="storageBackendItems"
+      class="w-28 shrink-0"
+      size="sm"
+      :aria-label="t('stats.storage')"
+      :disabled="loading"
+      @update:model-value="emit('update:storageBackend', $event)"
     />
 
     <USelect

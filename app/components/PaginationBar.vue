@@ -125,124 +125,124 @@ const navButtonClass = 'inline-flex items-center justify-center rounded-md borde
         </p>
 
         <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
-        <USelect
-          v-if="pageSize !== undefined"
-          :model-value="pageSize"
-          :items="pageSizeItems"
-          value-key="value"
-          size="sm"
-          class="hidden w-[7.5rem] shrink-0 sm:block"
-          :aria-label="t('pagination.pageSize')"
-          :disabled="loading"
-          @update:model-value="onPageSizeChange"
-        />
-
-        <div class="flex items-center justify-center gap-1 sm:justify-end">
-          <button
-            type="button"
-            :class="[navButtonClass, 'hidden size-8 sm:inline-flex']"
-            :aria-label="t('pagination.first')"
-            :disabled="page <= 1 || loading"
-            @click="goTo(1)"
-          >
-            <UIcon
-              name="i-lucide-chevrons-left"
-              class="size-4"
-            />
-          </button>
-          <button
-            type="button"
-            :class="[navButtonClass, 'size-9 sm:size-8']"
-            :aria-label="t('pagination.prev')"
-            :disabled="page <= 1 || loading"
-            @click="goTo(page - 1)"
-          >
-            <UIcon
-              name="i-lucide-chevron-left"
-              class="size-4"
-            />
-          </button>
-
-          <p
-            v-if="!showMobilePageNumbers"
-            class="min-w-[5.5rem] px-1 text-center text-sm text-muted sm:hidden"
-          >
-            {{ t('pagination.pageStatus', { page, totalPages }) }}
-          </p>
-
-          <template
-            v-for="(target, index) in visiblePages"
-            :key="`${target}-${index}`"
-          >
-            <span
-              v-if="target === 'ellipsis'"
-              class="inline-flex size-9 items-center justify-center text-sm text-muted sm:size-8"
-              :class="showMobilePageNumbers ? '' : 'hidden sm:inline-flex'"
-              aria-hidden="true"
-            >
-              …
-            </span>
-            <button
-              v-else
-              type="button"
-              class="inline-flex items-center justify-center rounded-md border text-sm transition-colors disabled:pointer-events-none disabled:opacity-40"
-              :class="[
-                pageButtonClass(target),
-                showMobilePageNumbers ? 'size-9 sm:size-8' : 'hidden size-8 sm:inline-flex'
-              ]"
-              :aria-label="t('pagination.pageNumber', { page: target })"
-              :aria-current="target === page ? 'page' : undefined"
-              :disabled="loading"
-              @click="goTo(target)"
-            >
-              {{ target }}
-            </button>
-          </template>
-
-          <button
-            type="button"
-            :class="[navButtonClass, 'size-9 sm:size-8']"
-            :aria-label="t('pagination.next')"
-            :disabled="page >= totalPages || loading"
-            @click="goTo(page + 1)"
-          >
-            <UIcon
-              name="i-lucide-chevron-right"
-              class="size-4"
-            />
-          </button>
-          <button
-            type="button"
-            :class="[navButtonClass, 'hidden size-8 sm:inline-flex']"
-            :aria-label="t('pagination.last')"
-            :disabled="page >= totalPages || loading"
-            @click="goTo(totalPages)"
-          >
-            <UIcon
-              name="i-lucide-chevrons-right"
-              class="size-4"
-            />
-          </button>
-        </div>
-
-        <form
-          class="hidden items-center gap-1.5 text-sm text-muted sm:flex"
-          @submit.prevent="jumpToPage"
-        >
-          <span>{{ t('pagination.goToPrefix') }}</span>
-          <UInput
-            v-model="jumpPageInput"
-            type="number"
-            min="1"
-            :max="totalPages"
+          <USelect
+            v-if="pageSize !== undefined"
+            :model-value="pageSize"
+            :items="pageSizeItems"
+            value-key="value"
             size="sm"
-            class="w-14"
-            :aria-label="t('pagination.pagePlaceholder')"
+            class="hidden w-[7.5rem] shrink-0 sm:block"
+            :aria-label="t('pagination.pageSize')"
             :disabled="loading"
-            @blur="jumpToPage"
+            @update:model-value="onPageSizeChange"
           />
-          <span v-if="t('pagination.goToSuffix')">{{ t('pagination.goToSuffix') }}</span>
-        </form>
+
+          <div class="flex items-center justify-center gap-1 sm:justify-end">
+            <button
+              type="button"
+              :class="[navButtonClass, 'hidden size-8 sm:inline-flex']"
+              :aria-label="t('pagination.first')"
+              :disabled="page <= 1 || loading"
+              @click="goTo(1)"
+            >
+              <UIcon
+                name="i-lucide-chevrons-left"
+                class="size-4"
+              />
+            </button>
+            <button
+              type="button"
+              :class="[navButtonClass, 'size-9 sm:size-8']"
+              :aria-label="t('pagination.prev')"
+              :disabled="page <= 1 || loading"
+              @click="goTo(page - 1)"
+            >
+              <UIcon
+                name="i-lucide-chevron-left"
+                class="size-4"
+              />
+            </button>
+
+            <p
+              v-if="!showMobilePageNumbers"
+              class="min-w-[5.5rem] px-1 text-center text-sm text-muted sm:hidden"
+            >
+              {{ t('pagination.pageStatus', { page, totalPages }) }}
+            </p>
+
+            <template
+              v-for="(target, index) in visiblePages"
+              :key="`${target}-${index}`"
+            >
+              <span
+                v-if="target === 'ellipsis'"
+                class="inline-flex size-9 items-center justify-center text-sm text-muted sm:size-8"
+                :class="showMobilePageNumbers ? '' : 'hidden sm:inline-flex'"
+                aria-hidden="true"
+              >
+                …
+              </span>
+              <button
+                v-else
+                type="button"
+                class="inline-flex items-center justify-center rounded-md border text-sm transition-colors disabled:pointer-events-none disabled:opacity-40"
+                :class="[
+                  pageButtonClass(target),
+                  showMobilePageNumbers ? 'size-9 sm:size-8' : 'hidden size-8 sm:inline-flex'
+                ]"
+                :aria-label="t('pagination.pageNumber', { page: target })"
+                :aria-current="target === page ? 'page' : undefined"
+                :disabled="loading"
+                @click="goTo(target)"
+              >
+                {{ target }}
+              </button>
+            </template>
+
+            <button
+              type="button"
+              :class="[navButtonClass, 'size-9 sm:size-8']"
+              :aria-label="t('pagination.next')"
+              :disabled="page >= totalPages || loading"
+              @click="goTo(page + 1)"
+            >
+              <UIcon
+                name="i-lucide-chevron-right"
+                class="size-4"
+              />
+            </button>
+            <button
+              type="button"
+              :class="[navButtonClass, 'hidden size-8 sm:inline-flex']"
+              :aria-label="t('pagination.last')"
+              :disabled="page >= totalPages || loading"
+              @click="goTo(totalPages)"
+            >
+              <UIcon
+                name="i-lucide-chevrons-right"
+                class="size-4"
+              />
+            </button>
+          </div>
+
+          <form
+            class="hidden items-center gap-1.5 text-sm text-muted sm:flex"
+            @submit.prevent="jumpToPage"
+          >
+            <span>{{ t('pagination.goToPrefix') }}</span>
+            <UInput
+              v-model="jumpPageInput"
+              type="number"
+              min="1"
+              :max="totalPages"
+              size="sm"
+              class="w-14"
+              :aria-label="t('pagination.pagePlaceholder')"
+              :disabled="loading"
+              @blur="jumpToPage"
+            />
+            <span v-if="t('pagination.goToSuffix')">{{ t('pagination.goToSuffix') }}</span>
+          </form>
         </div>
       </div>
     </div>

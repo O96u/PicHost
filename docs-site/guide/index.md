@@ -12,19 +12,15 @@
 
 ## 截图预览
 
-**main** 分支暂无公网演示，以下为 v1.2.0 产品界面。
+**main** 分支暂无公网演示，以下为当前产品界面（v1.2.5+）。
 
-| 首次设置 | 登录 |
-| :------: | :--: |
-| ![首次设置](/screenshots/setup.png) | ![登录](/screenshots/login.png) |
+| API | 图库 |
+| :-: | :-: |
+| ![API](/screenshots/api.png) | ![图库](/screenshots/gallery.png) |
 
-| API | 统计与图库 |
-| :-: | :--------: |
-| ![API](/screenshots/api.png) | ![统计与图库](/screenshots/stats.png) |
-
-| 存储管理 | 系统设置 |
-| :------: | :------: |
-| ![存储管理](/screenshots/storage.png) | ![系统设置](/screenshots/settings.png) |
+| 存储管理 | 设置与偏好 |
+| :------: | :--------: |
+| ![存储管理](/screenshots/storage.png) | ![设置与偏好](/screenshots/settings.png) |
 
 | 操作日志 |
 | :------: |

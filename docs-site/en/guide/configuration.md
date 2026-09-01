@@ -1,6 +1,6 @@
 # Environment variables
 
-Configure PicHost via environment variables (Docker / `.env`) or the in-app **Settings** page. Most values prefer **SQLite** when saved; some env vars override or lock UI editing.
+Configure PicHost via environment variables (Docker / `.env`) or the in-app **Settings** page. Admins use **Settings** (`/settings`) with sidebar sections **Basic**, **Domains & paths**, **Access control**, and **Activity log**. Most values prefer **SQLite** when saved; some env vars override or lock UI editing.
 
 ## Priority overview
 

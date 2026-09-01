@@ -98,10 +98,10 @@ function canDelete() {
       />
     </div>
 
-    <div class="mt-4 space-y-2 text-xs text-muted">
-      <div class="flex items-center gap-2">
+    <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+      <div class="flex min-w-0 items-center gap-2">
         <span class="shrink-0">{{ t('storage.storageId') }}:</span>
-        <code class="min-w-0 flex-1 truncate font-mono text-dimmed">{{ backend.id }}</code>
+        <code class="min-w-0 truncate font-mono text-dimmed">{{ backend.id }}</code>
         <CopyButton
           icon="i-lucide-copy"
           icon-only
@@ -113,9 +113,9 @@ function canDelete() {
           :success-title="t('copy.copied')"
         />
       </div>
-      <p>
+      <span>
         {{ t('storage.storageType') }}: {{ typeLabel }}
-      </p>
+      </span>
     </div>
 
     <div class="mt-4 flex flex-wrap gap-2 border-t border-default pt-4">

@@ -73,8 +73,11 @@ function formatTimeShort(value: string) {
   }
 }
 
-function actionColor(action: LogAction) {
-  return action === 'upload' ? 'success' : 'error'
+function actionBadgeClass(action: LogAction) {
+  const base = 'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium whitespace-nowrap'
+  return action === 'upload'
+    ? `${base} bg-success/10 text-success`
+    : `${base} bg-error/10 text-error`
 }
 
 function actionIcon(action: LogAction) {
@@ -335,24 +338,16 @@ onMounted(async () => {
             </div>
 
             <div class="mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
-              <UBadge
-                :color="actionColor(row.action)"
-                variant="subtle"
-                size="xs"
-              >
+              <span :class="actionBadgeClass(row.action)">
                 <UIcon
                   :name="actionIcon(row.action)"
-                  class="mr-1 size-3"
+                  class="size-3 shrink-0"
                 />
                 {{ row.action === 'upload' ? t('logs.actionUpload') : t('logs.actionDelete') }}
-              </UBadge>
-              <UBadge
-                color="neutral"
-                variant="subtle"
-                size="xs"
-              >
+              </span>
+              <span class="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary whitespace-nowrap">
                 {{ sourceLabel(row.source) }}
-              </UBadge>
+              </span>
               <span
                 v-if="isAdmin"
                 class="text-xs text-muted"
@@ -412,32 +407,32 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="hidden overflow-x-auto sm:block">
-        <table class="min-w-full text-left text-sm">
+      <div class="hidden min-w-0 sm:block">
+        <table class="w-full table-fixed text-left text-sm">
           <thead class="border-b border-default bg-muted/30 text-xs text-muted">
             <tr>
-              <th class="px-4 py-3 font-medium sm:px-6">
+              <th class="w-36 px-4 py-3 font-medium sm:px-6">
                 {{ t('logs.colTime') }}
               </th>
               <th
                 v-if="isAdmin"
-                class="px-4 py-3 font-medium"
+                class="w-20 px-4 py-3 font-medium"
               >
                 {{ t('logs.colUser') }}
               </th>
-              <th class="px-4 py-3 font-medium">
+              <th class="w-20 whitespace-nowrap px-4 py-3 font-medium">
                 {{ t('logs.colAction') }}
               </th>
-              <th class="px-4 py-3 font-medium">
+              <th class="w-16 whitespace-nowrap px-4 py-3 font-medium">
                 {{ t('logs.colSource') }}
               </th>
-              <th class="px-4 py-3 font-medium">
+              <th class="w-24 px-4 py-3 font-medium">
                 {{ t('logs.colStorage') }}
               </th>
               <th class="hidden px-4 py-3 font-medium md:table-cell">
                 {{ t('logs.colFile') }}
               </th>
-              <th class="px-4 py-3 font-medium">
+              <th class="w-20 px-4 py-3 font-medium">
                 {{ t('logs.colSize') }}
               </th>
               <th class="hidden px-4 py-3 font-medium xl:table-cell">
@@ -451,41 +446,33 @@ onMounted(async () => {
               :key="row.id"
               class="hover:bg-muted/20"
             >
-              <td class="whitespace-nowrap px-4 py-3 text-xs text-muted sm:px-6">
-                {{ formatTime(row.createdAt) }}
+              <td class="px-4 py-3 text-xs text-muted sm:px-6">
+                <span class="block truncate">{{ formatTime(row.createdAt) }}</span>
               </td>
               <td
                 v-if="isAdmin"
                 class="px-4 py-3 text-xs"
               >
-                {{ row.username ?? '—' }}
+                <span class="block truncate">{{ row.username ?? '—' }}</span>
               </td>
-              <td class="px-4 py-3">
-                <UBadge
-                  :color="actionColor(row.action)"
-                  variant="subtle"
-                  size="xs"
-                >
+              <td class="whitespace-nowrap px-4 py-3">
+                <span :class="actionBadgeClass(row.action)">
                   <UIcon
                     :name="actionIcon(row.action)"
-                    class="mr-1 size-3"
+                    class="size-3 shrink-0"
                   />
                   {{ row.action === 'upload' ? t('logs.actionUpload') : t('logs.actionDelete') }}
-                </UBadge>
+                </span>
               </td>
-              <td class="px-4 py-3">
-                <UBadge
-                  color="neutral"
-                  variant="subtle"
-                  size="xs"
-                >
+              <td class="whitespace-nowrap px-4 py-3">
+                <span class="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                   {{ sourceLabel(row.source) }}
-                </UBadge>
+                </span>
               </td>
               <td class="px-4 py-3 text-xs">
                 <span
                   v-if="row.storage"
-                  class="inline-flex max-w-[8rem] items-center gap-1 truncate"
+                  class="flex min-w-0 items-center gap-1"
                   :title="row.storage.name"
                 >
                   <UIcon
@@ -500,7 +487,7 @@ onMounted(async () => {
                 >—</span>
               </td>
               <td
-                class="hidden max-w-[12rem] truncate px-4 py-3 md:table-cell"
+                class="hidden max-w-0 truncate px-4 py-3 md:table-cell"
                 :title="row.originalName"
               >
                 {{ row.originalName }}
@@ -508,21 +495,21 @@ onMounted(async () => {
               <td class="whitespace-nowrap px-4 py-3 tabular-nums text-muted">
                 {{ formatFileSize(row.size) }}
               </td>
-              <td class="hidden px-4 py-3 xl:table-cell">
-                <div class="flex max-w-[16rem] items-center gap-1">
+              <td class="hidden max-w-0 px-4 py-3 xl:table-cell">
+                <div class="flex min-w-0 items-center gap-1">
                   <a
                     v-if="row.action === 'upload'"
                     :href="imageUrl(row.key)"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="truncate font-mono text-xs text-primary hover:underline"
+                    class="min-w-0 truncate font-mono text-xs text-primary hover:underline"
                     :title="row.key"
                   >
                     {{ row.key }}
                   </a>
                   <span
                     v-else
-                    class="truncate font-mono text-xs text-dimmed"
+                    class="min-w-0 truncate font-mono text-xs text-dimmed"
                     :title="row.key"
                   >
                     {{ row.key }}
@@ -530,6 +517,7 @@ onMounted(async () => {
                   <CopyButton
                     icon="i-lucide-copy"
                     icon-only
+                    class="shrink-0"
                     :label="t('common.copy')"
                     :value="row.key"
                     :success-title="t('copy.copiedUrl')"

@@ -33,7 +33,6 @@ const {
   loading: galleryLoading,
   searchQuery,
   activeSearch,
-  refreshList,
   fetchList,
   fetchSearch,
   fetchTotal,
@@ -41,6 +40,9 @@ const {
   goToPage,
   setPageSize,
   removeItems,
+  activeStorageBackend,
+  setActiveStorageBackend,
+  storageBackendOptions,
   activeUploadSource,
   setActiveUploadSource,
   resetFilters,
@@ -66,11 +68,20 @@ const previewImage = ref<ImageItem | null>(null)
 const viewMode = ref<'grid' | 'list'>('grid')
 
 const currentUploadSource = ref('all')
+const currentStorageBackend = ref('all')
 
 const uploadSourceItems = computed(() => [
   { label: t('stats.filterSourceAll'), value: 'all' },
   { label: t('stats.sourceWeb'), value: 'web' },
   { label: t('stats.sourceApi'), value: 'api' }
+])
+
+const storageBackendItems = computed(() => [
+  { label: t('stats.filterStorageAll'), value: 'all' },
+  ...storageBackendOptions.value.map(backend => ({
+    label: backend.name,
+    value: backend.id
+  }))
 ])
 
 const selectedCount = computed(() => selectedKeys.value.size)
@@ -103,17 +114,6 @@ async function refreshStats() {
   }
 }
 
-async function refreshGallery() {
-  if (!isAuthenticated.value) return
-  selectedKeys.value = new Set()
-  try {
-    await Promise.all([refreshList(), loadStorageBackendOptions()])
-    currentUploadSource.value = activeUploadSource.value
-  } catch (error: unknown) {
-    handleAuthError(error)
-  }
-}
-
 async function reloadGallery() {
   if (activeSearch.value) {
     await fetchSearch(galleryPage.value)
@@ -134,6 +134,7 @@ async function refreshAll() {
       loadStorageBackendOptions()
     ])
     currentUploadSource.value = activeUploadSource.value
+    currentStorageBackend.value = activeStorageBackend.value
   } catch (error: unknown) {
     handleAuthError(error)
     if (isAuthenticated.value) {
@@ -141,6 +142,17 @@ async function refreshAll() {
     }
   } finally {
     statsLoading.value = false
+  }
+}
+
+async function handleStorageBackendChange(backendId: string) {
+  if (!isAuthenticated.value) return
+  currentStorageBackend.value = backendId
+  selectedKeys.value = new Set()
+  try {
+    await setActiveStorageBackend(backendId)
+  } catch (error: unknown) {
+    handleAuthError(error)
   }
 }
 
@@ -159,6 +171,7 @@ async function handleResetFilters() {
   if (!isAuthenticated.value) return
   selectedKeys.value = new Set()
   currentUploadSource.value = 'all'
+  currentStorageBackend.value = 'all'
   try {
     await resetFilters()
   } catch (error: unknown) {
@@ -381,11 +394,14 @@ watch(isAuthenticated, async (authed, prev) => {
 
           <GalleryFilterBar
             v-model:search-query="searchQuery"
+            :storage-backend="currentStorageBackend"
+            :storage-backend-items="storageBackendItems"
             :upload-source="currentUploadSource"
             :upload-source-items="uploadSourceItems"
             :view-mode="viewMode"
             :selected-count="selectedCount"
             :loading="galleryLoading"
+            @update:storage-backend="handleStorageBackendChange"
             @update:upload-source="handleUploadSourceChange"
             @update:view-mode="viewMode = $event"
             @search="handleSearch"
