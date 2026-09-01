@@ -9,7 +9,9 @@ export default defineEventHandler(async (event) => {
 
   const config = useRuntimeConfig(event)
   const currentVersion = String(config.appVersion ?? '')
-  const latest = await fetchLatestGitHubRelease()
+  const query = getQuery(event)
+  const force = query.refresh === '1' || query.refresh === 'true'
+  const latest = await fetchLatestGitHubRelease(force)
 
   if (!latest) {
     return {

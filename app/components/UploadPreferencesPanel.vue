@@ -1,13 +1,4 @@
 <script setup lang="ts">
-withDefaults(
-  defineProps<{
-    embedded?: boolean
-  }>(),
-  {
-    embedded: false
-  }
-)
-
 const emit = defineEmits<{
   back: []
 }>()
@@ -57,17 +48,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div
-    class="flex flex-col overflow-hidden max-sm:overflow-visible"
-    :class="
-      embedded
-        ? ''
-        : 'upload-card-surface upload-card-surface--panel max-sm:min-h-0 sm:h-full'
-    "
-  >
-    <div
-      class="flex items-start justify-between gap-3 border-b border-default px-5 py-4 sm:px-6"
-    >
+  <div class="upload-card-surface upload-card-surface--panel flex max-sm:min-h-0 flex-col overflow-hidden max-sm:overflow-visible sm:h-full">
+    <div class="flex items-start justify-between gap-3 border-b border-default px-5 py-4 sm:px-6">
       <div class="flex min-w-0 items-start gap-2">
         <UIcon
           name="i-lucide-settings-2"
@@ -83,7 +65,6 @@ onMounted(() => {
         </div>
       </div>
       <UButton
-        v-if="!embedded"
         :label="t('common.back')"
         icon="i-lucide-arrow-left"
         variant="ghost"
@@ -95,10 +76,7 @@ onMounted(() => {
       />
     </div>
 
-    <div
-      class="p-5 sm:p-6"
-      :class="embedded ? '' : 'flex flex-1 flex-col justify-center'"
-    >
+    <div class="flex flex-1 flex-col justify-center p-5 sm:p-6">
       <div class="grid gap-5 sm:grid-cols-3 sm:gap-6">
         <div class="space-y-4">
           <h3 class="text-sm font-semibold">
@@ -128,9 +106,7 @@ onMounted(() => {
                 class="mt-0.5"
               />
               <span class="min-w-0 flex-1">
-                <span
-                  class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm"
-                >
+                <span class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
                   <span>{{ t('preferences.autoDeletePrefix') }}</span>
                   <UInput
                     v-model.number="userAutoDeleteDaysDraft"
@@ -139,11 +115,7 @@ onMounted(() => {
                     max="3650"
                     size="xs"
                     class="w-14 tabular-nums"
-                    :class="
-                      userAutoDeleteEnabled
-                        ? ''
-                        : 'pointer-events-none opacity-40'
-                    "
+                    :class="userAutoDeleteEnabled ? '' : 'pointer-events-none opacity-40'"
                   />
                   <span>{{ t('preferences.autoDeleteSuffix') }}</span>
                 </span>
@@ -171,9 +143,7 @@ onMounted(() => {
           <p class="text-xs leading-relaxed text-muted">
             {{ t('preferences.webpQualityHint') }}
           </p>
-          <div
-            class="flex items-center justify-between gap-2 text-sm text-muted"
-          >
+          <div class="flex items-center justify-between gap-2 text-sm text-muted">
             <span>{{ t('preferences.current', { n: clientWebpQuality }) }}</span>
             <span>{{ clientQualityLevel }}</span>
           </div>

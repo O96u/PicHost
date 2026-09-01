@@ -6,6 +6,8 @@ const props = defineProps<{
   icon?: string
   block?: boolean
   successTitle?: string
+  variant?: 'solid' | 'outline' | 'soft' | 'subtle' | 'ghost' | 'link'
+  color?: 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
 }>()
 
 const emit = defineEmits<{
@@ -76,7 +78,8 @@ async function copy() {
 <template>
   <UButton
     size="xs"
-    variant="soft"
+    :variant="variant ?? 'soft'"
+    :color="color"
     :loading="copying"
     :disabled="!value"
     :label="iconOnly ? undefined : label"

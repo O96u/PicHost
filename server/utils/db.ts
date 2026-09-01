@@ -613,6 +613,15 @@ function countSince(action: LogAction, sinceIso: string): number {
   return row?.total ?? 0
 }
 
+function countBetween(action: LogAction, startIso: string, endIso: string): number {
+  const row = getDb().prepare(`
+    SELECT COUNT(*) AS total
+    FROM activity_logs
+    WHERE action = ? AND created_at >= ? AND created_at < ?
+  `).get(action, startIso, endIso) as unknown as { total: number } | undefined
+  return row?.total ?? 0
+}
+
 function sumUploadBytes(): number {
   const row = getDb().prepare(`
     SELECT COALESCE(SUM(size), 0) AS total
@@ -674,9 +683,23 @@ function startOfMonthIsoInShanghai(now = new Date()): string {
   return new Date(Date.UTC(y, m, 1) - 8 * 60 * 60 * 1000).toISOString()
 }
 
+function startOfYesterdayIsoInShanghai(now = new Date()): string {
+  const startOfDay = startOfDayIsoInShanghai(now)
+  return new Date(new Date(startOfDay).getTime() - 24 * 60 * 60 * 1000).toISOString()
+}
+
+function startOfLastMonthIsoInShanghai(now = new Date()): string {
+  const shifted = new Date(now.getTime() + 8 * 60 * 60 * 1000)
+  const y = shifted.getUTCFullYear()
+  const m = shifted.getUTCMonth()
+  return new Date(Date.UTC(y, m - 1, 1) - 8 * 60 * 60 * 1000).toISOString()
+}
+
 export function getActivityStats(): {
   uploadToday: number
+  uploadYesterday: number
   uploadMonth: number
+  uploadLastMonth: number
   deleteToday: number
   deleteMonth: number
   uploadTotal: number
@@ -687,6 +710,8 @@ export function getActivityStats(): {
 } {
   const startOfDay = startOfDayIsoInShanghai()
   const startOfMonth = startOfMonthIsoInShanghai()
+  const startOfYesterday = startOfYesterdayIsoInShanghai()
+  const startOfLastMonth = startOfLastMonthIsoInShanghai()
 
   const uploadTotalRow = getDb().prepare(`
     SELECT COUNT(*) AS total FROM activity_logs WHERE action = 'upload'
@@ -697,7 +722,9 @@ export function getActivityStats(): {
 
   return {
     uploadToday: countSince('upload', startOfDay),
+    uploadYesterday: countBetween('upload', startOfYesterday, startOfDay),
     uploadMonth: countSince('upload', startOfMonth),
+    uploadLastMonth: countBetween('upload', startOfLastMonth, startOfMonth),
     deleteToday: countSince('delete', startOfDay),
     deleteMonth: countSince('delete', startOfMonth),
     uploadTotal: uploadTotalRow.total,

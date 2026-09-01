@@ -17,17 +17,12 @@ const navItems = computed(() => {
   ]
   if (isAdmin.value) {
     items.push({ label: t('nav.storage'), to: '/storage', icon: 'i-lucide-hard-drive' })
-    items.push({ label: t('nav.settings'), to: '/settings', icon: 'i-lucide-settings' })
   }
+  items.push({ label: t('nav.settings'), to: '/settings', icon: 'i-lucide-settings' })
   return items
 })
 
 const accountMenuItems = computed<DropdownMenuItem[]>(() => [
-  {
-    label: t('nav.logs'),
-    icon: 'i-lucide-scroll-text',
-    to: '/logs'
-  },
   {
     label: t('nav.changePassword'),
     icon: 'i-lucide-key-round',
@@ -48,7 +43,7 @@ const desktopUserMenuItems = computed<DropdownMenuItem[][]>(() => [
 
 function isNavActive(to: string) {
   if (to === '/settings') {
-    return route.path === '/settings'
+    return route.path.startsWith('/settings')
   }
   return route.path.startsWith(to)
 }

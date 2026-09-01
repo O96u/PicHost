@@ -9,7 +9,7 @@ import { createApiError } from '../../utils/api-error'
 import { getUploadSourcesForKeys, listUserIdUsernameMap } from '../../utils/db'
 import { mapStoredImageToItem } from '../../utils/image-response'
 import { listStorageBackendNameMap } from '../../utils/storage-backends'
-import { readBackendIdQuery } from '../../utils/image-query'
+import { readBackendIdQuery, readContentTypeQuery, readUploadSourceQuery } from '../../utils/image-query'
 import { listImages } from '../../utils/storage'
 
 export default defineEventHandler(async (event) => {
@@ -31,9 +31,24 @@ export default defineEventHandler(async (event) => {
   if (backendId === null) {
     createApiError(event, 'INVALID_REQUEST', '无效的存储后端', 400)
   }
+  const contentType = readContentTypeQuery(query)
+  if (contentType === null) {
+    createApiError(event, 'INVALID_REQUEST', '无效的图片类型', 400)
+  }
+  const uploadSource = readUploadSourceQuery(query)
+  if (uploadSource === null) {
+    createApiError(event, 'INVALID_REQUEST', '无效的上传来源', 400)
+  }
   const userFilter = await getImageUserFilter(event)
 
-  const listing = await listImages({ limit, page, userFilter, backendId })
+  const listing = await listImages({
+    limit,
+    page,
+    userFilter,
+    backendId,
+    contentType,
+    uploadSource
+  })
 
   const user = await getCurrentUser(event)
   const ownerMap = user?.role === 'admin' ? listUserIdUsernameMap() : undefined

@@ -3,7 +3,9 @@ import type { ImageItem } from '~/types/image'
 
 interface StatsResponse {
   uploadToday: number
+  uploadYesterday: number
   uploadMonth: number
+  uploadLastMonth: number
   deleteToday: number
   deleteMonth: number
   uploadTotal: number
@@ -15,32 +17,37 @@ interface StatsResponse {
     web: number
     api: number
   }
+  storageUsage: {
+    usedBytes: number
+    totalBytes: number | null
+    percent: number | null
+  }
 }
 
 const {
   items,
   page: galleryPage,
+  pageSize: galleryPageSize,
   totalPages: galleryTotalPages,
   total: galleryTotal,
   loading: galleryLoading,
   searchQuery,
   activeSearch,
-  listSummary,
   refreshList,
   fetchList,
   fetchSearch,
   fetchTotal,
   submitSearch,
   goToPage,
+  setPageSize,
   removeItems,
-  activeStorageBackend,
-  storageBackendOptions,
-  setActiveStorageBackend,
+  activeUploadSource,
+  setActiveUploadSource,
+  resetFilters,
   loadStorageBackendOptions
 } = useImageList()
 
-const { formatFileSize } = useFileSize()
-const { isChecking, isAuthenticated, checkSession, handleAuthError, fetchStatus, isAdmin } = useAuth()
+const { isChecking, isAuthenticated, checkSession, handleAuthError, fetchStatus } = useAuth()
 const toast = useToast()
 const { t } = useI18n()
 
@@ -54,60 +61,19 @@ const deleteModalOpen = ref(false)
 const deleteTargetKeys = ref<string[]>([])
 const batchDeleting = ref(false)
 const showScrollTop = ref(false)
-const currentStorage = ref('all')
 const previewOpen = ref(false)
 const previewImage = ref<ImageItem | null>(null)
+const viewMode = ref<'grid' | 'list'>('grid')
 
-const storageSelectItems = computed(() => [
-  { label: t('stats.filterStorageAll'), value: 'all' },
-  ...storageBackendOptions.value.map(backend => ({
-    label: backend.name,
-    value: backend.id
-  }))
+const currentUploadSource = ref('all')
+
+const uploadSourceItems = computed(() => [
+  { label: t('stats.filterSourceAll'), value: 'all' },
+  { label: t('stats.sourceWeb'), value: 'web' },
+  { label: t('stats.sourceApi'), value: 'api' }
 ])
 
 const selectedCount = computed(() => selectedKeys.value.size)
-
-const SOURCE_CHART_COLORS = [
-  'var(--ui-primary)',
-  '#10b981'
-]
-
-const sourceUploadItems = computed(() => {
-  const bySource = stats.value?.bySource
-  if (!bySource) return []
-  return [
-    { key: 'web', label: t('stats.sourceWeb'), count: bySource.web, color: SOURCE_CHART_COLORS[0]! },
-    { key: 'api', label: t('stats.sourceApi'), count: bySource.api, color: SOURCE_CHART_COLORS[1]! }
-  ]
-})
-
-const sourceUploadTotal = computed(() =>
-  sourceUploadItems.value.reduce((sum, item) => sum + item.count, 0)
-)
-
-function sourcePercent(count: number) {
-  const total = sourceUploadTotal.value
-  if (!total) return 0
-  return Math.round((count / total) * 100)
-}
-
-const statCards = computed(() => {
-  const s = stats.value
-  const base = [
-    { label: t('stats.uploadToday'), value: s?.uploadToday ?? '—' },
-    { label: t('stats.uploadMonth'), value: s?.uploadMonth ?? '—' },
-    { label: t('stats.uploadTotal'), value: s?.uploadTotal ?? '—' },
-    { label: t('stats.storedCount'), value: s?.storedCount ?? '—' },
-    { label: t('stats.deleteToday'), value: s?.deleteToday ?? '—' },
-    { label: t('stats.deleteMonth'), value: s?.deleteMonth ?? '—' },
-    isAdmin.value
-      ? { label: t('stats.userCount'), value: s?.userCount ?? '—' }
-      : { label: t('stats.deleteTotal'), value: s?.deleteTotal ?? '—' },
-    { label: t('stats.uploadBytes'), value: s ? formatFileSize(s.uploadBytesTotal) : '—' }
-  ]
-  return base
-})
 
 function onWindowScroll() {
   showScrollTop.value = window.scrollY > 400
@@ -142,7 +108,7 @@ async function refreshGallery() {
   selectedKeys.value = new Set()
   try {
     await Promise.all([refreshList(), loadStorageBackendOptions()])
-    currentStorage.value = activeStorageBackend.value
+    currentUploadSource.value = activeUploadSource.value
   } catch (error: unknown) {
     handleAuthError(error)
   }
@@ -167,7 +133,7 @@ async function refreshAll() {
       reloadGallery(),
       loadStorageBackendOptions()
     ])
-    currentStorage.value = activeStorageBackend.value
+    currentUploadSource.value = activeUploadSource.value
   } catch (error: unknown) {
     handleAuthError(error)
     if (isAuthenticated.value) {
@@ -178,15 +144,30 @@ async function refreshAll() {
   }
 }
 
-async function handleStorageChange(backendId: string) {
+async function handleUploadSourceChange(uploadSource: string) {
   if (!isAuthenticated.value) return
-  currentStorage.value = backendId
+  currentUploadSource.value = uploadSource
   selectedKeys.value = new Set()
   try {
-    await setActiveStorageBackend(backendId)
+    await setActiveUploadSource(uploadSource)
   } catch (error: unknown) {
     handleAuthError(error)
   }
+}
+
+async function handleResetFilters() {
+  if (!isAuthenticated.value) return
+  selectedKeys.value = new Set()
+  currentUploadSource.value = 'all'
+  try {
+    await resetFilters()
+  } catch (error: unknown) {
+    handleAuthError(error)
+  }
+}
+
+function updateSelectedKeys(keys: Set<string>) {
+  selectedKeys.value = keys
 }
 
 async function handleSearch() {
@@ -197,12 +178,6 @@ async function handleSearch() {
   } catch (error: unknown) {
     handleAuthError(error)
   }
-}
-
-async function clearSearch() {
-  searchQuery.value = ''
-  if (!activeSearch.value) return
-  await refreshGallery()
 }
 
 function requestDelete(key: string) {
@@ -221,19 +196,6 @@ function requestBatchDelete() {
   }
   deleteTargetKeys.value = Array.from(selectedKeys.value)
   deleteModalOpen.value = true
-}
-
-function selectAllOnPage() {
-  selectedKeys.value = new Set(items.value.map(item => item.key))
-}
-
-function invertSelectionOnPage() {
-  const next = new Set(selectedKeys.value)
-  for (const item of items.value) {
-    if (next.has(item.key)) next.delete(item.key)
-    else next.add(item.key)
-  }
-  selectedKeys.value = next
 }
 
 function clearSelection() {
@@ -306,6 +268,17 @@ async function handleGalleryPageChange(targetPage: number) {
   previewImage.value = null
   try {
     await goToPage(targetPage)
+  } catch (error: unknown) {
+    handleAuthError(error)
+  }
+}
+
+async function handleGalleryPageSizeChange(size: number) {
+  selectedKeys.value = new Set()
+  previewOpen.value = false
+  previewImage.value = null
+  try {
+    await setPageSize(size)
   } catch (error: unknown) {
     handleAuthError(error)
   }
@@ -392,206 +365,70 @@ watch(isAuthenticated, async (authed, prev) => {
         />
       </div>
 
-      <section class="grid gap-3 lg:grid-cols-3 lg:items-stretch">
-        <div class="grid grid-cols-2 gap-3 lg:col-span-2 lg:grid-cols-4">
-          <div
-            v-for="item in statCards"
-            :key="item.label"
-            class="rounded-xl border border-default bg-elevated p-4"
-          >
-            <p class="text-xs text-muted">
-              {{ item.label }}
-            </p>
-            <p class="mt-1 text-2xl font-semibold tabular-nums">
-              {{ item.value }}
-            </p>
-          </div>
-        </div>
+      <GalleryStatsOverview
+        :stats="stats"
+        :loading="statsLoading"
+      />
 
-        <div class="flex h-full min-h-0 flex-col rounded-xl border border-default bg-elevated p-4 lg:col-span-1">
-          <h2 class="shrink-0 text-sm font-medium text-muted">
-            {{ t('stats.sourceDistribution') }}
-          </h2>
-          <div
-            v-if="!sourceUploadTotal"
-            class="flex flex-1 items-center justify-center text-center text-xs text-muted"
-          >
-            {{ t('stats.noData') }}
-          </div>
-          <ul
-            v-else
-            class="mt-4 flex min-h-0 flex-1 flex-col"
-          >
-            <li
-              v-for="item in sourceUploadItems"
-              :key="item.key"
-              class="flex flex-1 flex-col justify-center gap-2 py-1"
-            >
-              <div class="flex items-center justify-between gap-2 text-xs">
-                <span class="flex min-w-0 items-center gap-1.5">
-                  <span
-                    class="size-2 shrink-0 rounded-full"
-                    :style="{ background: item.color }"
-                  />
-                  <span class="truncate">{{ item.label }}</span>
-                </span>
-                <span class="shrink-0 tabular-nums text-muted">
-                  {{ item.count }} ({{ sourcePercent(item.count) }}%)
-                </span>
-              </div>
-              <div class="h-2 rounded-full bg-muted/40">
-                <div
-                  class="h-full rounded-full transition-[width]"
-                  :style="{
-                    width: `${sourcePercent(item.count)}%`,
-                    backgroundColor: item.color
-                  }"
-                />
-              </div>
-            </li>
-          </ul>
-        </div>
-      </section>
+      <section class="space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <GallerySelectionBar
+            :items="items"
+            :selected-keys="selectedKeys"
+            @update:selected-keys="updateSelectedKeys"
+            @clear="clearSelection"
+          />
 
-      <section class="space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-          <div class="min-w-0">
-            <h2 class="text-lg font-medium">
-              {{ t('stats.imagesSection') }}
-            </h2>
-            <p
-              v-if="!galleryLoading"
-              class="mt-0.5 text-sm text-muted"
-            >
-              {{ listSummary }}
-            </p>
-          </div>
-
-          <form
-            class="flex flex-wrap items-center justify-end gap-2"
-            @submit.prevent="handleSearch"
-          >
-            <UBadge
-              v-if="selectedCount"
-              color="primary"
-              variant="subtle"
-              class="shrink-0"
-            >
-              {{ t('stats.selected', { n: selectedCount }) }}
-            </UBadge>
-            <USelect
-              v-model="currentStorage"
-              :items="storageSelectItems"
-              class="w-[6.5rem] shrink-0 sm:w-36"
-              size="sm"
-              :aria-label="t('stats.storage')"
-              @update:model-value="handleStorageChange"
-            />
-            <UInput
-              v-model="searchQuery"
-              icon="i-lucide-search"
-              :placeholder="t('stats.searchPlaceholder')"
-              class="w-36 shrink-0 sm:w-44"
-              size="sm"
-              :disabled="galleryLoading"
-            />
-            <UButton
-              type="submit"
-              icon="i-lucide-search"
-              size="sm"
-              class="shrink-0"
-              :aria-label="t('common.search')"
-              :loading="galleryLoading"
-            >
-              <span class="hidden sm:inline">{{ t('common.search') }}</span>
-            </UButton>
-            <UButton
-              v-if="activeSearch"
-              type="button"
-              icon="i-lucide-x"
-              size="sm"
-              variant="ghost"
-              color="neutral"
-              class="shrink-0"
-              :aria-label="t('stats.clear')"
-              @click="clearSearch"
-            >
-              <span class="hidden sm:inline">{{ t('stats.clear') }}</span>
-            </UButton>
-            <UButton
-              type="button"
-              icon="i-lucide-check-check"
-              size="sm"
-              variant="outline"
-              color="neutral"
-              class="shrink-0"
-              :disabled="!items.length || galleryLoading"
-              :aria-label="t('stats.selectAll')"
-              @click="selectAllOnPage"
-            >
-              <span class="hidden sm:inline">{{ t('stats.selectAll') }}</span>
-            </UButton>
-            <UButton
-              type="button"
-              icon="i-lucide-shuffle"
-              size="sm"
-              variant="outline"
-              color="neutral"
-              class="shrink-0"
-              :disabled="!items.length || galleryLoading"
-              :aria-label="t('stats.invertSelection')"
-              @click="invertSelectionOnPage"
-            >
-              <span class="hidden sm:inline">{{ t('stats.invertSelection') }}</span>
-            </UButton>
-            <UButton
-              v-if="selectedCount"
-              type="button"
-              icon="i-lucide-x-circle"
-              size="sm"
-              variant="ghost"
-              color="neutral"
-              class="shrink-0"
-              :aria-label="t('stats.clearSelection')"
-              @click="clearSelection"
-            >
-              <span class="hidden sm:inline">{{ t('stats.clearSelection') }}</span>
-            </UButton>
-            <UButton
-              type="button"
-              icon="i-lucide-trash-2"
-              color="error"
-              variant="soft"
-              size="sm"
-              class="shrink-0"
-              :aria-label="t('stats.batchDelete')"
-              :disabled="!selectedCount"
-              @click="requestBatchDelete"
-            >
-              <span class="hidden sm:inline">{{ t('stats.batchDelete') }}</span>
-            </UButton>
-          </form>
+          <GalleryFilterBar
+            v-model:search-query="searchQuery"
+            :upload-source="currentUploadSource"
+            :upload-source-items="uploadSourceItems"
+            :view-mode="viewMode"
+            :selected-count="selectedCount"
+            :loading="galleryLoading"
+            @update:upload-source="handleUploadSourceChange"
+            @update:view-mode="viewMode = $event"
+            @search="handleSearch"
+            @reset="handleResetFilters"
+            @batch-delete="requestBatchDelete"
+          />
         </div>
 
         <div
           v-if="galleryLoading"
-          class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          :class="viewMode === 'grid'
+            ? 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+            : 'space-y-2'"
         >
           <USkeleton
-            v-for="n in 12"
+            v-for="n in 10"
             :key="n"
-            class="aspect-square rounded-lg"
+            :class="viewMode === 'grid' ? 'aspect-[4/3] rounded-lg' : 'h-16 rounded-lg'"
           />
         </div>
 
         <ImageGrid
-          v-else
+          v-else-if="viewMode === 'grid'"
+          gallery
           :show-key="false"
           show-storage
           :items="items"
           :selected-keys="selectedKeys"
-          @update:selected-keys="selectedKeys = $event"
+          selectable
+          @update:selected-keys="updateSelectedKeys"
           @preview="openPreview"
+          @delete="(image) => requestDelete(image.key)"
+        />
+
+        <GalleryImageList
+          v-else
+          show-storage
+          :items="items"
+          :selected-keys="selectedKeys"
+          :selectable="true"
+          @update:selected-keys="updateSelectedKeys"
+          @preview="openPreview"
+          @delete="(image) => requestDelete(image.key)"
         />
 
         <ImagePreviewModal
@@ -607,9 +444,11 @@ watch(isAuthenticated, async (authed, prev) => {
           :page="galleryPage"
           :total-pages="galleryTotalPages"
           :total="galleryTotal"
+          :page-size="galleryPageSize"
           :unit="t('common.imagesUnit')"
           :loading="galleryLoading"
           @update:page="handleGalleryPageChange"
+          @update:page-size="handleGalleryPageSizeChange"
         />
       </section>
 

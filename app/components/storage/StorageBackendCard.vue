@@ -1,16 +1,6 @@
 <script setup lang="ts">
 import type { StorageBackendItem } from '~/types/storage'
 
-type CardAction = {
-  key: string
-  icon: string
-  label: string
-  shortLabel: string
-  danger?: boolean
-  disabled?: boolean
-  onClick: () => void
-}
-
 const props = defineProps<{
   backend: StorageBackendItem
   envOverride?: boolean
@@ -35,181 +25,150 @@ const typeLabel = computed(() =>
   props.backend.type === 'local' ? t('storage.backendLocal') : t('storage.backendCloud')
 )
 
-const servingLabel = computed(() =>
-  props.backend.servingMode === 'public'
-    ? t('storage.servingPublic')
-    : t('storage.servingProxy')
-)
-
-const bucketLine = computed(() => {
-  if (props.backend.type !== 's3') return null
-  return props.backend.config.bucket || t('storage.notConfigured')
-})
-
 const actionsDisabled = computed(() => props.envOverride || props.busy)
 
-const actions = computed<CardAction[]>(() => {
-  const isLocal = props.backend.type === 'local'
-  const items: CardAction[] = []
+const isLocal = computed(() => props.backend.type === 'local')
 
-  if (!props.backend.isDefault && props.backend.enabled) {
-    items.push({
-      key: 'default',
-      icon: 'i-lucide-star',
-      label: t('storage.setDefault'),
-      shortLabel: isLocal ? t('storage.setDefault') : t('storage.actionSetDefault'),
-      onClick: () => emit('setDefault')
-    })
-  }
+function canSetDefault() {
+  return !props.backend.isDefault && props.backend.enabled
+}
 
-  if (props.backend.type === 's3') {
-    items.push({
-      key: 'edit',
-      icon: 'i-lucide-pencil',
-      label: t('common.edit'),
-      shortLabel: t('common.edit'),
-      onClick: () => emit('edit')
-    })
-  }
+function canEdit() {
+  return props.backend.type === 's3'
+}
 
-  items.push({
-    key: 'test',
-    icon: 'i-lucide-plug-zap',
-    label: t('storage.testConnection'),
-    shortLabel: isLocal ? t('storage.testConnection') : t('storage.actionTest'),
-    onClick: () => emit('test')
-  })
+function canToggle() {
+  return props.backend.type !== 'local'
+}
 
-  if (props.backend.type !== 'local') {
-    items.push({
-      key: 'toggle',
-      icon: props.backend.enabled ? 'i-lucide-pause' : 'i-lucide-play',
-      label: props.backend.enabled ? t('storage.disable') : t('storage.enable'),
-      shortLabel: props.backend.enabled ? t('storage.disable') : t('storage.enable'),
-      disabled: props.backend.isDefault && props.backend.enabled,
-      onClick: () => emit('toggleEnabled')
-    })
-  }
-
-  if (props.backend.type !== 'local' && !props.backend.isDefault) {
-    items.push({
-      key: 'delete',
-      icon: 'i-lucide-trash-2',
-      label: t('common.delete'),
-      shortLabel: t('common.delete'),
-      danger: true,
-      onClick: () => emit('delete')
-    })
-  }
-
-  return items
-})
-
-const actionGridClass = computed(() => {
-  switch (actions.value.length) {
-    case 1: return 'grid-cols-1'
-    case 2: return 'grid-cols-2'
-    case 3: return 'grid-cols-3'
-    case 4: return 'grid-cols-4'
-    default: return 'grid-cols-5'
-  }
-})
+function canDelete() {
+  return props.backend.type !== 'local' && !props.backend.isDefault
+}
 </script>
 
 <template>
   <article
-    class="flex h-full flex-col rounded-2xl border border-default bg-elevated p-4 shadow-sm"
-    :class="{
-      'ring-2 ring-primary/30': backend.isDefault,
-      'opacity-75': !backend.enabled
-    }"
+    class="flex h-full flex-col rounded-xl border border-default bg-elevated p-4 sm:p-5"
+    :class="{ 'opacity-75': !backend.enabled }"
   >
-    <div class="mb-3 flex items-start justify-between gap-2">
-      <div class="flex min-w-0 items-start gap-2.5">
-        <div
-          class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-        >
+    <div class="flex items-start justify-between gap-3">
+      <div class="flex min-w-0 items-center gap-3">
+        <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <UIcon
             :name="typeIcon"
-            class="size-4.5"
+            class="size-5"
           />
         </div>
-        <div class="min-w-0">
-          <h3 class="truncate text-sm font-semibold">
-            {{ backend.name }}
-          </h3>
-          <p class="mt-0.5 text-xs text-muted">
-            {{ typeLabel }}
-            <template v-if="bucketLine">
-              · {{ bucketLine }}
-            </template>
-          </p>
-        </div>
+        <h3 class="truncate text-base font-semibold">
+          {{ backend.name }}
+        </h3>
       </div>
-      <div class="flex shrink-0 flex-wrap justify-end gap-1">
-        <UBadge
-          v-if="backend.enabled"
-          color="success"
-          variant="subtle"
-          size="xs"
+      <div class="flex shrink-0 flex-wrap justify-end gap-1.5">
+        <span
+          v-if="backend.isDefault"
+          class="inline-flex rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+        >
+          {{ t('storage.badgeDefaultStorage') }}
+        </span>
+        <span
+          v-if="isLocal"
+          class="inline-flex rounded-md border border-default bg-default px-2 py-0.5 text-xs font-medium text-muted"
+        >
+          {{ t('storage.badgeLocal') }}
+        </span>
+        <span
+          v-else-if="backend.enabled"
+          class="inline-flex rounded-md border border-default bg-default px-2 py-0.5 text-xs font-medium text-muted"
         >
           {{ t('storage.badgeEnabled') }}
-        </UBadge>
-        <UBadge
-          v-if="backend.isDefault"
-          color="primary"
-          variant="subtle"
-          size="xs"
-        >
-          {{ t('storage.badgeDefault') }}
-        </UBadge>
-        <UBadge
-          v-if="!backend.enabled"
-          color="warning"
-          variant="subtle"
-          size="xs"
+        </span>
+        <span
+          v-else
+          class="inline-flex rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted"
         >
           {{ t('storage.badgeDisabled') }}
-        </UBadge>
+        </span>
       </div>
     </div>
 
-    <StorageUsageBar
-      :capacity="backend.capacity"
-      :index-bytes="backend.usage.bytes"
-    />
+    <div class="mt-4">
+      <StorageUsageBar
+        :capacity="backend.capacity"
+        :index-bytes="backend.usage.bytes"
+      />
+    </div>
 
-    <p class="mt-3 text-xs text-muted">
-      {{ t('storage.servingMode') }}: {{ servingLabel }}
-    </p>
-
-    <div class="mt-4 border-t border-default pt-4">
-      <div
-        class="grid gap-1.5"
-        :class="actionGridClass"
-      >
-        <button
-          v-for="action in actions"
-          :key="action.key"
-          type="button"
-          class="flex flex-col items-center justify-center gap-1 rounded-lg border px-1 py-2 transition disabled:cursor-not-allowed disabled:opacity-40"
-          :class="action.danger
-            ? 'border-error/30 text-error hover:bg-error/5'
-            : 'border-default text-muted hover:bg-muted/40 hover:text-highlighted'"
-          :title="action.label"
-          :aria-label="action.label"
-          :disabled="actionsDisabled || action.disabled"
-          @click="action.onClick"
-        >
-          <UIcon
-            :name="action.icon"
-            class="size-4 shrink-0"
-          />
-          <span class="w-full truncate text-center text-[11px] leading-none">
-            {{ action.shortLabel }}
-          </span>
-        </button>
+    <div class="mt-4 space-y-2 text-xs text-muted">
+      <div class="flex items-center gap-2">
+        <span class="shrink-0">{{ t('storage.storageId') }}:</span>
+        <code class="min-w-0 flex-1 truncate font-mono text-dimmed">{{ backend.id }}</code>
+        <CopyButton
+          icon="i-lucide-copy"
+          icon-only
+          variant="ghost"
+          color="primary"
+          class="shrink-0"
+          :label="t('common.copy')"
+          :value="backend.id"
+          :success-title="t('copy.copied')"
+        />
       </div>
+      <p>
+        {{ t('storage.storageType') }}: {{ typeLabel }}
+      </p>
+    </div>
+
+    <div class="mt-4 flex flex-wrap gap-2 border-t border-default pt-4">
+      <UButton
+        v-if="canSetDefault()"
+        :label="t('storage.setDefault')"
+        icon="i-lucide-star"
+        size="sm"
+        variant="outline"
+        color="neutral"
+        :disabled="actionsDisabled"
+        @click="emit('setDefault')"
+      />
+      <UButton
+        v-if="canEdit()"
+        :label="t('common.edit')"
+        icon="i-lucide-pencil"
+        size="sm"
+        variant="outline"
+        color="neutral"
+        :disabled="actionsDisabled"
+        @click="emit('edit')"
+      />
+      <UButton
+        :label="t('storage.testConnection')"
+        :icon="isLocal ? 'i-lucide-wand-sparkles' : 'i-lucide-activity'"
+        size="sm"
+        variant="outline"
+        color="neutral"
+        :loading="busy"
+        :disabled="actionsDisabled"
+        @click="emit('test')"
+      />
+      <UButton
+        v-if="canToggle()"
+        :label="backend.enabled ? t('storage.disable') : t('storage.enable')"
+        :icon="backend.enabled ? 'i-lucide-pause' : 'i-lucide-play'"
+        size="sm"
+        variant="outline"
+        color="neutral"
+        :disabled="actionsDisabled || (backend.isDefault && backend.enabled)"
+        @click="emit('toggleEnabled')"
+      />
+      <UButton
+        v-if="canDelete()"
+        :label="t('common.delete')"
+        icon="i-lucide-trash-2"
+        size="sm"
+        variant="outline"
+        color="error"
+        :disabled="actionsDisabled"
+        @click="emit('delete')"
+      />
     </div>
   </article>
 </template>

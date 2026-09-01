@@ -36,56 +36,53 @@ function formatOptional(bytes: number | null): string {
 
 <template>
   <div class="space-y-3">
-    <div class="grid grid-cols-3 gap-2 text-center text-xs">
-      <div class="rounded-lg bg-muted/30 px-2 py-2">
-        <p class="text-muted">
-          {{ $t('storage.statTotal') }}
-        </p>
-        <p class="mt-1 font-medium tabular-nums text-highlighted">
-          {{ formatOptional(capacity.totalBytes) }}
-        </p>
-      </div>
-      <div class="rounded-lg bg-muted/30 px-2 py-2">
-        <p class="text-muted">
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div>
+        <p class="text-xs text-muted">
           {{ $t('storage.statUsed') }}
         </p>
-        <p class="mt-1 font-medium tabular-nums text-highlighted">
+        <p class="mt-1 text-sm font-semibold tabular-nums">
           {{ formatFileSize(displayUsedBytes) }}
         </p>
       </div>
-      <div class="rounded-lg bg-muted/30 px-2 py-2">
-        <p class="text-muted">
+      <div>
+        <p class="text-xs text-muted">
+          {{ $t('storage.statTotal') }}
+        </p>
+        <p class="mt-1 text-sm font-semibold tabular-nums">
+          {{ formatOptional(capacity.totalBytes) }}
+        </p>
+      </div>
+      <div>
+        <p class="text-xs text-muted">
           {{ $t('storage.statFree') }}
         </p>
         <p
-          class="mt-1 font-medium tabular-nums"
-          :class="overQuota ? 'text-error' : 'text-highlighted'"
+          class="mt-1 text-sm font-semibold tabular-nums"
+          :class="overQuota ? 'text-error' : ''"
         >
           {{ formatOptional(capacity.freeBytes) }}
+        </p>
+      </div>
+      <div>
+        <p class="text-xs text-muted">
+          {{ $t('storage.usageRate') }}
+        </p>
+        <p class="mt-1 text-sm font-semibold tabular-nums">
+          {{ hasBar ? `${displayPercent}%` : '—' }}
         </p>
       </div>
     </div>
 
     <div
       v-if="hasBar"
-      class="space-y-1"
+      class="h-1 overflow-hidden rounded-full bg-muted/50"
     >
-      <div class="flex items-center justify-between text-xs">
-        <span class="text-muted">{{ $t('storage.usageRate') }}</span>
-        <span
-          class="tabular-nums font-medium"
-          :class="overQuota ? 'text-error' : ''"
-        >
-          {{ displayPercent }}%
-        </span>
-      </div>
-      <div class="h-1.5 overflow-hidden rounded-full bg-muted/50">
-        <div
-          class="h-full rounded-full transition-all"
-          :class="overQuota ? 'bg-error/80' : 'bg-primary/70'"
-          :style="{ width: `${barWidth}%` }"
-        />
-      </div>
+      <div
+        class="h-full rounded-full transition-all"
+        :class="overQuota ? 'bg-error/80' : 'bg-primary'"
+        :style="{ width: `${barWidth}%` }"
+      />
     </div>
   </div>
 </template>

@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { getDb } from './db'
+import { getDb, getUploadSourcesForKeys } from './db'
 import { getDataDir } from './data-dir'
 import { contentTypeFromKey } from './content-type'
 import { DEFAULT_FOLDER, toCanonicalImageKey, validateImageKey } from './image-key'
@@ -402,11 +402,31 @@ function paginateSlice<T>(
   return { items, total, page: safePage, pageSize, totalPages }
 }
 
+function filterImageRows(
+  rows: ImageIndexRow[],
+  options: {
+    contentType?: string
+    uploadSource?: 'web' | 'api'
+  }
+): ImageIndexRow[] {
+  let filtered = rows
+  if (options.contentType) {
+    filtered = filtered.filter(row => row.content_type === options.contentType)
+  }
+  if (options.uploadSource) {
+    const sourceMap = getUploadSourcesForKeys(filtered.map(row => row.key))
+    filtered = filtered.filter(row => sourceMap.get(row.key) === options.uploadSource)
+  }
+  return filtered
+}
+
 export async function listImages(options: {
   limit: number
   page?: number
   userFilter?: number | 'admin'
   backendId?: string
+  contentType?: string
+  uploadSource?: 'web' | 'api'
 }): Promise<PaginatedResult<StoredImage>> {
   ensureStorageSchema()
   const params: Array<string | number> = []
@@ -421,7 +441,11 @@ export async function listImages(options: {
     ORDER BY uploaded_at DESC, key DESC
   `).all(...params) as unknown as ImageIndexRow[]
 
-  const sliced = paginateSlice(rows, options.limit, options.page)
+  const filtered = filterImageRows(rows, {
+    contentType: options.contentType,
+    uploadSource: options.uploadSource
+  })
+  const sliced = paginateSlice(filtered, options.limit, options.page)
   return {
     ...sliced,
     items: sliced.items.map(rowToStoredImage)
@@ -434,6 +458,8 @@ export async function searchImages(options: {
   page?: number
   userFilter?: number | 'admin'
   backendId?: string
+  contentType?: string
+  uploadSource?: 'web' | 'api'
 }): Promise<PaginatedResult<StoredImage>> {
   ensureStorageSchema()
   const needle = options.query.trim().toLowerCase()
@@ -455,7 +481,11 @@ export async function searchImages(options: {
       || row.original_name.toLowerCase().includes(needle)
   })
 
-  const sliced = paginateSlice(matches, options.limit, options.page)
+  const filtered = filterImageRows(matches, {
+    contentType: options.contentType,
+    uploadSource: options.uploadSource
+  })
+  const sliced = paginateSlice(filtered, options.limit, options.page)
   return {
     ...sliced,
     items: sliced.items.map(rowToStoredImage)
@@ -495,16 +525,32 @@ function startOfMonthIsoInShanghai(now = new Date()): string {
   return new Date(Date.UTC(y, m, 1) - 8 * 60 * 60 * 1000).toISOString()
 }
 
+function startOfLastMonthIsoInShanghai(now = new Date()): string {
+  const shifted = new Date(now.getTime() + 8 * 60 * 60 * 1000)
+  const y = shifted.getUTCFullYear()
+  const m = shifted.getUTCMonth()
+  return new Date(Date.UTC(y, m - 1, 1) - 8 * 60 * 60 * 1000).toISOString()
+}
+
+function startOfYesterdayIsoInShanghai(now = new Date()): string {
+  const startOfDay = startOfDayIsoInShanghai(now)
+  return new Date(new Date(startOfDay).getTime() - 24 * 60 * 60 * 1000).toISOString()
+}
+
 export async function getUserScopedStorageStats(userId: number): Promise<{
   storedCount: number
   uploadBytesTotal: number
   uploadToday: number
+  uploadYesterday: number
   uploadMonth: number
+  uploadLastMonth: number
   byFolder: Array<{ folder: string, count: number, bytes: number }>
 }> {
   ensureStorageSchema()
   const startOfDay = startOfDayIsoInShanghai()
   const startOfMonth = startOfMonthIsoInShanghai()
+  const startOfYesterday = startOfYesterdayIsoInShanghai()
+  const startOfLastMonth = startOfLastMonthIsoInShanghai()
 
   const rows = getDb().prepare(`
     SELECT folder, size, uploaded_at
@@ -515,12 +561,16 @@ export async function getUserScopedStorageStats(userId: number): Promise<{
   const map = new Map<string, { count: number, bytes: number }>()
   let uploadBytesTotal = 0
   let uploadToday = 0
+  let uploadYesterday = 0
   let uploadMonth = 0
+  let uploadLastMonth = 0
 
   for (const row of rows) {
     uploadBytesTotal += row.size
     if (row.uploaded_at >= startOfDay) uploadToday += 1
+    if (row.uploaded_at >= startOfYesterday && row.uploaded_at < startOfDay) uploadYesterday += 1
     if (row.uploaded_at >= startOfMonth) uploadMonth += 1
+    if (row.uploaded_at >= startOfLastMonth && row.uploaded_at < startOfMonth) uploadLastMonth += 1
 
     const current = map.get(row.folder) ?? { count: 0, bytes: 0 }
     current.count += 1
@@ -536,7 +586,9 @@ export async function getUserScopedStorageStats(userId: number): Promise<{
     storedCount: rows.length,
     uploadBytesTotal,
     uploadToday,
+    uploadYesterday,
     uploadMonth,
+    uploadLastMonth,
     byFolder
   }
 }

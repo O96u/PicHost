@@ -192,7 +192,9 @@ export async function getUserScopedStorageStats(userId: number): Promise<{
   storedCount: number
   uploadBytesTotal: number
   uploadToday: number
+  uploadYesterday: number
   uploadMonth: number
+  uploadLastMonth: number
   byFolder: FolderStorageStat[]
 }> {
   return getUserScopedStorageStatsFromIndex(userId)
@@ -203,6 +205,8 @@ export async function listImages(options: {
   page?: number
   userFilter?: number | 'admin'
   backendId?: string
+  contentType?: string
+  uploadSource?: 'web' | 'api'
 }): Promise<PaginatedResult<StoredImage>> {
   return listImagesFromIndex(options)
 }
@@ -213,6 +217,8 @@ export async function searchImages(options: {
   page?: number
   userFilter?: number | 'admin'
   backendId?: string
+  contentType?: string
+  uploadSource?: 'web' | 'api'
 }): Promise<PaginatedResult<StoredImage>> {
   return searchImagesFromIndex(options)
 }

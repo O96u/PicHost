@@ -21,6 +21,11 @@ const deleteTarget = ref<StorageBackendItem | null>(null)
 const deleteConfirmName = ref('')
 const deleting = ref(false)
 
+const defaultBackendName = computed(() => {
+  const backend = storageData.value?.backends.find(item => item.isDefault)
+  return backend?.name ?? t('storage.backendLocal')
+})
+
 async function loadStorage() {
   loading.value = true
   try {
@@ -232,59 +237,59 @@ watch(isAuthenticated, async (authed) => {
     <AdminLoginGate v-else-if="!isAuthenticated" />
 
     <AppShell v-else-if="isAdmin">
-      <section class="overflow-hidden rounded-2xl border border-default bg-elevated shadow-sm">
-        <div class="flex flex-wrap items-start justify-between gap-3 border-b border-default px-5 py-4 sm:px-6">
-          <div class="flex items-start gap-2">
-            <UIcon
-              name="i-lucide-hard-drive"
-              class="mt-0.5 size-5 shrink-0 text-primary"
-            />
-            <div>
-              <h1 class="text-base font-semibold">
-                {{ t('storage.pageTitle') }}
-              </h1>
-              <p class="mt-0.5 text-xs text-muted">
-                {{ t('storage.pageSubtitle') }}
-              </p>
-            </div>
-          </div>
-          <UButton
-            :label="t('storage.addBackend')"
-            icon="i-lucide-plus"
-            size="sm"
-            :disabled="storageData?.envOverride"
-            @click="openCreate"
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h1 class="text-2xl font-semibold tracking-tight">
+            {{ t('storage.pageTitle') }}
+          </h1>
+          <p class="text-sm text-muted">
+            {{ t('storage.pageSubtitle') }}
+          </p>
+        </div>
+
+        <UButton
+          :label="t('storage.addBackend')"
+          icon="i-lucide-plus"
+          size="sm"
+          :disabled="storageData?.envOverride"
+          @click="openCreate"
+        />
+      </div>
+
+      <section class="mt-5 space-y-5">
+        <UAlert
+          v-if="storageData?.envOverride"
+          color="warning"
+          variant="subtle"
+          :title="t('storage.envOverride')"
+          icon="i-lucide-triangle-alert"
+        />
+
+        <div
+          v-if="loading"
+          class="flex justify-center py-16"
+        >
+          <UIcon
+            name="i-lucide-loader-circle"
+            class="size-6 animate-spin text-muted"
           />
         </div>
 
-        <div class="p-5 sm:p-6">
-          <UAlert
-            v-if="storageData?.envOverride"
-            color="warning"
-            variant="subtle"
-            class="mb-5"
-            :title="t('storage.envOverride')"
-            icon="i-lucide-triangle-alert"
+        <template v-else-if="storageData">
+          <StorageOverview
+            :backends="storageData.backends"
+            :loading="loading"
           />
 
-          <p class="mb-5 text-xs text-muted">
-            {{ t('storage.switchHint') }}
-          </p>
+          <UAlert
+            v-if="!storageData.envOverride"
+            color="success"
+            variant="subtle"
+            icon="i-lucide-info"
+            :description="t('storage.defaultStorageTip', { name: defaultBackendName })"
+          />
 
-          <div
-            v-if="loading"
-            class="flex justify-center py-16"
-          >
-            <UIcon
-              name="i-lucide-loader-circle"
-              class="size-6 animate-spin text-muted"
-            />
-          </div>
-
-          <div
-            v-else-if="storageData"
-            class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
-          >
+          <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <StorageBackendCard
               v-for="backend in storageData.backends"
               :key="backend.id"
@@ -298,11 +303,16 @@ watch(isAuthenticated, async (authed) => {
               @delete="confirmDelete(backend)"
             />
           </div>
-        </div>
+
+          <StorageSupportedBackends />
+        </template>
       </section>
     </AppShell>
 
-    <UModal v-model:open="formOpen">
+    <UModal
+      v-model:open="formOpen"
+      :ui="{ content: 'max-w-2xl sm:max-w-3xl' }"
+    >
       <template #content>
         <div class="p-5 sm:p-6">
           <h2 class="mb-4 text-base font-semibold">

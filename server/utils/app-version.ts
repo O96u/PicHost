@@ -32,9 +32,9 @@ export function isVersionNewer(candidate: string, current: string): boolean {
   return false
 }
 
-export async function fetchLatestGitHubRelease(): Promise<LatestReleaseInfo | null> {
+export async function fetchLatestGitHubRelease(force = false): Promise<LatestReleaseInfo | null> {
   const now = Date.now()
-  if (cachedRelease && now - cachedRelease.fetchedAt < CACHE_TTL_MS) {
+  if (!force && cachedRelease && now - cachedRelease.fetchedAt < CACHE_TTL_MS) {
     return cachedRelease.value
   }
 

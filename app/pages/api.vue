@@ -12,15 +12,6 @@ interface SettingsResponse {
   }
 }
 
-interface ApiDocItem {
-  index: number
-  method: 'GET' | 'POST' | 'DELETE'
-  path: string
-  title: string
-  description: string
-  curl: string
-}
-
 const { isChecking, isAuthenticated, checkSession, handleAuthError, fetchStatus, isAdmin } = useAuth()
 const toast = useToast()
 const { t } = useI18n()
@@ -31,6 +22,7 @@ const regenerating = ref(false)
 const confirmRegenerateOpen = ref(false)
 const regenerateResultOpen = ref(false)
 const newToken = ref('')
+const activeEndpointId = ref('upload')
 
 const baseUrl = computed(() => {
   const configured = settings.value?.env.siteBaseUrl
@@ -49,100 +41,16 @@ const authHeader = computed(() =>
   hasToken.value ? tokenDisplay.value : 'YOUR-TOKEN'
 )
 
-const authHeaderFlag = computed(() => `-H 'Auth-Token: ${authHeader.value}'`)
+const apiDocs = computed(() =>
+  buildApiDocs({
+    baseUrl: baseUrl.value,
+    authHeader: authHeader.value
+  })
+)
 
-const apiDocs = computed<ApiDocItem[]>(() => {
-  const uploadDescription = t('api.docs.upload.desc')
-  const uploadCurl = `curl -X POST "${baseUrl.value}/api/images/upload" \\
-  ${authHeaderFlag.value} \\
-  -F "image=@./demo.png"`
-
-  const listDescription = t('api.docs.list.desc')
-  const listCurl = `curl "${baseUrl.value}/api/images?limit=20&page=1" \\
-  ${authHeaderFlag.value}`
-
-  return [
-    {
-      index: 1,
-      method: 'POST',
-      path: '/api/images/upload',
-      title: t('api.docs.upload.title'),
-      description: uploadDescription,
-      curl: uploadCurl
-    },
-    {
-      index: 2,
-      method: 'GET',
-      path: '/api/images',
-      title: t('api.docs.list.title'),
-      description: listDescription,
-      curl: listCurl
-    },
-    {
-      index: 3,
-      method: 'GET',
-      path: '/api/images/search',
-      title: t('api.docs.search.title'),
-      description: t('api.docs.search.desc'),
-      curl: `curl "${baseUrl.value}/api/images/search?q=demo&limit=20&page=1" \\
-  ${authHeaderFlag.value}`
-    },
-    {
-      index: 4,
-      method: 'DELETE',
-      path: '/api/images',
-      title: t('api.docs.delete.title'),
-      description: t('api.docs.delete.desc'),
-      curl: `curl -X DELETE "${baseUrl.value}/api/images?key=images/2026/08/xxxx.webp" \\
-  ${authHeaderFlag.value}`
-    },
-    {
-      index: 5,
-      method: 'POST',
-      path: '/api/images/batch-delete',
-      title: t('api.docs.batchDelete.title'),
-      description: t('api.docs.batchDelete.desc'),
-      curl: `curl -X POST "${baseUrl.value}/api/images/batch-delete" \\
-  ${authHeaderFlag.value} \\
-  -H "Content-Type: application/json" \\
-  -d '{"keys":["images/2026/08/a.webp","images/2026/08/b.webp"]}'`
-    }
-  ]
-})
-
-const twikooDoc = computed(() => ({
-  method: 'POST' as const,
-  path: '/api/index.php',
-  title: t('api.docs.twikoo.title'),
-  description: t('api.docs.twikoo.desc'),
-  curl: `curl -X POST "${baseUrl.value}/api/index.php" \\
-  -F "token=${authHeader.value}" \\
-  -F "image=@./demo.png"`
-}))
-
-function tokenSourceLabel(source: SettingsResponse['tokenSource']) {
-  switch (source) {
-    case 'env':
-      return t('api.tokenSourceEnv')
-    case 'db':
-      return t('api.tokenSourceDb')
-    default:
-      return t('api.tokenSourceNone')
-  }
-}
-
-function methodBadgeColor(method: ApiDocItem['method']) {
-  switch (method) {
-    case 'GET':
-      return 'info' as const
-    case 'POST':
-      return 'warning' as const
-    case 'DELETE':
-      return 'error' as const
-    default:
-      return 'neutral' as const
-  }
-}
+const activeEndpoint = computed(() =>
+  apiDocs.value.find(endpoint => endpoint.id === activeEndpointId.value) ?? apiDocs.value[0]
+)
 
 async function loadSettings() {
   loading.value = true
@@ -251,175 +159,36 @@ watch(isAuthenticated, async (authed, prev) => {
 
     <AppShell v-else>
       <section class="overflow-hidden rounded-2xl border border-default bg-elevated shadow-sm">
-        <div class="flex items-center gap-2 border-b border-default px-5 py-4 sm:px-6">
-          <UIcon
-            name="i-lucide-key-round"
-            class="size-5 text-primary"
-          />
-          <h2 class="text-base font-semibold">
-            {{ t('api.tokenTitle') }}
-          </h2>
-        </div>
-
-        <div class="space-y-4 p-5 sm:p-6">
-          <UAlert
-            v-if="settings?.envTokenOverride"
-            color="warning"
-            variant="subtle"
-            icon="i-lucide-triangle-alert"
-            :title="t('api.envOverrideTitle')"
-            :description="t('api.envOverrideDesc')"
+        <div class="flex flex-col lg:flex-row lg:items-stretch">
+          <ApiSidebar
+            :endpoints="apiDocs"
+            :active-id="activeEndpointId"
+            @select="activeEndpointId = $event"
           />
 
-          <UAlert
-            v-else-if="!isAdmin"
-            color="info"
-            variant="subtle"
-            icon="i-lucide-info"
-            :title="t('api.personalTitle')"
-            :description="t('api.personalDesc')"
-          />
-
-          <UAlert
-            v-else-if="settings && !hasToken"
-            color="info"
-            variant="subtle"
-            icon="i-lucide-info"
-            :title="t('api.notConfiguredTitle')"
-            :description="t('api.notConfiguredDesc')"
-          />
-
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-            <UInput
-              :model-value="hasToken ? tokenDisplay : t('common.notConfigured')"
-              readonly
-              class="min-w-0 flex-1 font-mono text-xs sm:text-sm"
+          <div class="flex min-w-0 flex-1 flex-col bg-default lg:border-r lg:border-default">
+            <ApiTokenCard
+              :token="tokenDisplay"
               :loading="loading"
+              :regenerating="regenerating"
+              :can-regenerate="canRegenerate"
+              :token-source="settings?.tokenSource"
+              :env-token-override="settings?.envTokenOverride"
+              :is-admin="isAdmin"
+              @regenerate="requestRegenerate"
             />
-            <div class="flex gap-2">
-              <CopyButton
-                :label="t('common.copy')"
-                :value="tokenDisplay"
-              />
-              <UButton
-                icon="i-lucide-refresh-cw"
-                :label="t('api.regenerate')"
-                color="warning"
-                variant="soft"
-                :loading="regenerating"
-                :disabled="!canRegenerate"
-                @click="requestRegenerate"
-              />
-            </div>
+
+            <ApiDocView
+              v-if="activeEndpoint"
+              :endpoint="activeEndpoint"
+            />
           </div>
 
-          <p
-            v-if="settings"
-            class="text-xs text-muted"
-          >
-            {{ tokenSourceLabel(settings.tokenSource) }}
-            · {{ t('api.tokenHeader') }}
-            <code class="font-mono">Auth-Token: &lt;token&gt;</code>
-            <template v-if="hasToken && !settings.envTokenOverride">
-              · {{ t('api.tokenInvalidate') }}
-            </template>
-          </p>
-        </div>
-      </section>
-
-      <section class="overflow-hidden rounded-2xl border border-default bg-elevated shadow-sm">
-        <div class="flex items-center gap-2 border-b border-default px-5 py-4 sm:px-6">
-          <UIcon
-            name="i-lucide-book-open"
-            class="size-5 text-primary"
+          <ApiDebugger
+            v-if="activeEndpoint"
+            :endpoint="activeEndpoint"
+            :token="tokenDisplay"
           />
-          <h2 class="text-base font-semibold">
-            {{ t('api.docsTitle') }}
-          </h2>
-        </div>
-
-        <div class="divide-y divide-default">
-          <article
-            v-for="doc in apiDocs"
-            :key="doc.index"
-            class="space-y-4 p-5 sm:p-6"
-          >
-            <div class="flex gap-3">
-              <span
-                class="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
-              >
-                {{ doc.index }}
-              </span>
-              <div class="min-w-0 space-y-2">
-                <div class="flex flex-wrap items-center gap-2">
-                  <UBadge
-                    :color="methodBadgeColor(doc.method)"
-                    variant="subtle"
-                    size="sm"
-                  >
-                    {{ doc.method }}
-                  </UBadge>
-                  <code class="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 font-mono text-sm font-medium text-primary">
-                    {{ doc.path }}
-                  </code>
-                  <span class="text-sm font-medium">
-                    {{ doc.title }}
-                  </span>
-                </div>
-                <p class="text-sm leading-relaxed text-muted">
-                  {{ doc.description }}
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <p class="mb-2 text-xs font-medium text-muted">
-                {{ t('api.curlExample') }}
-              </p>
-              <ApiCurlBlock :code="doc.curl" />
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section class="overflow-hidden rounded-2xl border border-dashed border-default bg-muted/20">
-        <div class="space-y-4 p-5 sm:p-6">
-          <div class="flex gap-3">
-            <UIcon
-              name="i-lucide-message-square"
-              class="mt-0.5 size-5 shrink-0 text-muted"
-            />
-            <div class="min-w-0 space-y-2">
-              <div class="flex flex-wrap items-center gap-2">
-                <UBadge
-                  :color="methodBadgeColor(twikooDoc.method)"
-                  variant="subtle"
-                  size="sm"
-                >
-                  {{ twikooDoc.method }}
-                </UBadge>
-                <code class="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 font-mono text-sm font-medium text-primary">
-                  {{ twikooDoc.path }}
-                </code>
-                <span class="text-sm font-medium">
-                  {{ twikooDoc.title }}
-                </span>
-              </div>
-              <p class="text-sm leading-relaxed text-muted">
-                {{ twikooDoc.description }}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <p class="mb-2 text-xs font-medium text-muted">
-              {{ t('api.curlExample') }}
-            </p>
-            <ApiCurlBlock
-              :code="twikooDoc.curl"
-              :scrollable="false"
-            />
-          </div>
         </div>
       </section>
     </AppShell>

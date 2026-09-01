@@ -137,24 +137,6 @@ function toggleOpen() {
         </h3>
         <div class="space-y-2">
           <NuxtLink
-            to="/logs"
-            class="flex items-center justify-between rounded-lg border border-default px-3.5 py-2.5 text-sm text-highlighted transition-colors hover:bg-elevated"
-            @click="open = false"
-          >
-            <span class="flex items-center gap-2.5">
-              <UIcon
-                name="i-lucide-scroll-text"
-                class="size-4 opacity-70"
-              />
-              {{ t('nav.logs') }}
-            </span>
-            <UIcon
-              name="i-lucide-chevron-right"
-              class="size-4 text-muted"
-            />
-          </NuxtLink>
-
-          <NuxtLink
             to="/account/password"
             class="flex items-center justify-between rounded-lg border border-default px-3.5 py-2.5 text-sm text-highlighted transition-colors hover:bg-elevated"
             @click="open = false"

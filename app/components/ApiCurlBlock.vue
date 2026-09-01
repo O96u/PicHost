@@ -3,9 +3,11 @@ const props = withDefaults(
   defineProps<{
     code: string
     scrollable?: boolean
+    lang?: string
   }>(),
   {
-    scrollable: true
+    scrollable: true,
+    lang: ''
   }
 )
 
@@ -34,6 +36,12 @@ async function copyCode() {
         <span class="size-3 rounded-full border border-black/15 bg-[#ff5f56]" />
         <span class="size-3 rounded-full border border-black/15 bg-[#ffbd2e]" />
         <span class="size-3 rounded-full border border-black/15 bg-[#27c93f]" />
+        <span
+          v-if="lang"
+          class="ml-1 text-[10px] font-medium tracking-wide text-neutral-500 uppercase"
+        >
+          {{ lang }}
+        </span>
       </div>
       <UButton
         icon="i-lucide-copy"
@@ -47,7 +55,7 @@ async function copyCode() {
     </div>
     <pre
       class="overflow-auto p-4 text-xs leading-relaxed text-neutral-100"
-      :class="props.scrollable ? 'max-h-80' : ''"
-    ><code class="font-mono">{{ props.code }}</code></pre>
+      :class="scrollable ? 'max-h-80' : ''"
+    ><code class="font-mono whitespace-pre">{{ code }}</code></pre>
   </div>
 </template>

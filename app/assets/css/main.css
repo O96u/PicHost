@@ -106,3 +106,21 @@
 .upload-settings-btn:hover .upload-settings-icon {
   transform: rotate(90deg);
 }
+
+.api-debug-response {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(82 82 82) transparent;
+}
+
+.api-debug-response::-webkit-scrollbar {
+  width: 6px;
+}
+
+.api-debug-response::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: rgb(82 82 82);
+}
+
+.api-debug-response::-webkit-scrollbar-track {
+  background: transparent;
+}

@@ -3,12 +3,13 @@ import type {
   ImageListResponse
 } from '~/types/image'
 
-const PAGE_SIZE = 12
+const PAGE_SIZE_DEFAULT = 10
 
 export function useImageList() {
   const { t } = useI18n()
   const items = ref<ImageItem[]>([])
   const page = ref(1)
+  const pageSize = ref(PAGE_SIZE_DEFAULT)
   const totalPages = ref(1)
   const total = ref(0)
   const loading = ref(false)
@@ -17,6 +18,8 @@ export function useImageList() {
   const searchQuery = ref('')
   const activeSearch = ref('')
   const activeStorageBackend = ref('all')
+  const activeContentType = ref('all')
+  const activeUploadSource = ref('all')
   const storageBackendOptions = ref<Array<{ id: string, name: string }>>([])
 
   function storageQueryParams(): Record<string, string> {
@@ -25,8 +28,21 @@ export function useImageList() {
     return { backendId }
   }
 
+  function filterQueryParams(): Record<string, string> {
+    const params: Record<string, string> = { ...storageQueryParams() }
+    const contentType = activeContentType.value.trim()
+    if (contentType && contentType !== 'all') {
+      params.contentType = contentType
+    }
+    const uploadSource = activeUploadSource.value.trim()
+    if (uploadSource && uploadSource !== 'all') {
+      params.uploadSource = uploadSource
+    }
+    return params
+  }
+
   function listQueryParams(): Record<string, string> {
-    return storageQueryParams()
+    return filterQueryParams()
   }
 
   function matchesActiveStorage(item: ImageItem) {
@@ -72,7 +88,7 @@ export function useImageList() {
       const response = await $fetch<ImageListResponse>('/api/images', {
         credentials: 'include',
         query: {
-          limit: PAGE_SIZE,
+          limit: pageSize.value,
           page: targetPage,
           ...listQueryParams()
         }
@@ -100,7 +116,7 @@ export function useImageList() {
         credentials: 'include',
         query: {
           q,
-          limit: PAGE_SIZE,
+          limit: pageSize.value,
           page: targetPage,
           ...listQueryParams()
         }
@@ -141,6 +157,40 @@ export function useImageList() {
     }
   }
 
+  async function setActiveContentType(contentType: string) {
+    const next = contentType.trim() || 'all'
+    if (next === activeContentType.value) return
+    activeContentType.value = next
+    page.value = 1
+    if (activeSearch.value) {
+      await Promise.all([fetchSearch(1), fetchTotal()])
+    } else {
+      await Promise.all([fetchList(1), fetchTotal()])
+    }
+  }
+
+  async function setActiveUploadSource(uploadSource: string) {
+    const next = uploadSource.trim() || 'all'
+    if (next === activeUploadSource.value) return
+    activeUploadSource.value = next
+    page.value = 1
+    if (activeSearch.value) {
+      await Promise.all([fetchSearch(1), fetchTotal()])
+    } else {
+      await Promise.all([fetchList(1), fetchTotal()])
+    }
+  }
+
+  async function resetFilters() {
+    searchQuery.value = ''
+    activeSearch.value = ''
+    activeStorageBackend.value = 'all'
+    activeContentType.value = 'all'
+    activeUploadSource.value = 'all'
+    page.value = 1
+    await Promise.all([fetchList(1), fetchTotal()])
+  }
+
   async function submitSearch() {
     const q = searchQuery.value.trim()
     activeSearch.value = q
@@ -158,6 +208,17 @@ export function useImageList() {
       await fetchSearch(targetPage)
     } else {
       await fetchList(targetPage)
+    }
+  }
+
+  async function setPageSize(size: number) {
+    if (!Number.isFinite(size) || size <= 0 || size === pageSize.value) return
+    pageSize.value = size
+    page.value = 1
+    if (activeSearch.value) {
+      await Promise.all([fetchSearch(1), fetchTotal()])
+    } else {
+      await Promise.all([fetchList(1), fetchTotal()])
     }
   }
 
@@ -220,10 +281,13 @@ export function useImageList() {
   return {
     items,
     page,
+    pageSize,
     totalPages,
     total,
     loading,
     activeStorageBackend,
+    activeContentType,
+    activeUploadSource,
     storageBackendOptions,
     searchQuery,
     activeSearch,
@@ -234,9 +298,13 @@ export function useImageList() {
     refreshList,
     initializeList,
     setActiveStorageBackend,
+    setActiveContentType,
+    setActiveUploadSource,
+    resetFilters,
     loadStorageBackendOptions,
     submitSearch,
     goToPage,
+    setPageSize,
     prependItems,
     removeItems
   }

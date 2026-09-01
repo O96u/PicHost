@@ -10,17 +10,31 @@ const props = withDefaults(defineProps<{
   emptyText?: string
   dense?: boolean
   compact?: boolean
+  /** 图库：5 列 × 2 行，缩略图略扁 */
+  gallery?: boolean
 }>(), {
   selectable: true,
   showKey: true,
   showStorage: false,
   dense: false,
-  compact: false
+  compact: false,
+  gallery: false
+})
+
+const gridClass = computed(() => {
+  if (props.gallery) {
+    return 'grid items-start grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+  }
+  if (props.dense) {
+    return 'grid items-start grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+  }
+  return 'grid items-start grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
 })
 
 const emit = defineEmits<{
   'update:selectedKeys': [value: Set<string>]
   'preview': [image: ImageItem]
+  'delete': [image: ImageItem]
 }>()
 
 const { t } = useI18n()
@@ -38,8 +52,8 @@ function updateSelection(key: string, selected: boolean) {
 <template>
   <div
     v-if="items.length"
-    class="grid items-start sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-    :class="dense ? 'grid-cols-2 gap-3' : 'grid-cols-1 gap-4'"
+    class="items-start"
+    :class="gridClass"
   >
     <ImageCard
       v-for="image in items"
@@ -50,8 +64,10 @@ function updateSelection(key: string, selected: boolean) {
       :show-key="showKey"
       :show-storage="showStorage"
       :compact="compact"
+      :gallery="gallery"
       @update:selected="updateSelection(image.key, $event)"
       @preview="emit('preview', image)"
+      @delete="emit('delete', image)"
     />
   </div>
   <div
