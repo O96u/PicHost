@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
   const userFilter = await getImageUserFilter(event)
 
   try {
-    if (user.role === 'admin' && userFilter === 'admin') {
+    if (userFilter === 'admin') {
       const activity = getActivityStats()
       const [storedCount, byFolder, storageUsage] = await Promise.all([
         countImages(),

@@ -2,9 +2,10 @@
 import logoLight from '~/assets/image/logo-light.png'
 import logoDark from '~/assets/image/logo-dark.png'
 import { isPasswordValid } from '~/utils/password-strength'
+import type { LoginVerificationPayload } from '~/types/auth'
 
 const router = useRouter()
-const { register, fetchStatus } = useAuth()
+const { register, fetchStatus, authStatus } = useAuth()
 const toast = useToast()
 const { t } = useI18n()
 
@@ -12,13 +13,33 @@ const username = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const loading = ref(false)
+const verificationRef = ref<{ reset: () => Promise<void> } | null>(null)
+const verificationPayload = ref<LoginVerificationPayload | null>(null)
+
+const loginVerification = computed(() =>
+  authStatus.value?.loginVerification ?? { method: 'slider' as const }
+)
 
 const canSubmit = computed(() =>
-  Boolean(username.value && password.value && confirmPassword.value)
+  Boolean(verificationPayload.value)
+  && Boolean(username.value && password.value && confirmPassword.value)
   && password.value === confirmPassword.value
   && isPasswordValid(password.value)
   && AUTH_USERNAME_PATTERN.test(username.value.trim())
 )
+
+function onVerificationVerified(payload: LoginVerificationPayload) {
+  verificationPayload.value = payload
+}
+
+function onVerificationCleared() {
+  verificationPayload.value = null
+}
+
+async function resetVerification() {
+  verificationPayload.value = null
+  await verificationRef.value?.reset()
+}
 
 onMounted(async () => {
   const status = await fetchStatus()
@@ -32,7 +53,7 @@ onMounted(async () => {
 })
 
 async function submit() {
-  if (!canSubmit.value || loading.value) return
+  if (!canSubmit.value || loading.value || !verificationPayload.value) return
 
   if (password.value !== confirmPassword.value) {
     toast.add({ title: t('auth.passwordMismatch'), color: 'error' })
@@ -41,11 +62,16 @@ async function submit() {
 
   loading.value = true
   try {
-    const result = await register(username.value.trim(), password.value)
+    const result = await register(
+      username.value.trim(),
+      password.value,
+      verificationPayload.value
+    )
     if (result.ok) {
       toast.add({ title: t('auth.registerSuccess'), color: 'success' })
       await router.replace('/')
     } else {
+      await resetVerification()
       toast.add({ title: result.error, color: 'error' })
     }
   } finally {
@@ -141,6 +167,15 @@ async function submit() {
             autocomplete="new-password"
           />
         </div>
+
+        <LoginVerification
+          ref="verificationRef"
+          :method="loginVerification.method"
+          :turnstile-site-key="loginVerification.turnstileSiteKey"
+          :cap-api-endpoint="loginVerification.capApiEndpoint"
+          @verified="onVerificationVerified"
+          @cleared="onVerificationCleared"
+        />
 
         <UButton
           type="submit"

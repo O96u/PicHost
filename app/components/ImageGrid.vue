@@ -12,13 +12,15 @@ const props = withDefaults(defineProps<{
   compact?: boolean
   /** 图库：5 列 × 2 行，缩略图略扁 */
   gallery?: boolean
+  allowDelete?: boolean
 }>(), {
   selectable: true,
   showKey: true,
   showStorage: false,
   dense: false,
   compact: false,
-  gallery: false
+  gallery: false,
+  allowDelete: true
 })
 
 const gridClass = computed(() => {
@@ -65,6 +67,7 @@ function updateSelection(key: string, selected: boolean) {
       :show-storage="showStorage"
       :compact="compact"
       :gallery="gallery"
+      :allow-delete="allowDelete"
       @update:selected="updateSelection(image.key, $event)"
       @preview="emit('preview', image)"
       @delete="emit('delete', image)"

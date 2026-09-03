@@ -180,7 +180,10 @@ export async function getImageUserFilter(
   }
 
   const user = await requireUserAuth(event)
-  return user.role === 'admin' ? 'admin' : user.id
+  if (user.role === 'admin') {
+    return 'admin'
+  }
+  return user.id
 }
 
 export async function assertImageOwnership(

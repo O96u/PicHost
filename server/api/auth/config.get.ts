@@ -1,5 +1,5 @@
 import { isAllowRegistration } from '../../utils/db'
-import { isAdminSecretConfigured, isApiUploadTokenConfigured } from '../../utils/env'
+import { getLoginVerificationPublicConfig, isAdminSecretConfigured, isApiUploadTokenConfigured } from '../../utils/env'
 import { isInitialized } from '../../utils/auth'
 
 export default defineEventHandler((event) => {
@@ -8,6 +8,7 @@ export default defineEventHandler((event) => {
     allowRegistration: isAllowRegistration(),
     legacyMode: !isInitialized() && isAdminSecretConfigured(event),
     adminSecretConfigured: isAdminSecretConfigured(event),
-    apiUploadTokenConfigured: isApiUploadTokenConfigured(event)
+    apiUploadTokenConfigured: isApiUploadTokenConfigured(event),
+    loginVerification: getLoginVerificationPublicConfig(event)
   }
 })

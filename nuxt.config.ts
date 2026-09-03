@@ -21,6 +21,12 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  vue: {
+    compilerOptions: {
+      isCustomElement: tag => tag.startsWith('cap-')
+    }
+  },
+
   colorMode: {
     preference: 'system',
     fallback: 'light'

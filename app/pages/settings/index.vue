@@ -4,6 +4,7 @@ import { ADMIN_SETTINGS_TABS, USER_SETTINGS_TABS } from '~/types/settings'
 
 type SettingSource = 'env' | 'db' | 'none'
 type WebpQualitySource = 'env' | 'db' | 'default'
+type LoginVerificationMethod = 'slider' | 'turnstile' | 'cap'
 
 interface SettingsResponse {
   apiUploadToken: string
@@ -33,6 +34,11 @@ interface SettingsResponse {
   storageUseDatePath: boolean
   storageUseDatePathSource: SettingSource
   allowRegistration: boolean
+  loginVerificationMethod: LoginVerificationMethod
+  turnstileSiteKey: string
+  turnstileSecretKey: string
+  capApiEndpoint: string
+  capSecret: string
   appVersion: string
 }
 
@@ -98,6 +104,11 @@ const imageBaseUrlDraft = ref('')
 const hideFolderInUrlDraft = ref(false)
 const storageUseDatePathDraft = ref(true)
 const allowRegistrationDraft = ref(false)
+const loginVerificationMethodDraft = ref<LoginVerificationMethod>('slider')
+const turnstileSiteKeyDraft = ref('')
+const turnstileSecretKeyDraft = ref('')
+const capApiEndpointDraft = ref('')
+const capSecretDraft = ref('')
 const domainSeparationDraft = ref(false)
 const disableDomainSeparationOpen = ref(false)
 const pendingDomainSeparationDisable = ref(false)
@@ -120,6 +131,11 @@ const hasServerChanges = computed(() => {
     || hideFolderInUrlDraft.value !== settings.value.hideFolderInUrl
     || storageUseDatePathDraft.value !== settings.value.storageUseDatePath
     || allowRegistrationDraft.value !== settings.value.allowRegistration
+    || loginVerificationMethodDraft.value !== settings.value.loginVerificationMethod
+    || turnstileSiteKeyDraft.value !== settings.value.turnstileSiteKey
+    || turnstileSecretKeyDraft.value !== settings.value.turnstileSecretKey
+    || capApiEndpointDraft.value !== settings.value.capApiEndpoint
+    || capSecretDraft.value !== settings.value.capSecret
 })
 
 function sourceBadge(source: SettingSource | WebpQualitySource) {
@@ -150,6 +166,11 @@ function applySettings(data: SettingsResponse) {
   hideFolderInUrlDraft.value = data.hideFolderInUrl
   storageUseDatePathDraft.value = data.storageUseDatePath
   allowRegistrationDraft.value = data.allowRegistration
+  loginVerificationMethodDraft.value = data.loginVerificationMethod
+  turnstileSiteKeyDraft.value = data.turnstileSiteKey
+  turnstileSecretKeyDraft.value = data.turnstileSecretKey
+  capApiEndpointDraft.value = data.capApiEndpoint
+  capSecretDraft.value = data.capSecret
   domainSeparationDraft.value = data.domainSeparation
 }
 
@@ -221,7 +242,12 @@ async function saveServerSettings() {
       imageBaseUrl: imageBaseUrlDraft.value,
       hideFolderInUrl: hideFolderInUrlDraft.value,
       storageUseDatePath: storageUseDatePathDraft.value,
-      allowRegistration: allowRegistrationDraft.value
+      allowRegistration: allowRegistrationDraft.value,
+      loginVerificationMethod: loginVerificationMethodDraft.value,
+      turnstileSiteKey: turnstileSiteKeyDraft.value,
+      turnstileSecretKey: turnstileSecretKeyDraft.value,
+      capApiEndpoint: capApiEndpointDraft.value,
+      capSecret: capSecretDraft.value
     })
     toast.add({ title: t('settings.saved'), color: 'success' })
   } catch (error: unknown) {
@@ -279,9 +305,27 @@ async function checkLatestRelease(options: { notify?: boolean, refresh?: boolean
   }
 }
 
+const loginVerificationOptions = computed(() => [
+  { value: 'slider' as const, label: t('settings.loginVerificationSlider') },
+  { value: 'turnstile' as const, label: t('settings.loginVerificationTurnstile') },
+  { value: 'cap' as const, label: t('settings.loginVerificationCap') }
+])
+
+const loginVerificationHint = computed(() => {
+  switch (loginVerificationMethodDraft.value) {
+    case 'turnstile':
+      return t('settings.loginVerificationTurnstileHint')
+    case 'cap':
+      return t('settings.loginVerificationCapHint')
+    default:
+      return t('settings.loginVerificationSliderHint')
+  }
+})
+
 async function loadPage() {
   if (isAdmin.value) {
-    await Promise.all([loadSettings(), checkLatestRelease()])
+    await loadSettings()
+    await checkLatestRelease()
   }
 }
 
@@ -382,7 +426,10 @@ watch(isAdmin, () => {
                     :title="t('settings.systemInfo')"
                     :hint="t('settings.systemInfoHint')"
                   >
-                    <template #action>
+                    <template
+                      v-if="isAdmin"
+                      #action
+                    >
                       <UButton
                         :label="t('settings.checkUpdate')"
                         icon="i-lucide-refresh-cw"
@@ -712,6 +759,75 @@ watch(isAdmin, () => {
                       </div>
                     </div>
                   </div>
+
+                  <SettingsSection
+                    :title="t('settings.loginVerification')"
+                    :hint="t('settings.loginVerificationHint')"
+                  >
+                    <SettingsGroup>
+                      <div class="space-y-4 px-4 py-4 sm:px-5">
+                        <URadioGroup
+                          v-model="loginVerificationMethodDraft"
+                          :items="loginVerificationOptions"
+                        />
+                        <p class="text-xs leading-relaxed text-muted">
+                          {{ loginVerificationHint }}
+                        </p>
+                        <div
+                          v-if="loginVerificationMethodDraft === 'turnstile'"
+                          class="space-y-3 rounded-xl border border-default bg-muted/20 p-4"
+                        >
+                          <div class="space-y-2">
+                            <label class="text-sm font-medium text-highlighted">
+                              {{ t('settings.turnstileSiteKey') }}
+                            </label>
+                            <UInput
+                              v-model="turnstileSiteKeyDraft"
+                              :placeholder="t('settings.turnstileSiteKeyPlaceholder')"
+                              class="w-full font-mono text-sm"
+                            />
+                          </div>
+                          <div class="space-y-2">
+                            <label class="text-sm font-medium text-highlighted">
+                              {{ t('settings.turnstileSecretKey') }}
+                            </label>
+                            <UInput
+                              v-model="turnstileSecretKeyDraft"
+                              type="password"
+                              :placeholder="t('settings.turnstileSecretKeyPlaceholder')"
+                              class="w-full font-mono text-sm"
+                            />
+                          </div>
+                        </div>
+                        <div
+                          v-else-if="loginVerificationMethodDraft === 'cap'"
+                          class="space-y-3 rounded-xl border border-default bg-muted/20 p-4"
+                        >
+                          <div class="space-y-2">
+                            <label class="text-sm font-medium text-highlighted">
+                              {{ t('settings.capApiEndpoint') }}
+                            </label>
+                            <UInput
+                              v-model="capApiEndpointDraft"
+                              :placeholder="t('settings.capApiEndpointPlaceholder')"
+                              class="w-full font-mono text-sm"
+                            />
+                          </div>
+                          <div class="space-y-2">
+                            <label class="text-sm font-medium text-highlighted">
+                              {{ t('settings.capSecretKey') }}
+                            </label>
+                            <UInput
+                              v-model="capSecretDraft"
+                              type="password"
+                              :placeholder="t('settings.capSecretKeyPlaceholder')"
+                              class="w-full font-mono text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </SettingsGroup>
+                  </SettingsSection>
                 </SettingsPanel>
                 <div
                   v-else

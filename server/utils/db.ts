@@ -384,6 +384,11 @@ export const SETTINGS_IMAGE_BASE_URL = 'image_base_url'
 export const SETTINGS_AUTO_DELETE_DAYS = 'auto_delete_days'
 export const SETTINGS_AUTO_DELETE_ENABLED_AT = 'auto_delete_enabled_at'
 export const SETTINGS_ALLOW_REGISTRATION = 'allow_registration'
+export const SETTINGS_LOGIN_VERIFICATION_METHOD = 'login_verification_method'
+export const SETTINGS_TURNSTILE_SITE_KEY = 'turnstile_site_key'
+export const SETTINGS_TURNSTILE_SECRET_KEY = 'turnstile_secret_key'
+export const SETTINGS_CAP_API_ENDPOINT = 'cap_api_endpoint'
+export const SETTINGS_CAP_SECRET = 'cap_secret'
 
 export function isAllowRegistration(): boolean {
   return getSetting(SETTINGS_ALLOW_REGISTRATION) === 'true'

@@ -401,6 +401,7 @@ watch(isAuthenticated, async (authed, prev) => {
             :view-mode="viewMode"
             :selected-count="selectedCount"
             :loading="galleryLoading"
+            :show-batch-delete="true"
             @update:storage-backend="handleStorageBackendChange"
             @update:upload-source="handleUploadSourceChange"
             @update:view-mode="viewMode = $event"
@@ -430,7 +431,8 @@ watch(isAuthenticated, async (authed, prev) => {
           show-storage
           :items="items"
           :selected-keys="selectedKeys"
-          selectable
+          :selectable="true"
+          :allow-delete="true"
           @update:selected-keys="updateSelectedKeys"
           @preview="openPreview"
           @delete="(image) => requestDelete(image.key)"
@@ -442,6 +444,7 @@ watch(isAuthenticated, async (authed, prev) => {
           :items="items"
           :selected-keys="selectedKeys"
           :selectable="true"
+          :show-delete="true"
           @update:selected-keys="updateSelectedKeys"
           @preview="openPreview"
           @delete="(image) => requestDelete(image.key)"
@@ -452,6 +455,7 @@ watch(isAuthenticated, async (authed, prev) => {
           :image="previewImage"
           show-storage
           :deleting="previewImage ? deletingKeys.has(previewImage.key) : false"
+          :allow-delete="true"
           @delete="requestPreviewDelete"
         />
 

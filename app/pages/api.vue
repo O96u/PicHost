@@ -35,7 +35,9 @@ const baseUrl = computed(() => {
 
 const tokenDisplay = computed(() => settings.value?.apiUploadToken ?? '')
 const hasToken = computed(() => tokenDisplay.value.length > 0)
-const canRegenerate = computed(() => !settings.value?.envTokenOverride && !loading.value)
+const canRegenerate = computed(() =>
+  !settings.value?.envTokenOverride && !loading.value
+)
 
 const authHeader = computed(() =>
   hasToken.value ? tokenDisplay.value : 'YOUR-TOKEN'

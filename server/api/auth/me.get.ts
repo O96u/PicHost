@@ -9,6 +9,10 @@ export default defineEventHandler(async (event) => {
 
   return {
     authenticated: true,
-    user: { id: user.id, username: user.username, role: user.role }
+    user: {
+      id: user.id,
+      username: user.username,
+      role: user.role
+    }
   }
 })

@@ -11,6 +11,11 @@ import {
   SETTINGS_IMAGE_BASE_URL,
   SETTINGS_SITE_BASE_URL,
   SETTINGS_WEBP_QUALITY,
+  SETTINGS_LOGIN_VERIFICATION_METHOD,
+  SETTINGS_TURNSTILE_SITE_KEY,
+  SETTINGS_TURNSTILE_SECRET_KEY,
+  SETTINGS_CAP_API_ENDPOINT,
+  SETTINGS_CAP_SECRET,
   isAllowRegistration
 } from './db'
 
@@ -255,6 +260,93 @@ export function getApiUploadToken(event: H3Event): string {
   if (fromDb) return fromDb
 
   return ''
+}
+
+export const LOGIN_VERIFICATION_METHODS = ['slider', 'turnstile', 'cap'] as const
+export type LoginVerificationMethod = typeof LOGIN_VERIFICATION_METHODS[number]
+
+const DEFAULT_LOGIN_VERIFICATION_METHOD: LoginVerificationMethod = 'slider'
+
+export function parseLoginVerificationMethod(raw: string): LoginVerificationMethod | null {
+  if (raw === 'slider' || raw === 'turnstile' || raw === 'cap') return raw
+  return null
+}
+
+export function getLoginVerificationMethod(_event?: H3Event): LoginVerificationMethod {
+  const fromDb = getSetting(SETTINGS_LOGIN_VERIFICATION_METHOD)
+  if (fromDb !== null) {
+    return parseLoginVerificationMethod(fromDb) ?? DEFAULT_LOGIN_VERIFICATION_METHOD
+  }
+  return DEFAULT_LOGIN_VERIFICATION_METHOD
+}
+
+export function getTurnstileSiteKeyConfigured(_event?: H3Event): string {
+  return getSetting(SETTINGS_TURNSTILE_SITE_KEY)?.trim() ?? ''
+}
+
+export function getTurnstileSecretKey(_event?: H3Event): string {
+  return getSetting(SETTINGS_TURNSTILE_SECRET_KEY)?.trim() ?? ''
+}
+
+export function normalizeCapApiEndpoint(raw: string): string {
+  const trimmed = raw.trim()
+  if (!trimmed) return ''
+  return trimmed.endsWith('/') ? trimmed : `${trimmed}/`
+}
+
+export function getCapApiEndpointConfigured(_event?: H3Event): string {
+  const fromDb = getSetting(SETTINGS_CAP_API_ENDPOINT)
+  return fromDb ? normalizeCapApiEndpoint(fromDb) : ''
+}
+
+export function getCapSecret(_event?: H3Event): string {
+  return getSetting(SETTINGS_CAP_SECRET)?.trim() ?? ''
+}
+
+export interface LoginVerificationPublicConfig {
+  method: LoginVerificationMethod
+  turnstileSiteKey?: string
+  capApiEndpoint?: string
+}
+
+export function getLoginVerificationPublicConfig(event: H3Event): LoginVerificationPublicConfig {
+  const method = getLoginVerificationMethod(event)
+  const config: LoginVerificationPublicConfig = { method }
+  if (method === 'turnstile') {
+    const siteKey = getTurnstileSiteKeyConfigured(event)
+    if (siteKey) config.turnstileSiteKey = siteKey
+  }
+  if (method === 'cap') {
+    const endpoint = getCapApiEndpointConfigured(event)
+    if (endpoint) config.capApiEndpoint = endpoint
+  }
+  return config
+}
+
+export function validateLoginVerificationSettings(
+  method: LoginVerificationMethod,
+  turnstileSiteKey: string,
+  turnstileSecretKey: string,
+  capApiEndpoint: string,
+  capSecret: string
+): string | null {
+  if (method === 'turnstile') {
+    if (!turnstileSiteKey.trim()) {
+      return '请配置 Turnstile Site Key'
+    }
+    if (!turnstileSecretKey.trim()) {
+      return '请配置 Turnstile Secret Key'
+    }
+  }
+  if (method === 'cap') {
+    if (!normalizeCapApiEndpoint(capApiEndpoint)) {
+      return '请配置 Cap API Endpoint'
+    }
+    if (!capSecret.trim()) {
+      return '请配置 Cap Secret Key'
+    }
+  }
+  return null
 }
 
 export const DEFAULT_WEBP_QUALITY = 80
@@ -596,6 +688,11 @@ export function getSettingsPayload(event: H3Event) {
     autoDeleteDaysSource: getAutoDeleteDaysSource(),
     autoDeleteEnvFallback: parseAutoDeleteDays(getAutoDeleteDaysFromEnv()) ?? 0,
     allowRegistration: isAllowRegistration(),
+    loginVerificationMethod: getLoginVerificationMethod(event),
+    turnstileSiteKey: getTurnstileSiteKeyConfigured(event),
+    turnstileSecretKey: getTurnstileSecretKey(event),
+    capApiEndpoint: getCapApiEndpointConfigured(event),
+    capSecret: getCapSecret(event),
     appVersion,
     env: {
       webpQuality,

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import logoLight from '~/assets/image/logo-light.png'
 import logoDark from '~/assets/image/logo-dark.png'
+import type { LoginVerificationPayload } from '~/types/auth'
 
 const router = useRouter()
 const { login, fetchStatus, authStatus } = useAuth()
@@ -11,45 +12,53 @@ const username = ref('')
 const password = ref('')
 const secret = ref('')
 const loading = ref(false)
-const captchaRef = ref<{ reset: () => Promise<void> } | null>(null)
-const captchaPayload = ref<{ captchaId: string, captchaPosition: number } | null>(null)
+const verificationRef = ref<{ reset: () => Promise<void> } | null>(null)
+const verificationPayload = ref<LoginVerificationPayload | null>(null)
+const verificationMountKey = ref(0)
 
 const legacyMode = computed(() => authStatus.value?.legacyMode ?? false)
 const allowRegistration = computed(() => authStatus.value?.allowRegistration ?? false)
+const loginVerification = computed(() =>
+  authStatus.value?.loginVerification ?? { method: 'slider' as const }
+)
 
 const canSubmit = computed(() =>
-  Boolean(captchaPayload.value)
+  Boolean(verificationPayload.value)
   && (legacyMode.value ? Boolean(secret.value) : Boolean(username.value && password.value))
 )
 
-function onCaptchaVerified(payload: { id: string, positionPercent: number }) {
-  captchaPayload.value = {
-    captchaId: payload.id,
-    captchaPosition: payload.positionPercent
-  }
+function onVerificationVerified(payload: LoginVerificationPayload) {
+  verificationPayload.value = payload
 }
 
-async function resetCaptcha() {
-  captchaPayload.value = null
-  await captchaRef.value?.reset()
+function onVerificationCleared() {
+  verificationPayload.value = null
+}
+
+async function resetVerification() {
+  verificationPayload.value = null
+  await verificationRef.value?.reset()
 }
 
 onMounted(async () => {
+  verificationPayload.value = null
+  verificationMountKey.value += 1
   const status = await fetchStatus()
   if (!status.initialized && !status.legacyMode) {
     await router.replace('/setup')
+    return
   }
 })
 
 async function submit() {
-  if (!canSubmit.value || loading.value || !captchaPayload.value) return
+  if (!canSubmit.value || loading.value || !verificationPayload.value) return
   loading.value = true
 
   try {
-    const captcha = captchaPayload.value
+    const verification = verificationPayload.value
     const result = legacyMode.value
-      ? await login({ secret: secret.value }, captcha)
-      : await login({ username: username.value.trim(), password: password.value }, captcha)
+      ? await login({ secret: secret.value }, verification)
+      : await login({ username: username.value.trim(), password: password.value }, verification)
 
     if (result.ok) {
       if (result.needsMigration) {
@@ -59,10 +68,10 @@ async function submit() {
       username.value = ''
       password.value = ''
       secret.value = ''
-      await resetCaptcha()
+      await resetVerification()
       toast.add({ title: t('auth.loginSuccess'), color: 'success' })
     } else {
-      await resetCaptcha()
+      await resetVerification()
       toast.add({
         title: result.error ?? (legacyMode.value ? t('auth.loginFailedSecret') : t('auth.loginFailedCredentials')),
         color: 'error'
@@ -170,9 +179,14 @@ async function submit() {
           </div>
         </template>
 
-        <SliderCaptcha
-          ref="captchaRef"
-          @verified="onCaptchaVerified"
+        <LoginVerification
+          :key="verificationMountKey"
+          ref="verificationRef"
+          :method="loginVerification.method"
+          :turnstile-site-key="loginVerification.turnstileSiteKey"
+          :cap-api-endpoint="loginVerification.capApiEndpoint"
+          @verified="onVerificationVerified"
+          @cleared="onVerificationCleared"
         />
 
         <UButton

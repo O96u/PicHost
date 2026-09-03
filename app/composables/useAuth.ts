@@ -1,3 +1,5 @@
+import type { LoginVerificationPayload } from '~/types/auth'
+
 export type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated'
 
 export type UserRole = 'admin' | 'user'
@@ -8,11 +10,18 @@ export interface AuthUser {
   role: UserRole
 }
 
+export interface LoginVerificationPublicConfig {
+  method: 'slider' | 'turnstile' | 'cap'
+  turnstileSiteKey?: string
+  capApiEndpoint?: string
+}
+
 export interface AuthStatusResponse {
   initialized: boolean
   allowRegistration: boolean
   legacyMode: boolean
   needsMigration: boolean
+  loginVerification: LoginVerificationPublicConfig
   user: AuthUser | null
 }
 
@@ -66,9 +75,19 @@ export function getFetchErrorMessage(error: unknown, fallback: string): string {
 
 export type AuthActionResult = { ok: true } | { ok: false, error: string }
 
-export interface LoginCaptchaPayload {
-  captchaId: string
-  captchaPosition: number
+export type { LoginVerificationPayload }
+
+function buildVerificationBody(verification: LoginVerificationPayload): Record<string, unknown> {
+  if (verification.method === 'slider') {
+    return {
+      captchaId: verification.captchaId,
+      captchaPosition: verification.captchaPosition
+    }
+  }
+  if (verification.method === 'turnstile') {
+    return { turnstileToken: verification.turnstileToken }
+  }
+  return { capToken: verification.capToken }
 }
 
 export function useAuth() {
@@ -123,7 +142,7 @@ export function useAuth() {
   async function login(
     credentials: { username: string, password: string }
       | { secret: string },
-    captcha: LoginCaptchaPayload
+    verification: LoginVerificationPayload
   ): Promise<{ ok: boolean, needsMigration?: boolean, error?: string }> {
     try {
       const result = await $fetch<{
@@ -135,8 +154,7 @@ export function useAuth() {
         credentials: 'include',
         body: {
           ...credentials,
-          captchaId: captcha.captchaId,
-          captchaPosition: captcha.captchaPosition
+          ...buildVerificationBody(verification)
         }
       })
       if (result.needsMigration) {
@@ -159,7 +177,8 @@ export function useAuth() {
 
   async function register(
     username: string,
-    password: string
+    password: string,
+    verification: LoginVerificationPayload
   ): Promise<AuthActionResult> {
     const validationError = validateAuthInput(username, password)
     if (validationError) {
@@ -172,7 +191,11 @@ export function useAuth() {
         {
           method: 'POST',
           credentials: 'include',
-          body: { username: username.trim(), password }
+          body: {
+            username: username.trim(),
+            password,
+            ...buildVerificationBody(verification)
+          }
         }
       )
       user.value = result.user
@@ -291,14 +314,18 @@ export function useAuth() {
 
   async function logout() {
     try {
-      await $fetch('/api/auth/logout', { method: 'POST' })
+      await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
     } catch {
       // 忽略登出失败
     } finally {
       status.value = 'unauthenticated'
       user.value = null
-      authStatus.value = null
       hasValidatedOnce.value = true
+    }
+    try {
+      await fetchStatus()
+    } catch {
+      // 保留既有公开配置（loginVerification 等）
     }
   }
 

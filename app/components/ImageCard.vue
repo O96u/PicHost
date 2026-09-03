@@ -10,12 +10,14 @@ const props = withDefaults(defineProps<{
   showStorage?: boolean
   compact?: boolean
   gallery?: boolean
+  allowDelete?: boolean
 }>(), {
   selectable: true,
   showKey: true,
   showStorage: false,
   compact: false,
-  gallery: false
+  gallery: false,
+  allowDelete: true
 })
 
 const emit = defineEmits<{
@@ -251,6 +253,7 @@ async function copyGalleryUrl() {
         @click="emit('preview')"
       />
       <UButton
+        v-if="allowDelete"
         icon="i-lucide-trash-2"
         variant="ghost"
         color="neutral"

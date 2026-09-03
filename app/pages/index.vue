@@ -206,6 +206,7 @@ function requestPreviewDelete() {
         v-model:open="previewOpen"
         :image="previewImage"
         :deleting="previewImage ? deletingKeys.has(previewImage.key) : false"
+        :allow-delete="true"
         @delete="requestPreviewDelete"
       />
     </AppShell>

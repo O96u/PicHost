@@ -5,9 +5,10 @@ import {
   isInitialized
 } from '../../utils/auth'
 import { isAllowRegistration } from '../../utils/db'
+import { verifyLoginVerification, type VerificationBody } from '../../utils/login-verification'
 import { clientIp, logInfo } from '../../utils/logger'
 
-interface RegisterBody {
+interface RegisterBody extends VerificationBody {
   username?: string
   password?: string
 }
@@ -22,6 +23,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<RegisterBody>(event)
+  await verifyLoginVerification(event, body ?? {})
+
   const username = body?.username?.trim() ?? ''
   const password = body?.password ?? ''
 
@@ -38,7 +41,11 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
-      user: { id: user.id, username: user.username, role: user.role }
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role
+      }
     }
   } catch (error: unknown) {
     if (error instanceof Error) {

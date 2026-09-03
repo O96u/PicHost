@@ -4,6 +4,17 @@ Version history and notable changes. The full log is also in the repo root [CHAN
 
 ---
 
+## [1.2.7] — 2026-09-03
+
+### Added
+
+- **Login verification**: slider, Cloudflare Turnstile, or Cap on login/register; configure under Settings → Access
+- **Ops CLI**: `slider` resets verification to the local slider (`docker exec pichost slider`)
+
+### Improved
+
+- Login captcha reloads correctly after logout
+
 ## [1.2.6] — 2026-09-01
 
 ### Added

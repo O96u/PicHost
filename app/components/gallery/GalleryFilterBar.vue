@@ -8,9 +8,11 @@ const props = withDefaults(defineProps<{
   viewMode: 'grid' | 'list'
   selectedCount?: number
   loading?: boolean
+  showBatchDelete?: boolean
 }>(), {
   selectedCount: 0,
-  loading: false
+  loading: false,
+  showBatchDelete: true
 })
 
 const emit = defineEmits<{
@@ -99,6 +101,7 @@ function viewButtonClass(active: boolean) {
     </UButton>
 
     <UButton
+      v-if="showBatchDelete"
       type="button"
       icon="i-lucide-trash-2"
       size="sm"

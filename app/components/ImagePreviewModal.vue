@@ -10,8 +10,10 @@ const props = withDefaults(defineProps<{
   image: ImageItem | null
   showStorage?: boolean
   deleting?: boolean
+  allowDelete?: boolean
 }>(), {
-  showStorage: false
+  showStorage: false,
+  allowDelete: true
 })
 
 const emit = defineEmits<{
@@ -396,6 +398,7 @@ function onImageLoad(event: Event) {
           @click="copyLink"
         />
         <UButton
+          v-if="allowDelete"
           :label="t('common.delete')"
           icon="i-lucide-trash-2"
           color="error"

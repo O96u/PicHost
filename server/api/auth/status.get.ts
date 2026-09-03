@@ -1,5 +1,5 @@
 import { isAllowRegistration } from '../../utils/db'
-import { isAdminSecretConfigured } from '../../utils/env'
+import { getLoginVerificationPublicConfig, isAdminSecretConfigured } from '../../utils/env'
 import {
   getCurrentUser,
   isInitialized
@@ -17,8 +17,13 @@ export default defineEventHandler(async (event) => {
     allowRegistration: isAllowRegistration(),
     legacyMode,
     needsMigration,
+    loginVerification: getLoginVerificationPublicConfig(event),
     user: user
-      ? { id: user.id, username: user.username, role: user.role }
+      ? {
+          id: user.id,
+          username: user.username,
+          role: user.role
+        }
       : null
   }
 })

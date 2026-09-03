@@ -9,6 +9,11 @@ import {
   SETTINGS_IMAGE_BASE_URL,
   SETTINGS_SITE_BASE_URL,
   SETTINGS_WEBP_QUALITY,
+  SETTINGS_LOGIN_VERIFICATION_METHOD,
+  SETTINGS_TURNSTILE_SITE_KEY,
+  SETTINGS_TURNSTILE_SECRET_KEY,
+  SETTINGS_CAP_API_ENDPOINT,
+  SETTINGS_CAP_SECRET,
   setAllowRegistration
 } from '../../utils/db'
 import {
@@ -16,6 +21,8 @@ import {
   isValidImageBaseUrl,
   isValidRefererHost,
   isValidSiteBaseUrl,
+  normalizeCapApiEndpoint,
+  parseLoginVerificationMethod,
   MAX_AUTO_DELETE_DAYS,
   normalizeImageBaseUrl,
   normalizeRefererHosts,
@@ -23,6 +30,7 @@ import {
   parseAutoDeleteDays,
   parseWebpQuality,
   setGlobalAutoDeletePolicy,
+  validateLoginVerificationSettings,
   validateSettingsDomainPatch
 } from '../../utils/env'
 
@@ -36,6 +44,11 @@ interface SettingsPatchBody {
   storageUseDatePath?: unknown
   autoDeleteDays?: unknown
   allowRegistration?: unknown
+  loginVerificationMethod?: unknown
+  turnstileSiteKey?: unknown
+  turnstileSecretKey?: unknown
+  capApiEndpoint?: unknown
+  capSecret?: unknown
 }
 
 export default defineEventHandler(async (event) => {
@@ -159,6 +172,80 @@ export default defineEventHandler(async (event) => {
 
   if (body.storageUseDatePath !== undefined) {
     setSetting(SETTINGS_STORAGE_USE_DATE_PATH, body.storageUseDatePath ? 'true' : 'false')
+  }
+
+  const currentMethod = parseLoginVerificationMethod(
+    getSetting(SETTINGS_LOGIN_VERIFICATION_METHOD) ?? 'slider'
+  ) ?? 'slider'
+  let nextMethod = currentMethod
+  let nextTurnstileSiteKey = getSetting(SETTINGS_TURNSTILE_SITE_KEY) ?? ''
+  let nextTurnstileSecretKey = getSetting(SETTINGS_TURNSTILE_SECRET_KEY) ?? ''
+  let nextCapApiEndpoint = getSetting(SETTINGS_CAP_API_ENDPOINT) ?? ''
+  let nextCapSecret = getSetting(SETTINGS_CAP_SECRET) ?? ''
+
+  if (body.loginVerificationMethod !== undefined) {
+    const parsed = parseLoginVerificationMethod(String(body.loginVerificationMethod))
+    if (!parsed) {
+      createApiError(event, 'INVALID_REQUEST', '无效的登录验证方式', 400)
+    }
+    nextMethod = parsed
+  }
+
+  if (body.turnstileSiteKey !== undefined) {
+    nextTurnstileSiteKey = typeof body.turnstileSiteKey === 'string'
+      ? body.turnstileSiteKey.trim()
+      : ''
+  }
+
+  if (body.turnstileSecretKey !== undefined) {
+    nextTurnstileSecretKey = typeof body.turnstileSecretKey === 'string'
+      ? body.turnstileSecretKey.trim()
+      : ''
+  }
+
+  if (body.capApiEndpoint !== undefined) {
+    nextCapApiEndpoint = typeof body.capApiEndpoint === 'string'
+      ? normalizeCapApiEndpoint(body.capApiEndpoint)
+      : ''
+  }
+
+  if (body.capSecret !== undefined) {
+    nextCapSecret = typeof body.capSecret === 'string'
+      ? body.capSecret.trim()
+      : ''
+  }
+
+  if (body.loginVerificationMethod !== undefined
+    || body.turnstileSiteKey !== undefined
+    || body.turnstileSecretKey !== undefined
+    || body.capApiEndpoint !== undefined
+    || body.capSecret !== undefined) {
+    const settingsError = validateLoginVerificationSettings(
+      nextMethod,
+      nextTurnstileSiteKey,
+      nextTurnstileSecretKey,
+      nextCapApiEndpoint,
+      nextCapSecret
+    )
+    if (settingsError) {
+      createApiError(event, 'INVALID_REQUEST', settingsError, 400)
+    }
+  }
+
+  if (body.loginVerificationMethod !== undefined) {
+    setSetting(SETTINGS_LOGIN_VERIFICATION_METHOD, nextMethod)
+  }
+  if (body.turnstileSiteKey !== undefined) {
+    setSetting(SETTINGS_TURNSTILE_SITE_KEY, nextTurnstileSiteKey)
+  }
+  if (body.turnstileSecretKey !== undefined) {
+    setSetting(SETTINGS_TURNSTILE_SECRET_KEY, nextTurnstileSecretKey)
+  }
+  if (body.capApiEndpoint !== undefined) {
+    setSetting(SETTINGS_CAP_API_ENDPOINT, nextCapApiEndpoint)
+  }
+  if (body.capSecret !== undefined) {
+    setSetting(SETTINGS_CAP_SECRET, nextCapSecret)
   }
 
   return getSettingsPayload(event)

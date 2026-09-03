@@ -7,9 +7,11 @@ const props = withDefaults(defineProps<{
   selectable?: boolean
   showStorage?: boolean
   emptyText?: string
+  showDelete?: boolean
 }>(), {
   selectable: false,
-  showStorage: false
+  showStorage: false,
+  showDelete: true
 })
 
 const emit = defineEmits<{
@@ -198,6 +200,7 @@ function typeLabel(image: ImageItem) {
                   @click="emit('preview', image)"
                 />
                 <UButton
+                  v-if="showDelete"
                   icon="i-lucide-trash-2"
                   variant="ghost"
                   color="neutral"
