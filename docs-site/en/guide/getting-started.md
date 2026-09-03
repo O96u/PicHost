@@ -39,11 +39,23 @@ See `docker-compose.yml` in the repository.
 
 ## Sign in
 
-Management pages (upload, gallery, settings, etc.) require login. Enter username and password, **drag the slider to align with the gap**, then click **Sign in**.
+Management pages (upload, gallery, settings, etc.) require login. Enter username and password, complete the verification challenge, then click **Sign in**.
+
+The default is a **local slider** (align the thumb with the gap). Admins can switch to **Cloudflare Turnstile** or **Cap** under **Settings → Access control**, with the matching site key / secret or API endpoint.
 
 ![Login](/screenshots/login.png)
 
-If registration is enabled, create an account from the register page. Legacy deployments may still use a secret key (see the on-screen hint).
+If registration is enabled, create an account from the register page (same verification). Legacy deployments may still use a secret key (see the on-screen hint).
+
+### Locked out of verification
+
+If Turnstile / Cap is misconfigured and you cannot sign in, reset to the local slider on the server:
+
+```bash
+docker exec pichost slider
+```
+
+Local dev: `npm run slider`
 
 ## Forgot password
 

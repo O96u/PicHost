@@ -28,6 +28,7 @@ npm run dev
 | `npm run typecheck` | 类型检查 |
 | `npm test` | 单元测试 |
 | `npm run reset-password` | 重置密码（可选用户名） |
+| `npm run slider` | 将登录验证重置为本地滑块 |
 | `npm run migrate` | 预览遗留目录迁移（加 `-- --apply` 执行） |
 
 ## 开发专用环境变量

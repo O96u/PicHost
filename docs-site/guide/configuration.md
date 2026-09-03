@@ -11,6 +11,7 @@ PicHost 支持通过环境变量（Docker / `.env`）与后台 **设置** 页配
 | 简短图片链接 | SQLite → 环境变量 → 默认 false | 否 |
 | 按年/月分组存储 | SQLite → 环境变量 → 默认 true | 否 |
 | 全局自动删除天数 | SQLite → 环境变量 → 默认 0 | 否 |
+| 登录人机验证 | SQLite（设置 → 访问控制） | 否 |
 
 ## 变量说明
 
@@ -62,6 +63,18 @@ PicHost 支持通过环境变量（Docker / `.env`）与后台 **设置** 页配
 
 仅本地开发：`true` 绕过登录验证。生产环境勿用。
 
+### 登录人机验证（仅后台设置）
+
+在 **设置 → 访问控制** 配置，存入 SQLite，无对应环境变量：
+
+| 方式 | 说明 |
+| ---- | ---- |
+| **本地滑块**（默认） | 无需第三方服务 |
+| **Cloudflare Turnstile** | 填写 Site Key 与 Secret Key |
+| **Cap** | 填写 API Endpoint 与 Secret |
+
+登录与注册共用同一验证方式。若第三方配置错误导致无法登录，执行 `docker exec pichost slider`（或 `npm run slider`）恢复为本地滑块。
+
 ### 存储后端（可选）
 
 管理员通常在 **存储** 页添加后端；也可用环境变量引导（如 `STORAGE_BACKEND=s3` 与 `S3_*`）。详见 [存储](./storage.md)。
@@ -97,5 +110,6 @@ services:
 | 按年/月分组 | `STORAGE_USE_DATE_PATH` / `STORAGE_LAYOUT` |
 | WebP 质量 | `WEBP_QUALITY` |
 | 自动删除 | `AUTO_DELETE_DAYS` |
+| 登录验证 | （仅后台 **设置 → 访问控制**） |
 
 完整模板见仓库根目录 [`.env.example`](https://github.com/O96u/PicHost/blob/main/.env.example)。

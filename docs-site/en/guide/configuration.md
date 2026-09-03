@@ -13,6 +13,7 @@ Configure PicHost via environment variables (Docker / `.env`) or the in-app **Se
 | Short image links | SQLite → env → default false | No |
 | Date-based paths | SQLite → env → default true | No |
 | Global auto-delete days | SQLite → env → default 0 | No |
+| Login verification | SQLite (Settings → Access control) | No |
 
 ## Variables
 
@@ -64,6 +65,18 @@ Delete images older than N days globally; `0` disables. Affects **new uploads af
 
 Local dev only: `true` bypasses login. Never use in production.
 
+### Login verification (Settings only)
+
+Configure under **Settings → Access control** (stored in SQLite; no env vars):
+
+| Method | Notes |
+| ------ | ----- |
+| **Local slider** (default) | No third-party service |
+| **Cloudflare Turnstile** | Site key + secret key |
+| **Cap** | API endpoint + secret |
+
+Login and registration share the same method. If misconfigured: `docker exec pichost slider` (or `npm run slider`) resets to the slider.
+
 ### Storage backends (optional)
 
 Admins usually add backends in **Storage** UI; env vars such as `STORAGE_BACKEND=s3` and `S3_*` are also supported. See [Storage](./storage.md).
@@ -99,5 +112,6 @@ Restart the container after changing env vars.
 | Date-based paths | `STORAGE_USE_DATE_PATH` / `STORAGE_LAYOUT` |
 | WebP quality | `WEBP_QUALITY` |
 | Auto-delete | `AUTO_DELETE_DAYS` |
+| Login verification | (Settings → Access control only) |
 
 Template: [`.env.example`](https://github.com/O96u/PicHost/blob/main/.env.example) in the repo root.
