@@ -84,6 +84,11 @@
       "invalidPassword": "Password must be at least 8 characters"
     }
   },
+  "domainSeparationConfirm": {
+    "title": "Save dual-domain settings?",
+    "description": "After saving, only the site URL can serve the admin UI and API, and only the image URL can serve public image links. Access via IP, an unlisted Host, or a reverse proxy that does not forward Host correctly may lock you out of the admin UI.\n\nIf locked out, run docker exec pichost clear-domains (local dev: npm run clear-domains), or disable domain separation in Settings when you can access it again.\n\nSave anyway?",
+    "confirm": "Save anyway"
+  },
   "setup": {
     "migrateTitle": "Migrate to username/password",
     "initTitle": "First run — create admin account",

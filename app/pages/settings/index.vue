@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { SettingsTab } from '~/types/settings'
 import { ADMIN_SETTINGS_TABS, USER_SETTINGS_TABS } from '~/types/settings'
+import { willActivateDomainSeparation } from '~/utils/domain-separation'
 
 type SettingSource = 'env' | 'db' | 'none'
 type WebpQualitySource = 'env' | 'db' | 'default'
@@ -112,6 +113,7 @@ const capSecretDraft = ref('')
 const domainSeparationDraft = ref(false)
 const disableDomainSeparationOpen = ref(false)
 const pendingDomainSeparationDisable = ref(false)
+const domainSeparationSaveConfirmOpen = ref(false)
 
 interface ReleaseCheckResponse {
   currentVersion: string
@@ -137,6 +139,25 @@ const hasServerChanges = computed(() => {
     || capApiEndpointDraft.value !== settings.value.capApiEndpoint
     || capSecretDraft.value !== settings.value.capSecret
 })
+
+const domainSeparationWouldActivate = computed(() =>
+  willActivateDomainSeparation(
+    domainSeparationDraft.value,
+    siteBaseUrlDraft.value,
+    imageBaseUrlDraft.value
+  )
+)
+
+const domainSeparationFieldsChanged = computed(() => {
+  if (!settings.value) return false
+  return domainSeparationDraft.value !== settings.value.domainSeparation
+    || siteBaseUrlDraft.value !== (settings.value.domainSeparation ? settings.value.siteBaseUrl : '')
+    || imageBaseUrlDraft.value !== settings.value.imageBaseUrl
+})
+
+const needsDomainSeparationSaveConfirm = computed(() =>
+  domainSeparationWouldActivate.value && domainSeparationFieldsChanged.value
+)
 
 function sourceBadge(source: SettingSource | WebpQualitySource) {
   switch (source) {
@@ -232,6 +253,18 @@ async function saveServerSettings() {
       return
     }
   }
+
+  if (needsDomainSeparationSaveConfirm.value) {
+    domainSeparationSaveConfirmOpen.value = true
+    return
+  }
+
+  await performSaveServerSettings()
+}
+
+async function performSaveServerSettings() {
+  domainSeparationSaveConfirmOpen.value = false
+  if (!isAuthenticated.value || !hasServerChanges.value) return
 
   savingServer.value = true
   try {
@@ -496,12 +529,14 @@ watch(isAdmin, () => {
                     </a>
                   </p>
 
-                  <p
+                  <UAlert
                     v-if="domainSeparationDraft && settings.runtime.hostRole === 'unknown'"
-                    class="rounded-xl border border-error/25 bg-error/5 px-4 py-3 text-xs leading-relaxed text-error"
-                  >
-                    {{ t('settings.hostRoleUnknown') }}
-                  </p>
+                    color="warning"
+                    variant="subtle"
+                    icon="i-lucide-triangle-alert"
+                    :title="t('settings.hostRoleUnknown')"
+                    class="mb-4"
+                  />
 
                   <SettingsSection
                     :title="t('settings.pathAndLink')"
@@ -872,6 +907,30 @@ watch(isAdmin, () => {
             :label="t('settings.disableDomainSeparationConfirm')"
             color="warning"
             @click="confirmDisableDomainSeparation"
+          />
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
+      :open="domainSeparationSaveConfirmOpen"
+      :title="t('domainSeparationConfirm.title')"
+      :description="t('domainSeparationConfirm.description')"
+      @update:open="(v) => { if (!v) domainSeparationSaveConfirmOpen = false }"
+    >
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton
+            :label="t('common.cancel')"
+            color="neutral"
+            variant="outline"
+            @click="() => { domainSeparationSaveConfirmOpen = false }"
+          />
+          <UButton
+            :label="t('domainSeparationConfirm.confirm')"
+            color="warning"
+            :loading="savingServer"
+            @click="performSaveServerSettings"
           />
         </div>
       </template>

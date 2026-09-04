@@ -29,6 +29,7 @@ npm run dev
 | `npm test` | 单元测试 |
 | `npm run reset-password` | 重置密码（可选用户名） |
 | `npm run slider` | 将登录验证重置为本地滑块 |
+| `npm run clear-domains` | 清除数据库中的网站域 / 图片域配置（双域名锁死时恢复） |
 | `npm run migrate` | 预览遗留目录迁移（加 `-- --apply` 执行） |
 
 ## 开发专用环境变量

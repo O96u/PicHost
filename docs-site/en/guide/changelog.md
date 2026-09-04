@@ -4,6 +4,20 @@ Version history and notable changes. The full log is also in the repo root [CHAN
 
 ---
 
+## [1.2.8] — 2026-09-04
+
+### Improved
+
+- **Dual-domain**: confirm dialog on save/setup with lockout risks and `clear-domains` recovery; no longer blocks save based on current Host
+
+### Added
+
+- **Ops CLI**: `clear-domains` clears site/image URL settings from DB (`docker exec pichost clear-domains`)
+
+### Docs
+
+- FAQ and dual-domain / reverse-proxy guides updated with recovery steps
+
 ## [1.2.7] — 2026-09-03
 
 ### Added

@@ -70,6 +70,16 @@ A random password is printed. Change it after login.
 
 Local dev: `npm run reset-password` or `npm run reset-password -- <username>`
 
+## Dual-domain lockout
+
+If dual-domain is enabled and IP / LAN access returns 404:
+
+```bash
+docker exec pichost clear-domains
+```
+
+Local: `npm run clear-domains`. See [FAQ — Admin 404 after dual-domain setup](./faq.md#admin-404--locked-out-after-dual-domain-setup).
+
 ## Upgrading to v1.2.0
 
 If `data/` has legacy top-level folders next to `images` (e.g. `blog/`, `twikoo/`), read the [v1.2 migration guide](./migration.md) first.

@@ -63,7 +63,7 @@ IMAGE_BASE_URL=https://pic.example.com
 2. **禁止公网暴露 6892** — 仅本机或内网反代访问；公网只开 80/443
 3. **橙云时限制源站来源 IP** — 仅 Cloudflare 回源 IP 段
 
-双域名场景下 PicHost **不会** 拒绝未配置的 Host；上述措施由运维层补齐。
+**v1.2.2 起**，双域名开启时 PicHost 应用层也会对**未配置的网站域、图片域之外**的 Host 全站返回 404（与反代 default server 互补，而非替代）。误配置导致锁死时执行 `docker exec pichost clear-domains` 恢复，见 [常见问题](./faq.md#双域名配置后后台-404-进不去)。
 
 ## Caddy 示例
 

@@ -20,6 +20,24 @@ docker exec pichost reset-password 用户名
 
 检查 **防盗链白名单**（`ALLOWED_REFERER_HOSTS` 或设置页）。引用图片的站点域名需在白名单中；PicHost 自身域名与双域名场景下的网站域、图片域会自动放行。
 
+## 双域名配置后后台 404 / 进不去？
+
+**原因：** 启用双域名后，PicHost 会对**未配置的网站域、图片域之外**的 Host 全站返回 404。常见触发方式：
+
+1. 通过 IP 或内网地址打开设置，保存了公网网站域 / 图片域
+2. 反代「强制域名」或 Host 头配置错误，PicHost 收到的 Host 与设置中的网站域不一致
+
+**恢复（已锁死时）：**
+
+```bash
+docker exec pichost clear-domains
+# 仅清除网站域：docker exec pichost clear-domains --site
+```
+
+本地开发：`npm run clear-domains`。执行后用原来的 IP / 内网地址刷新即可重新进入后台，再按文档正确配置双域名。
+
+**预防：** 保存双域名时注意确认框中的风险提示；反代须 `proxy_set_header Host $host;` 并保留 `X-Forwarded-Proto`。详见 [双域名分离](./domain-separation.md#中间件隔离与第三-host)。
+
 ## 双域名下为什么用 pages.dev / workers.dev / IP 也能进后台？
 
 **v1.2.2 起：** 双域名开启时，PicHost 中间件会对**未配置的网站域、图片域之外**的 Host 返回 **404**（开发环境 `localhost` / `127.0.0.1` 例外）。详见 [更新日志](./changelog.md#1-2-2-2026-08-30)。

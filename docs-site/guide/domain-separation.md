@@ -72,10 +72,21 @@ PicHost 根据请求 **Host**（反代会转发为 `X-Forwarded-Host`，应用�
 
 1. 反代层仅为网站域、图片域配置 `server_name`，并增加 **default server** 拒绝其它 Host 与裸 IP（见上方 Nginx 示例，与应用层拦截互补）
 2. 使用 Cloudflare **橙云** 时，源站防火墙 **仅放行 [Cloudflare IP 段](https://www.cloudflare.com/ips/)**，避免绕过 CDN 直连源站
-3. **仅使用** 设置中的网站域名登录后台，不要用 `localhost`、IP 或未配置的域名混用
-4. **不要** 用 Cloudflare Pages / Workers 对 PicHost **整站反代**（会多出 `pages.dev` / `workers.dev` 等第三入口；`IMAGE_BASE_URL` 可填 CDN 公网地址，但应用本体应 Docker/VPS 部署）
-5. 若必须在边缘做反代，须保留客户端 **`Host` 或 `X-Forwarded-Host`**，否则 Host 隔离会失效
-6. PicHost **不能** 作为 Node 应用直接部署到 Pages/Workers（依赖 `node-server`、SQLite、`sharp` 与本地 `data/`）；应用请继续 Docker/VPS 部署，CF 侧用橙云 DNS + 可选 R2 存储即可
+3. **保存前**阅读设置 / 初始化页的风险确认；若通过 IP、内网或未正确传递 Host 的反代保存，可能锁死后台；恢复见下方「已锁死时的恢复」
+4. **仅使用** 设置中的网站域名登录后台，不要用 `localhost`、IP 或未配置的域名混用
+5. **不要** 用 Cloudflare Pages / Workers 对 PicHost **整站反代**（会多出 `pages.dev` / `workers.dev` 等第三入口；`IMAGE_BASE_URL` 可填 CDN 公网地址，但应用本体应 Docker/VPS 部署）
+6. 若必须在边缘做反代，须保留客户端 **`Host` 或 `X-Forwarded-Host`**（Lucky/NPM「强制域名」须与 PicHost 配置一致），否则 Host 隔离会失效或保存后被锁死
+7. PicHost **不能** 作为 Node 应用直接部署到 Pages/Workers（依赖 `node-server`、SQLite、`sharp` 与本地 `data/`）；应用请继续 Docker/VPS 部署，CF 侧用橙云 DNS + 可选 R2 存储即可
+
+### 已锁死时的恢复
+
+若已误保存导致 IP / 内网地址全站 404：
+
+```bash
+docker exec pichost clear-domains
+```
+
+本地：`npm run clear-domains`。清除后请用网站域名重新配置，并确认反代 `Host` 头正确。
 
 ### Cloudflare 橙云（含 DNS 优选）
 

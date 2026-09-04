@@ -57,11 +57,13 @@ See [Cloudflare deployment](./cloudflare-deployment.md).
 
 ## Origin hardening (dual-domain)
 
-PicHost middleware does **not** reject unlisted Host values. Complement with:
+Complement PicHost middleware with:
 
 1. **`server_name` allowlist** — site + image hosts only; `default_server` blocks bare IP and unknown Host
 2. **Do not expose 6892 on the public Internet** — only local reverse proxy; public 80/443 only
 3. **Orange cloud** — origin firewall limited to Cloudflare IP ranges
+
+**From v1.2.2**, when dual-domain is active PicHost also returns **404 at the app layer** for Host values other than the configured site and image names (complementing, not replacing, a default server block). If misconfiguration locks you out, run `docker exec pichost clear-domains` — see [FAQ](./faq.md#admin-404--locked-out-after-dual-domain-setup).
 
 ## Caddy
 

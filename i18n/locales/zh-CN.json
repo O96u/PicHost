@@ -84,6 +84,11 @@
       "invalidPassword": "密码至少 8 位"
     }
   },
+  "domainSeparationConfirm": {
+    "title": "确认保存双域名配置？",
+    "description": "保存后，仅网站域名可访问管理后台与 API，仅图片域名可提供图片直链。若通过 IP、未配置的 Host，或反代未正确传递 Host 访问，可能无法打开后台。\n\n若发生锁死，可执行 docker exec pichost clear-domains（本地开发：npm run clear-domains）清除域名配置，或在能访问时于设置中关闭「域名分离」。\n\n确定仍要保存吗？",
+    "confirm": "确认保存"
+  },
   "setup": {
     "migrateTitle": "迁移到账号密码登录",
     "initTitle": "首次使用，创建管理员账号",

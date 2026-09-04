@@ -73,6 +73,16 @@ docker exec pichost reset-password 用户名
 
 本地开发：`npm run reset-password` 或 `npm run reset-password -- 用户名`
 
+## 双域名配置锁死
+
+若启用双域名后通过 IP / 内网地址无法进入后台：
+
+```bash
+docker exec pichost clear-domains
+```
+
+本地：`npm run clear-domains`。详见 [常见问题 — 双域名配置后后台 404](./faq.md#双域名配置后后台-404-进不去)。
+
 ## 升级到 v1.2.0
 
 若 `data/` 下存在与 `images` 并列的遗留目录（如 `blog/`、`twikoo/`），升级前请阅读 [v1.2 迁移指南](./migration.md)。

@@ -2,6 +2,7 @@
 import logoLight from '~/assets/image/logo-light.png'
 import logoDark from '~/assets/image/logo-dark.png'
 import { isPasswordValid } from '~/utils/password-strength'
+import { willActivateDomainSeparation } from '~/utils/domain-separation'
 
 const route = useRoute()
 const router = useRouter()
@@ -26,6 +27,15 @@ const domainSeparation = ref(false)
 const siteBaseUrl = ref('')
 const imageBaseUrl = ref('')
 const loading = ref(false)
+const domainSeparationConfirmOpen = ref(false)
+
+const domainSeparationWouldActivate = computed(() =>
+  willActivateDomainSeparation(
+    domainSeparation.value,
+    siteBaseUrl.value,
+    imageBaseUrl.value
+  )
+)
 
 const canSubmit = computed(() => {
   if (!username.value || !password.value || !confirmPassword.value) return false
@@ -33,7 +43,7 @@ const canSubmit = computed(() => {
   if (!isPasswordValid(password.value)) return false
   if (!AUTH_USERNAME_PATTERN.test(username.value.trim())) return false
   if (domainSeparation.value) {
-    return Boolean(siteBaseUrl.value.trim() && imageBaseUrl.value.trim())
+    if (!siteBaseUrl.value.trim() || !imageBaseUrl.value.trim()) return false
   }
   return true
 })
@@ -62,6 +72,18 @@ async function submit() {
     toast.add({ title: t('auth.passwordMismatch'), color: 'error' })
     return
   }
+
+  if (domainSeparationWouldActivate.value) {
+    domainSeparationConfirmOpen.value = true
+    return
+  }
+
+  await performSubmit()
+}
+
+async function performSubmit() {
+  domainSeparationConfirmOpen.value = false
+  if (!canSubmit.value || loading.value) return
 
   loading.value = true
   try {
@@ -248,5 +270,29 @@ async function submit() {
         />
       </form>
     </div>
+
+    <UModal
+      :open="domainSeparationConfirmOpen"
+      :title="t('domainSeparationConfirm.title')"
+      :description="t('domainSeparationConfirm.description')"
+      @update:open="(v) => { if (!v) domainSeparationConfirmOpen = false }"
+    >
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton
+            :label="t('common.cancel')"
+            color="neutral"
+            variant="outline"
+            @click="() => { domainSeparationConfirmOpen = false }"
+          />
+          <UButton
+            :label="t('domainSeparationConfirm.confirm')"
+            color="warning"
+            :loading="loading"
+            @click="performSubmit"
+          />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>

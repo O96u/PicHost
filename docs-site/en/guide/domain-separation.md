@@ -69,10 +69,21 @@ This is independent of hyphenated or long domain names. Older versions did not b
 
 1. Configure `server_name` only for the site and image hosts; add a **default server** to reject other Host values and bare IP access (see Nginx example above; complements app-layer blocking)
 2. With Cloudflare **orange-cloud** DNS, restrict the origin firewall to **[Cloudflare IP ranges](https://www.cloudflare.com/ips/)** so traffic cannot bypass the CDN
-3. Sign in only on the **site hostname** from Settings; do not mix `localhost`, IP, or unlisted domains
-4. Do **not** put Cloudflare Pages / Workers in front of PicHost as a **full-site reverse proxy** (`IMAGE_BASE_URL` may point at a CDN URL, but the app itself should run on Docker/VPS)
-5. If you must proxy at the edge, preserve the client **`Host` or `X-Forwarded-Host`** or host isolation will fail
-6. PicHost **cannot** run as-is on Pages/Workers (needs `node-server`, SQLite, `sharp`, local `data/`). Keep Docker/VPS; use orange-cloud DNS and optional R2 storage on CF
+3. **Before saving**, read the risk confirmation in Settings / setup; saving via IP, LAN, or a proxy that does not forward Host correctly may lock you out — see **Recovery when locked out** below
+4. Sign in only on the **site hostname** from Settings; do not mix `localhost`, IP, or unlisted domains
+5. Do **not** put Cloudflare Pages / Workers in front of PicHost as a **full-site reverse proxy** (`IMAGE_BASE_URL` may point at a CDN URL, but the app itself should run on Docker/VPS)
+6. If you must proxy at the edge, preserve the client **`Host` or `X-Forwarded-Host`** (Lucky/NPM “force hostname” must match PicHost settings) or isolation fails or you get locked out after save
+7. PicHost **cannot** run as-is on Pages/Workers (needs `node-server`, SQLite, `sharp`, local `data/`). Keep Docker/VPS; use orange-cloud DNS and optional R2 storage on CF
+
+### Recovery when locked out
+
+If IP / LAN access returns 404 after a bad save:
+
+```bash
+docker exec pichost clear-domains
+```
+
+Local: `npm run clear-domains`. Then reconfigure using the site hostname and verify proxy `Host` headers.
 
 ### Cloudflare orange cloud (incl. preferred edge IPs)
 

@@ -19,6 +19,24 @@ Local: `npm run reset-password`. See [Quick start](./getting-started.md#forgot-p
 
 Check the **Referer whitelist** (`ALLOWED_REFERER_HOSTS` or Settings). Referring sites must be listed; PicHost’s own hosts and dual-domain pair are allowed automatically.
 
+## Admin 404 / locked out after dual-domain setup?
+
+**Cause:** With dual-domain enabled, PicHost returns **404 for every request** whose Host is not the configured site or image hostname. Common triggers:
+
+1. Saving dual-domain URLs while browsing via IP or an internal address
+2. Reverse proxy “force hostname” or wrong `Host` header so PicHost sees a different host than configured
+
+**Recovery (when locked out):**
+
+```bash
+docker exec pichost clear-domains
+# Site URL only: docker exec pichost clear-domains --site
+```
+
+Local dev: `npm run clear-domains`. Then reopen admin via your previous IP/internal URL and reconfigure using the [dual-domain guide](./domain-separation.md#middleware-isolation-and-third-hosts).
+
+**Prevention:** Read the risk confirmation when saving dual-domain settings; proxy must send `Host $host` and `X-Forwarded-Proto`. See [Dual-domain separation](./domain-separation.md#middleware-isolation-and-third-hosts).
+
 ## Why can admin load on pages.dev / workers.dev / IP with dual-domain?
 
 **From v1.2.2:** when dual-domain is on, PicHost returns **404** for Host values **other than** the configured site and image hostnames (`localhost` / `127.0.0.1` exempt in development). See [Changelog](./changelog.md#1-2-2-2026-08-30).
