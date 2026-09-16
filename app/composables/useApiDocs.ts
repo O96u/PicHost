@@ -73,11 +73,26 @@ export function buildApiDocs(ctx: ApiDocsContext): ApiDocEndpoint[] {
           location: 'form-data',
           required: false,
           descriptionKey: 'api.params.upload.token'
+        },
+        {
+          name: 'tagIds',
+          type: 'string',
+          location: 'form-data',
+          required: false,
+          descriptionKey: 'api.params.upload.tagIds'
+        },
+        {
+          name: 'tagNames',
+          type: 'string',
+          location: 'form-data',
+          required: false,
+          descriptionKey: 'api.params.upload.tagNames'
         }
       ],
       curl: `curl -X POST "${baseUrl}/api/images/upload" \\
   ${auth} \\
-  -F "image=@./demo.png"`,
+  -F "image=@./demo.png" \\
+  -F 'tagNames=["博客","截图"]'`,
       responseExample: `{
   "success": true,
   "items": [

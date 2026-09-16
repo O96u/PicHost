@@ -14,6 +14,7 @@ import { getAdminSecret } from '../../utils/env'
 import { verifyLoginVerification, type VerificationBody } from '../../utils/login-verification'
 import { logActivity } from '../../utils/activity-log'
 import { clientIp, logInfo, logWarn } from '../../utils/logger'
+import { checkLoginRateLimit } from '../../utils/rate-limit'
 
 interface LoginBody extends VerificationBody {
   username?: string
@@ -21,29 +22,9 @@ interface LoginBody extends VerificationBody {
   secret?: string
 }
 
-const loginAttempts = new Map<string, { count: number, resetAt: number }>()
-const MAX_ATTEMPTS = 10
-const WINDOW_MS = 15 * 60 * 1000
-
-function checkRateLimit(ip: string): void {
-  const now = Date.now()
-  const entry = loginAttempts.get(ip)
-  if (!entry || now > entry.resetAt) {
-    loginAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS })
-    return
-  }
-  entry.count += 1
-  if (entry.count > MAX_ATTEMPTS) {
-    throw createError({
-      statusCode: 429,
-      statusMessage: '登录尝试过于频繁，请稍后再试'
-    })
-  }
-}
-
 export default defineEventHandler(async (event) => {
   const ip = clientIp(event)
-  checkRateLimit(ip)
+  checkLoginRateLimit(ip)
 
   const body = await readBody<LoginBody>(event)
   await verifyLoginVerification(event, body ?? {})

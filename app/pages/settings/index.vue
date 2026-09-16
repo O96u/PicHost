@@ -3,10 +3,13 @@ import type { SettingsTab } from '~/types/settings'
 import { ADMIN_SETTINGS_TABS, USER_SETTINGS_TABS } from '~/types/settings'
 import { willActivateDomainSeparation } from '~/utils/domain-separation'
 import SettingsUserPreferencesFields from '~/components/settings/SettingsUserPreferencesFields.vue'
+import SettingsUploadPolicyFields from '~/components/settings/SettingsUploadPolicyFields.vue'
 
 type SettingSource = 'env' | 'db' | 'none'
 type WebpQualitySource = 'env' | 'db' | 'default'
+type PolicySource = 'env' | 'db' | 'default'
 type LoginVerificationMethod = 'slider' | 'turnstile' | 'cap'
+type MimeType = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' | 'image/svg+xml' | 'image/x-icon'
 
 interface SettingsResponse {
   apiUploadToken: string
@@ -42,6 +45,23 @@ interface SettingsResponse {
   capApiEndpoint: string
   capSecret: string
   appVersion: string
+  uploadMaxFileSizeMb: number
+  uploadMaxFileSizeMbSource: PolicySource
+  allowedMimeTypes: MimeType[]
+  allowedMimeTypesSource: PolicySource
+  uploadRateIpMax: number
+  uploadRateIpMaxSource: PolicySource
+  uploadRateTokenMax: number
+  uploadRateTokenMaxSource: PolicySource
+  uploadRateWindowMinutes: number
+  uploadRateWindowMinutesSource: PolicySource
+  loginRateMax: number
+  loginRateMaxSource: PolicySource
+  loginRateWindowMinutes: number
+  loginRateWindowMinutesSource: PolicySource
+  preserveOriginalUpload: boolean
+  preserveOriginalUploadSource: PolicySource
+  mimeTypeOptions: ReadonlyArray<{ mime: MimeType, label: string }>
 }
 
 const { isChecking, isAuthenticated, checkSession, handleAuthError, fetchStatus, isAdmin } = useAuth()
@@ -143,6 +163,15 @@ const disableDomainSeparationOpen = ref(false)
 const pendingDomainSeparationDisable = ref(false)
 const domainSeparationSaveConfirmOpen = ref(false)
 
+const uploadMaxFileSizeMbDraft = ref(10)
+const allowedMimeTypesDraft = ref<MimeType[]>([])
+const uploadRateIpMaxDraft = ref(60)
+const uploadRateTokenMaxDraft = ref(120)
+const uploadRateWindowMinutesDraft = ref(15)
+const loginRateMaxDraft = ref(10)
+const loginRateWindowMinutesDraft = ref(15)
+const preserveOriginalUploadDraft = ref(false)
+
 interface ReleaseCheckResponse {
   currentVersion: string
   latestVersion: string | null
@@ -151,6 +180,10 @@ interface ReleaseCheckResponse {
 }
 
 const releaseCheck = ref<ReleaseCheckResponse | null>(null)
+
+function mimeListsEqual(left: readonly string[], right: readonly string[]): boolean {
+  return left.slice().sort().join(',') === right.slice().sort().join(',')
+}
 
 const hasServerChanges = computed(() => {
   if (!settings.value) return false
@@ -166,6 +199,14 @@ const hasServerChanges = computed(() => {
     || turnstileSecretKeyDraft.value !== settings.value.turnstileSecretKey
     || capApiEndpointDraft.value !== settings.value.capApiEndpoint
     || capSecretDraft.value !== settings.value.capSecret
+    || uploadMaxFileSizeMbDraft.value !== settings.value.uploadMaxFileSizeMb
+    || !mimeListsEqual(allowedMimeTypesDraft.value, settings.value.allowedMimeTypes)
+    || uploadRateIpMaxDraft.value !== settings.value.uploadRateIpMax
+    || uploadRateTokenMaxDraft.value !== settings.value.uploadRateTokenMax
+    || uploadRateWindowMinutesDraft.value !== settings.value.uploadRateWindowMinutes
+    || loginRateMaxDraft.value !== settings.value.loginRateMax
+    || loginRateWindowMinutesDraft.value !== settings.value.loginRateWindowMinutes
+    || preserveOriginalUploadDraft.value !== settings.value.preserveOriginalUpload
 })
 
 const domainSeparationWouldActivate = computed(() =>
@@ -221,6 +262,14 @@ function applySettings(data: SettingsResponse) {
   capApiEndpointDraft.value = data.capApiEndpoint
   capSecretDraft.value = data.capSecret
   domainSeparationDraft.value = data.domainSeparation
+  uploadMaxFileSizeMbDraft.value = data.uploadMaxFileSizeMb
+  allowedMimeTypesDraft.value = [...data.allowedMimeTypes]
+  uploadRateIpMaxDraft.value = data.uploadRateIpMax
+  uploadRateTokenMaxDraft.value = data.uploadRateTokenMax
+  uploadRateWindowMinutesDraft.value = data.uploadRateWindowMinutes
+  loginRateMaxDraft.value = data.loginRateMax
+  loginRateWindowMinutesDraft.value = data.loginRateWindowMinutes
+  preserveOriginalUploadDraft.value = data.preserveOriginalUpload
 }
 
 async function patchSettings(body: Record<string, unknown>) {
@@ -296,6 +345,11 @@ async function performSaveServerSettings() {
 
   savingServer.value = true
   try {
+    if (allowedMimeTypesDraft.value.length === 0) {
+      toast.add({ title: t('settings.allowedMimeTypesHint'), color: 'error' })
+      return
+    }
+
     await patchSettings({
       allowedRefererHosts: refererDraft.value,
       domainSeparation: domainSeparationDraft.value,
@@ -308,7 +362,15 @@ async function performSaveServerSettings() {
       turnstileSiteKey: turnstileSiteKeyDraft.value,
       turnstileSecretKey: turnstileSecretKeyDraft.value,
       capApiEndpoint: capApiEndpointDraft.value,
-      capSecret: capSecretDraft.value
+      capSecret: capSecretDraft.value,
+      uploadMaxFileSizeMb: uploadMaxFileSizeMbDraft.value,
+      allowedMimeTypes: allowedMimeTypesDraft.value,
+      uploadRateIpMax: uploadRateIpMaxDraft.value,
+      uploadRateTokenMax: uploadRateTokenMaxDraft.value,
+      uploadRateWindowMinutes: uploadRateWindowMinutesDraft.value,
+      loginRateMax: loginRateMaxDraft.value,
+      loginRateWindowMinutes: loginRateWindowMinutesDraft.value,
+      preserveOriginalUpload: preserveOriginalUploadDraft.value
     })
     toast.add({ title: t('settings.saved'), color: 'success' })
   } catch (error: unknown) {
@@ -492,7 +554,42 @@ watch(isAdmin, () => {
                     </SettingsGroup>
                   </SettingsSection>
 
-                  <SettingsUserPreferencesFields />
+                  <SettingsSection
+                    :title="t('preferences.title')"
+                    :hint="t('settings.uploadLimitsHint')"
+                  >
+                    <SettingsGroup>
+                      <SettingsUploadPolicyFields
+                        v-model:upload-max-file-size-mb="uploadMaxFileSizeMbDraft"
+                        v-model:allowed-mime-types="allowedMimeTypesDraft"
+                        v-model:upload-rate-ip-max="uploadRateIpMaxDraft"
+                        v-model:upload-rate-token-max="uploadRateTokenMaxDraft"
+                        v-model:upload-rate-window-minutes="uploadRateWindowMinutesDraft"
+                        part="upload-preference"
+                        :upload-max-file-size-mb-source="settings.uploadMaxFileSizeMbSource"
+                        :allowed-mime-types-source="settings.allowedMimeTypesSource"
+                        :upload-rate-ip-max-source="settings.uploadRateIpMaxSource"
+                        :upload-rate-token-max-source="settings.uploadRateTokenMaxSource"
+                        :upload-rate-window-minutes-source="settings.uploadRateWindowMinutesSource"
+                        :mime-type-options="settings.mimeTypeOptions"
+                      />
+                      <SettingsUserPreferencesFields part="upload-preference" />
+                    </SettingsGroup>
+                  </SettingsSection>
+
+                  <SettingsSection
+                    :title="t('preferences.processing')"
+                    :hint="t('settings.imageProcessingHint')"
+                  >
+                    <SettingsGroup>
+                      <SettingsUploadPolicyFields
+                        v-model:preserve-original-upload="preserveOriginalUploadDraft"
+                        part="image-processing"
+                        :preserve-original-upload-source="settings.preserveOriginalUploadSource"
+                      />
+                      <SettingsUserPreferencesFields part="image-processing" />
+                    </SettingsGroup>
+                  </SettingsSection>
 
                   <SettingsSection :title="t('settings.systemInfo')">
                     <SettingsGroup>
@@ -895,6 +992,21 @@ watch(isAdmin, () => {
                           </div>
                         </div>
                       </div>
+                    </SettingsGroup>
+                  </SettingsSection>
+
+                  <SettingsSection
+                    :title="t('settings.rateLimits')"
+                    :hint="t('settings.loginRateLimitsHint')"
+                  >
+                    <SettingsGroup>
+                      <SettingsUploadPolicyFields
+                        v-model:login-rate-max="loginRateMaxDraft"
+                        v-model:login-rate-window-minutes="loginRateWindowMinutesDraft"
+                        part="login-rate"
+                        :login-rate-max-source="settings.loginRateMaxSource"
+                        :login-rate-window-minutes-source="settings.loginRateWindowMinutesSource"
+                      />
                     </SettingsGroup>
                   </SettingsSection>
                 </SettingsPanel>

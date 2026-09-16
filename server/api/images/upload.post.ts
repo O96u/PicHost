@@ -12,7 +12,12 @@ import {
 } from '../../utils/process-image-upload'
 import { createApiError } from '../../utils/api-error'
 import { checkUploadRateLimit } from '../../utils/rate-limit'
-import { parseTagIdsParam } from '../../utils/tags'
+import { readMultipartFormFieldValues } from '../../utils/multipart-form'
+import {
+  parseTagIdsParam,
+  parseTagNamesParam,
+  resolveUploadTagIds
+} from '../../utils/tags'
 
 export default defineEventHandler(async (event) => {
   await requireUploadAuth(event)
@@ -31,24 +36,15 @@ export default defineEventHandler(async (event) => {
   const source = verifyApiUploadToken(event) ? 'api' : 'web'
   const uploadUserId = await getUploadUserId(event)
 
-  const tagIdsField = formData.find(part => part.name === 'tagIds')
-  let uploadTagIds: number[] = []
-  if (tagIdsField?.data?.length) {
-    const raw = new TextDecoder().decode(tagIdsField.data).trim()
-    try {
-      const parsed = JSON.parse(raw) as unknown
-      uploadTagIds = parseTagIdsParam(parsed)
-    } catch {
-      uploadTagIds = parseTagIdsParam(raw)
-    }
-  } else {
-    const repeatFields = formData.filter(part => part.name === 'tagIds' && part.data?.length)
-    if (repeatFields.length) {
-      uploadTagIds = parseTagIdsParam(
-        repeatFields.map(part => new TextDecoder().decode(part.data!).trim())
-      )
-    }
+  const tagIdsRaw = readMultipartFormFieldValues(formData, 'tagIds')
+  const tagNamesRaw = readMultipartFormFieldValues(formData, 'tagNames')
+  const uploadTagIdsInput = parseTagIdsParam(tagIdsRaw.length === 1 ? tagIdsRaw[0] : tagIdsRaw)
+  const uploadTagNames = parseTagNamesParam(tagNamesRaw.length === 1 ? tagNamesRaw[0] : tagNamesRaw)
+  const resolvedTags = resolveUploadTagIds(uploadUserId, uploadTagIdsInput, uploadTagNames)
+  if ('message' in resolvedTags) {
+    createApiError(event, 'INVALID_REQUEST', resolvedTags.message, 400)
   }
+  const uploadTagIds = resolvedTags.tagIds
 
   // 兼容 image / file / files 字段名（图床脚本 / 通用客户端 / 网页多图）
   const fileParts = formData.filter(

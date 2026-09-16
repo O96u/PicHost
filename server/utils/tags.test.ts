@@ -4,7 +4,9 @@ import {
   isValidTagColor,
   isValidTagName,
   normalizeTagName,
-  parseTagIdsParam
+  parseTagIdsParam,
+  parseTagNamesParam,
+  resolveUploadTagIds
 } from './tags'
 
 describe('normalizeTagName', () => {
@@ -48,6 +50,33 @@ describe('parseTagIdsParam', () => {
   it('deduplicates and skips invalid entries', () => {
     expect(parseTagIdsParam('1,1,abc,0,-1')).toEqual([1])
     expect(parseTagIdsParam('')).toEqual([])
+  })
+})
+
+describe('parseTagNamesParam', () => {
+  it('parses comma-separated and json array values', () => {
+    expect(parseTagNamesParam('博客, 截图')).toEqual(['博客', '截图'])
+    expect(parseTagNamesParam('["工作","截图"]')).toEqual(['工作', '截图'])
+    expect(parseTagNamesParam(['A', 'B'])).toEqual(['A', 'B'])
+  })
+
+  it('deduplicates normalized names', () => {
+    expect(parseTagNamesParam('博客, 博客 ,截图')).toEqual(['博客', '截图'])
+  })
+})
+
+describe('resolveUploadTagIds', () => {
+  it('returns empty when no tags requested', () => {
+    expect(resolveUploadTagIds(1, [], [])).toEqual({ tagIds: [] })
+  })
+
+  it('requires user when tags are requested', () => {
+    expect(resolveUploadTagIds(null, [1], [])).toMatchObject({
+      message: expect.stringContaining('API Token')
+    })
+    expect(resolveUploadTagIds(null, [], ['博客'])).toMatchObject({
+      message: expect.stringContaining('API Token')
+    })
   })
 })
 

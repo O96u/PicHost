@@ -34,6 +34,16 @@ import {
   validateLoginVerificationSettings,
   validateSettingsDomainPatch
 } from '../../utils/env'
+import {
+  normalizeAllowedMimeTypes,
+  parseLoginRateMax,
+  parseLoginRateWindowMinutes,
+  parseUploadMaxFileSizeMb,
+  parseUploadRateIpMax,
+  parseUploadRateTokenMax,
+  parseUploadRateWindowMinutes,
+  setUploadPolicySettings
+} from '../../utils/upload-policy'
 
 interface SettingsPatchBody {
   webpQuality?: unknown
@@ -50,6 +60,14 @@ interface SettingsPatchBody {
   turnstileSecretKey?: unknown
   capApiEndpoint?: unknown
   capSecret?: unknown
+  uploadMaxFileSizeMb?: unknown
+  allowedMimeTypes?: unknown
+  uploadRateIpMax?: unknown
+  uploadRateTokenMax?: unknown
+  uploadRateWindowMinutes?: unknown
+  loginRateMax?: unknown
+  loginRateWindowMinutes?: unknown
+  preserveOriginalUpload?: unknown
 }
 
 export default defineEventHandler(async (event) => {
@@ -247,6 +265,72 @@ export default defineEventHandler(async (event) => {
   }
   if (body.capSecret !== undefined) {
     setSetting(SETTINGS_CAP_SECRET, nextCapSecret)
+  }
+
+  if (body.uploadMaxFileSizeMb !== undefined) {
+    const mb = parseUploadMaxFileSizeMb(String(body.uploadMaxFileSizeMb))
+    if (mb === null) {
+      createApiError(event, 'INVALID_REQUEST', '单文件大小需为 1–100 MB 的整数', 400)
+    }
+    setUploadPolicySettings({ uploadMaxFileSizeMb: mb })
+  }
+
+  if (body.allowedMimeTypes !== undefined) {
+    const raw = Array.isArray(body.allowedMimeTypes)
+      ? body.allowedMimeTypes.map(item => String(item))
+      : String(body.allowedMimeTypes).split(',')
+    const normalized = normalizeAllowedMimeTypes(raw.join(','))
+    if (normalized.length === 0) {
+      createApiError(event, 'INVALID_REQUEST', '至少选择一种允许上传的图片格式', 400)
+    }
+    setUploadPolicySettings({ allowedMimeTypes: normalized })
+  }
+
+  if (body.uploadRateIpMax !== undefined) {
+    const value = parseUploadRateIpMax(String(body.uploadRateIpMax))
+    if (value === null) {
+      createApiError(event, 'INVALID_REQUEST', '上传 IP 限流次数无效', 400)
+    }
+    setUploadPolicySettings({ uploadRateIpMax: value })
+  }
+
+  if (body.uploadRateTokenMax !== undefined) {
+    const value = parseUploadRateTokenMax(String(body.uploadRateTokenMax))
+    if (value === null) {
+      createApiError(event, 'INVALID_REQUEST', '上传 Token 限流次数无效', 400)
+    }
+    setUploadPolicySettings({ uploadRateTokenMax: value })
+  }
+
+  if (body.uploadRateWindowMinutes !== undefined) {
+    const value = parseUploadRateWindowMinutes(String(body.uploadRateWindowMinutes))
+    if (value === null) {
+      createApiError(event, 'INVALID_REQUEST', '上传限流窗口无效', 400)
+    }
+    setUploadPolicySettings({ uploadRateWindowMinutes: value })
+  }
+
+  if (body.loginRateMax !== undefined) {
+    const value = parseLoginRateMax(String(body.loginRateMax))
+    if (value === null) {
+      createApiError(event, 'INVALID_REQUEST', '登录限流次数无效', 400)
+    }
+    setUploadPolicySettings({ loginRateMax: value })
+  }
+
+  if (body.loginRateWindowMinutes !== undefined) {
+    const value = parseLoginRateWindowMinutes(String(body.loginRateWindowMinutes))
+    if (value === null) {
+      createApiError(event, 'INVALID_REQUEST', '登录限流窗口无效', 400)
+    }
+    setUploadPolicySettings({ loginRateWindowMinutes: value })
+  }
+
+  if (body.preserveOriginalUpload !== undefined) {
+    if (typeof body.preserveOriginalUpload !== 'boolean') {
+      createApiError(event, 'INVALID_REQUEST', '保留原图设置无效', 400)
+    }
+    setUploadPolicySettings({ preserveOriginalUpload: body.preserveOriginalUpload })
   }
 
   logActivity(event, {

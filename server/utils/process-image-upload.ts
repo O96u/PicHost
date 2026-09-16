@@ -3,10 +3,6 @@ import type { H3Event } from 'h3'
 import type { ImageItem, UploadErrorItem } from '~/types/image'
 import type { AllowedMimeType } from './constants'
 import {
-  ALLOWED_MIME_TYPES,
-  MAX_FILE_SIZE
-} from './constants'
-import {
   detectMimeFromSignature,
   isAllowedMimeType,
   validateFileSignature
@@ -15,6 +11,12 @@ import type { LogSource } from './db'
 import { generateImageKey } from './image-key'
 import { buildImageItem, sanitizeOriginalName } from './image-response'
 import { getStorageLayout, getWebpQuality } from './env'
+import {
+  formatMaxFileSizeMessage,
+  getMaxFileSizeBytes,
+  isMimeTypeAllowed,
+  isPreserveOriginalUpload
+} from './upload-policy'
 import { logActivity } from './activity-log'
 import { attachTagsAfterUpload, getTagsForImageKeys } from './tags'
 import { putImage } from './storage'
@@ -71,13 +73,13 @@ export async function processSingleImageUpload(
   const originalName = sanitizeOriginalName(input.filename ?? 'image')
   const bytes = input.bytes
 
-  if (bytes.byteLength > MAX_FILE_SIZE) {
+  if (bytes.byteLength > getMaxFileSizeBytes()) {
     return {
       error: {
         name: originalName,
         error: {
           code: 'FILE_TOO_LARGE',
-          message: '图片大小不能超过 10 MB'
+          message: formatMaxFileSizeMessage()
         }
       }
     }
@@ -96,7 +98,7 @@ export async function processSingleImageUpload(
     }
   }
 
-  if (!ALLOWED_MIME_TYPES.includes(detectedMime)) {
+  if (!isMimeTypeAllowed(detectedMime)) {
     return {
       error: {
         name: originalName,
@@ -120,7 +122,9 @@ export async function processSingleImageUpload(
     }
   }
 
-  const compressed = await compressToWebp(bytes, detectedMime, getWebpQuality(event))
+  const compressed = isPreserveOriginalUpload()
+    ? { bytes, mime: detectedMime }
+    : await compressToWebp(bytes, detectedMime, getWebpQuality(event))
 
   const uploadedAt = new Date().toISOString()
   const layout = getStorageLayout(event)

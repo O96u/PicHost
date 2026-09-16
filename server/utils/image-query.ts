@@ -1,5 +1,5 @@
 import { getStorageBackendRow } from './storage-backends'
-import { ALLOWED_MIME_TYPES } from './constants'
+import { getAllowedMimeTypesList } from './upload-policy'
 import { parseTagIdsParam, type TagFilterInput } from './tags'
 
 export function readBackendIdQuery(
@@ -15,7 +15,7 @@ export function readContentTypeQuery(
 ): string | undefined | null {
   const raw = typeof query.contentType === 'string' ? query.contentType.trim() : ''
   if (!raw || raw === 'all') return undefined
-  if (!(ALLOWED_MIME_TYPES as readonly string[]).includes(raw)) return null
+  if (!(getAllowedMimeTypesList() as readonly string[]).includes(raw)) return null
   return raw
 }
 

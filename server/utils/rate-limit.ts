@@ -1,10 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createError, getHeader, type H3Event } from 'h3'
 import { clientIp } from './logger'
-
-const UPLOAD_IP_MAX = 60
-const UPLOAD_TOKEN_MAX = 120
-const UPLOAD_WINDOW_MS = 15 * 60 * 1000
+import { getUploadRateLimitSettings, getLoginRateLimitSettings } from './upload-policy'
 
 const stores = new Map<string, Map<string, { count: number, resetAt: number }>>()
 
@@ -43,12 +40,13 @@ function assertRateLimit(
 }
 
 export function checkUploadRateLimit(event: H3Event, apiToken?: string): void {
+  const { ipMax, tokenMax, windowMs } = getUploadRateLimitSettings()
   const ip = clientIp(event)
   assertRateLimit(
     'upload-ip',
     ip,
-    UPLOAD_IP_MAX,
-    UPLOAD_WINDOW_MS,
+    ipMax,
+    windowMs,
     '上传过于频繁，请稍后再试'
   )
 
@@ -60,8 +58,27 @@ export function checkUploadRateLimit(event: H3Event, apiToken?: string): void {
   assertRateLimit(
     'upload-token',
     hash,
-    UPLOAD_TOKEN_MAX,
-    UPLOAD_WINDOW_MS,
+    tokenMax,
+    windowMs,
     '上传过于频繁，请稍后再试'
   )
+}
+
+const loginAttempts = new Map<string, { count: number, resetAt: number }>()
+
+export function checkLoginRateLimit(ip: string): void {
+  const { max, windowMs } = getLoginRateLimitSettings()
+  const now = Date.now()
+  const entry = loginAttempts.get(ip)
+  if (!entry || now > entry.resetAt) {
+    loginAttempts.set(ip, { count: 1, resetAt: now + windowMs })
+    return
+  }
+  entry.count += 1
+  if (entry.count > max) {
+    throw createError({
+      statusCode: 429,
+      statusMessage: '登录尝试过于频繁，请稍后再试'
+    })
+  }
 }

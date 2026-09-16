@@ -4,6 +4,17 @@ Version history and notable changes. The full log is also in the repo root [CHAN
 
 ---
 
+## [1.4.1] — 2026-09-16
+
+### Added
+
+- **Upload policy (Settings → Basic)**: max size, allowed formats, rate limits, preserve originals; env override
+- **Upload API**: optional `tagNames` for tagging by name (create or reuse)
+
+### Improved
+
+- Configurable login rate limits; settings layout updates
+
 ## [1.4.0] — 2026-09-09
 
 ### Added

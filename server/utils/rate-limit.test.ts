@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { checkUploadRateLimit } from './rate-limit'
+import { getUploadRateLimitSettings } from './upload-policy'
 
 vi.mock('./logger', () => ({
   clientIp: (event: { __ip?: string }) => event.__ip ?? '127.0.0.1'
@@ -27,7 +28,8 @@ describe('checkUploadRateLimit', () => {
 
   it('limits repeated uploads by IP', () => {
     const event = mockEvent('10.0.0.3')
-    for (let i = 0; i < 60; i++) {
+    const { ipMax } = getUploadRateLimitSettings()
+    for (let i = 0; i < ipMax; i++) {
       checkUploadRateLimit(event)
     }
     expect(() => checkUploadRateLimit(event)).toThrow()
@@ -35,7 +37,8 @@ describe('checkUploadRateLimit', () => {
 
   it('limits repeated API token uploads', () => {
     const token = 'token-a'
-    for (let i = 0; i < 120; i++) {
+    const { tokenMax } = getUploadRateLimitSettings()
+    for (let i = 0; i < tokenMax; i++) {
       checkUploadRateLimit(mockEvent(`10.0.${i % 200}`), token)
     }
     expect(() => checkUploadRateLimit(mockEvent('10.0.250'), token)).toThrow()

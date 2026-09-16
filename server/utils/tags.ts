@@ -471,3 +471,91 @@ export function parseTagIdsParam(raw: unknown): number[] {
   }
   return [...new Set(ids)]
 }
+
+export function parseTagNamesParam(raw: unknown): string[] {
+  if (raw == null || raw === '') return []
+
+  let parts: string[]
+  if (Array.isArray(raw)) {
+    parts = raw.flatMap(item => String(item).split(','))
+  } else {
+    const str = String(raw).trim()
+    if (str.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(str) as unknown
+        parts = Array.isArray(parsed)
+          ? parsed.map(item => String(item))
+          : str.split(',')
+      } catch {
+        parts = str.split(',')
+      }
+    } else {
+      parts = str.split(',')
+    }
+  }
+
+  const names: string[] = []
+  for (const part of parts) {
+    const normalized = normalizeTagName(part)
+    if (normalized) names.push(normalized)
+  }
+  return [...new Set(names)]
+}
+
+export function findOrCreateTagByName(userId: number, name: string): TagRow {
+  const normalized = normalizeTagName(name)
+  if (!isValidTagName(normalized)) {
+    throw new Error('INVALID_TAG_NAME')
+  }
+
+  const existing = findTagByName(userId, normalized)
+  if (existing) return existing
+
+  const created = createTag(userId, normalized)
+  const row = getTagById(created.id)
+  if (!row) {
+    throw new Error('TAG_CREATE_FAILED')
+  }
+  return row
+}
+
+export function resolveTagIdsFromNames(userId: number, names: readonly string[]): number[] {
+  const ids: number[] = []
+  for (const name of names) {
+    ids.push(findOrCreateTagByName(userId, name).id)
+  }
+  return [...new Set(ids)]
+}
+
+export function resolveUploadTagIds(
+  userId: number | null,
+  tagIds: number[],
+  tagNames: string[]
+): { tagIds: number[] } | { message: string } {
+  if (!tagIds.length && !tagNames.length) {
+    return { tagIds: [] }
+  }
+
+  if (userId == null) {
+    return {
+      message: '打标签需要登录或使用绑定用户的 API Token'
+    }
+  }
+
+  try {
+    const fromNames = tagNames.length ? resolveTagIdsFromNames(userId, tagNames) : []
+    return { tagIds: [...new Set([...tagIds, ...fromNames])] }
+  } catch (error) {
+    if (error instanceof Error) {
+      switch (error.message) {
+        case 'INVALID_TAG_NAME':
+          return { message: '标签名称无效' }
+        case 'TAG_LIMIT_REACHED':
+          return { message: '标签数量已达上限' }
+        default:
+          break
+      }
+    }
+    throw error
+  }
+}

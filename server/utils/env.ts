@@ -18,6 +18,7 @@ import {
   SETTINGS_CAP_SECRET,
   isAllowRegistration
 } from './db'
+import { getUploadPolicySettingsPayload } from './upload-policy'
 
 export function getRuntimeEnv(
   event: H3Event,
@@ -694,6 +695,7 @@ export function getSettingsPayload(event: H3Event) {
     capApiEndpoint: getCapApiEndpointConfigured(event),
     capSecret: getCapSecret(event),
     appVersion,
+    ...getUploadPolicySettingsPayload(),
     env: {
       webpQuality,
       refererConfigured: allowedRefererHosts.length > 0,
