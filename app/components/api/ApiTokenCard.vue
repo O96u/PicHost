@@ -76,15 +76,6 @@ async function copyToken() {
       />
 
       <UAlert
-        v-else-if="!isAdmin"
-        color="info"
-        variant="subtle"
-        icon="i-lucide-info"
-        :title="t('api.personalTitle')"
-        :description="t('api.personalDesc')"
-      />
-
-      <UAlert
         v-else-if="!token && !loading"
         color="info"
         variant="subtle"

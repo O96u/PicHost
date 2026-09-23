@@ -1,5 +1,5 @@
 import { readMultipartFormData } from 'h3'
-import { verifyUploadTokenValue } from '../../utils/access'
+import { verifyUploadTokenValue, getUploadUserId } from '../../utils/access'
 import { checkUploadRateLimit } from '../../utils/rate-limit'
 import {
   detectMimeFromSignature,
@@ -9,7 +9,6 @@ import {
   mimeMatchesDeclared,
   processSingleImageUpload
 } from '../../utils/process-image-upload'
-import { getApiUploadToken } from '../../utils/env'
 
 /** EasyImages 2.0 兼容上传（Twikoo IMAGE_CDN=easyimage） */
 export default defineEventHandler(async (event) => {
@@ -29,14 +28,13 @@ export default defineEventHandler(async (event) => {
     : ''
 
   if (!devBypass) {
-    if (!getApiUploadToken(event)) {
-      return easyImageError(500, '服务端未配置 API_UPLOAD_TOKEN')
-    }
-    if (!verifyUploadTokenValue(event, token)) {
+    if (!token || !verifyUploadTokenValue(event, token)) {
       return easyImageError(401, 'token 错误或无效')
     }
     checkUploadRateLimit(event, token)
   }
+
+  const uploadUserId = await getUploadUserId(event, token)
 
   const imagePart = formData.find(
     part => part.name === 'image' && part.data?.length
@@ -60,7 +58,8 @@ export default defineEventHandler(async (event) => {
   const result = await processSingleImageUpload(event, {
     bytes,
     filename: imagePart.filename,
-    source: 'api'
+    source: 'api',
+    userId: uploadUserId
   })
 
   if ('error' in result) {

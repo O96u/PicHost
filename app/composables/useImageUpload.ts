@@ -11,6 +11,7 @@ export function useImageUpload() {
   const toast = useToast()
   const { t } = useI18n()
   const { compressEnabled, clientWebpQuality, lastTagIds } = useUploadPreferences()
+  const { items: tagItems } = useTags()
   const uploading = ref(false)
   const progressItems = ref<UploadProgressItem[]>([])
   const lastUploadResult = ref<UploadResponse | null>(null)
@@ -60,7 +61,12 @@ export function useImageUpload() {
 
       const tagIds = options?.tagIds ?? lastTagIds.value
       if (tagIds.length) {
-        formData.append('tagIds', JSON.stringify(tagIds))
+        const names = tagIds
+          .map(id => tagItems.value.find(tag => tag.id === id)?.name)
+          .filter((name): name is string => Boolean(name))
+        if (names.length) {
+          formData.append('tagNames', JSON.stringify(names))
+        }
         lastTagIds.value = tagIds
       }
 

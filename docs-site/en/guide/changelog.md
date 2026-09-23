@@ -4,6 +4,16 @@ Version history and notable changes. The full log is also in the repo root [CHAN
 
 ---
 
+## [1.4.2] — 2026-09-23
+
+### Fixed
+
+- Gallery batch tagging and upload token auth (incl. legacy `API_UPLOAD_TOKEN`)
+
+### Improved
+
+- Single API token per account; upload `tagNames` only; tag management sort/mobile layout; API doc table layout
+
 ## [1.4.1] — 2026-09-16
 
 ### Added

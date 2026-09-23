@@ -57,7 +57,7 @@ const {
 
 const { items: tagItems, fetchTags, batchUpdateTags } = useTags()
 
-const { isChecking, isAuthenticated, checkSession, handleAuthError, fetchStatus } = useAuth()
+const { isChecking, isAuthenticated, checkSession, handleAuthError, fetchStatus, getFetchErrorMessage } = useAuth()
 const toast = useToast()
 const { t } = useI18n()
 
@@ -256,7 +256,10 @@ async function confirmBatchTags(tagIds: number[], action: 'add' | 'remove') {
     await Promise.all([reloadGallery(), fetchStats(), fetchTags(true)])
   } catch (error: unknown) {
     handleAuthError(error)
-    toast.add({ title: t('tags.batchFailed'), color: 'error' })
+    toast.add({
+      title: getFetchErrorMessage(error, t('tags.batchFailed')),
+      color: 'error'
+    })
   }
 }
 

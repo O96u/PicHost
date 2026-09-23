@@ -32,6 +32,9 @@ function validateKeys(keys: string[]): void {
 export default defineEventHandler(async (event) => {
   await requireApiOrAdminAuth(event)
   const user = await getCurrentUser(event)
+  if (!user) {
+    createApiError(event, 'UNAUTHORIZED', '批量打标需要登录', 401)
+  }
   const body = await readBody<BatchTagsBody>(event)
 
   const keys = Array.isArray(body?.keys)
@@ -70,10 +73,10 @@ export default defineEventHandler(async (event) => {
   try {
     for (const key of keys) {
       if (action === 'add') {
-        addTagsToImage(key, tagIds, user!.id, user!.role === 'admin')
+        addTagsToImage(key, tagIds, user.id, user.role === 'admin')
       } else {
         for (const tagId of tagIds) {
-          removeTagFromImage(key, tagId, user!.id, user!.role === 'admin')
+          removeTagFromImage(key, tagId, user.id, user.role === 'admin')
         }
       }
       updated++
@@ -88,7 +91,7 @@ export default defineEventHandler(async (event) => {
     originalName: action === 'add'
       ? `批量打标（${keys.length} 张）`
       : `批量移除标签（${keys.length} 张）`,
-    userId: user!.id
+    userId: user.id
   })
 
   return { success: true, updated }

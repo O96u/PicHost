@@ -1,5 +1,5 @@
 <script setup lang="ts">
-interface SettingsResponse {
+interface UserTokenResponse {
   apiUploadToken: string
   tokenSource: 'env' | 'db' | 'none'
   envTokenOverride: boolean
@@ -16,7 +16,7 @@ const { isChecking, isAuthenticated, checkSession, handleAuthError, fetchStatus,
 const toast = useToast()
 const { t } = useI18n()
 
-const settings = ref<SettingsResponse | null>(null)
+const tokenSettings = ref<UserTokenResponse | null>(null)
 const loading = ref(false)
 const regenerating = ref(false)
 const confirmRegenerateOpen = ref(false)
@@ -25,19 +25,17 @@ const newToken = ref('')
 const activeEndpointId = ref('upload')
 
 const baseUrl = computed(() => {
-  const configured = settings.value?.env.siteBaseUrl
+  const configured = tokenSettings.value?.env.siteBaseUrl
   if (configured) return configured
   if (import.meta.client) {
     return window.location.origin
   }
-  return settings.value?.env.imageBaseUrl ?? ''
+  return tokenSettings.value?.env.imageBaseUrl ?? ''
 })
 
-const tokenDisplay = computed(() => settings.value?.apiUploadToken ?? '')
+const tokenDisplay = computed(() => tokenSettings.value?.apiUploadToken ?? '')
 const hasToken = computed(() => tokenDisplay.value.length > 0)
-const canRegenerate = computed(() =>
-  !settings.value?.envTokenOverride && !loading.value
-)
+const canRegenerate = computed(() => !loading.value)
 
 const authHeader = computed(() =>
   hasToken.value ? tokenDisplay.value : 'YOUR-TOKEN'
@@ -54,11 +52,10 @@ const activeEndpoint = computed(() =>
   apiDocs.value.find(endpoint => endpoint.id === activeEndpointId.value) ?? apiDocs.value[0]
 )
 
-async function loadSettings() {
+async function loadTokenSettings() {
   loading.value = true
   try {
-    const endpoint = isAdmin.value ? '/api/settings' : '/api/user/api-token'
-    settings.value = await $fetch<SettingsResponse>(endpoint, {
+    tokenSettings.value = await $fetch<UserTokenResponse>('/api/user/api-token', {
       credentials: 'include'
     })
   } catch (error: unknown) {
@@ -66,6 +63,7 @@ async function loadSettings() {
     if (isAuthenticated.value) {
       toast.add({ title: t('api.loadFailed'), color: 'error' })
     }
+    tokenSettings.value = null
   } finally {
     loading.value = false
   }
@@ -80,30 +78,17 @@ async function confirmRegenerate() {
   confirmRegenerateOpen.value = false
   regenerating.value = true
   try {
-    const endpoint = isAdmin.value
-      ? '/api/settings/api-token/regenerate'
-      : '/api/user/api-token/regenerate'
     const response = await $fetch<{ apiUploadToken: string }>(
-      endpoint,
+      '/api/user/api-token/regenerate',
       { method: 'POST', credentials: 'include' }
     )
     newToken.value = response.apiUploadToken
     regenerateResultOpen.value = true
-    await loadSettings()
+    await loadTokenSettings()
   } catch (error: unknown) {
     handleAuthError(error)
     if (isAuthenticated.value) {
-      const status = typeof error === 'object' && error !== null && 'statusCode' in error
-        ? (error as { statusCode: number }).statusCode
-        : 0
-      if (status === 409) {
-        toast.add({
-          title: t('api.regenerateEnvBlocked'),
-          color: 'warning'
-        })
-      } else {
-        toast.add({ title: t('api.regenerateFailed'), color: 'error' })
-      }
+      toast.add({ title: t('api.regenerateFailed'), color: 'error' })
     }
   } finally {
     regenerating.value = false
@@ -126,16 +111,16 @@ onMounted(async () => {
   }
   await checkSession()
   if (isAuthenticated.value) {
-    await loadSettings()
+    await loadTokenSettings()
   }
 })
 
 watch(isAuthenticated, async (authed, prev) => {
   if (authed && prev === false) {
     await nextTick()
-    await loadSettings()
+    await loadTokenSettings()
   } else {
-    settings.value = null
+    tokenSettings.value = null
   }
 })
 </script>
@@ -174,8 +159,7 @@ watch(isAuthenticated, async (authed, prev) => {
               :loading="loading"
               :regenerating="regenerating"
               :can-regenerate="canRegenerate"
-              :token-source="settings?.tokenSource"
-              :env-token-override="settings?.envTokenOverride"
+              token-source="db"
               :is-admin="isAdmin"
               @regenerate="requestRegenerate"
             />

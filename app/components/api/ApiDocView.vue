@@ -38,19 +38,26 @@ const { t } = useI18n()
         </h3>
       </div>
       <div class="overflow-x-auto">
-        <table class="w-full min-w-[32rem] text-left text-sm">
+        <table class="w-full min-w-[36rem] table-fixed text-left text-sm">
+          <colgroup>
+            <col class="w-[5.5rem]">
+            <col class="w-[3.5rem]">
+            <col class="w-[5.75rem]">
+            <col class="w-[3.25rem]">
+            <col>
+          </colgroup>
           <thead>
             <tr class="border-b border-default text-xs text-muted">
               <th class="px-4 py-2.5 font-medium">
                 {{ t('api.paramName') }}
               </th>
-              <th class="px-4 py-2.5 font-medium">
+              <th class="whitespace-nowrap px-4 py-2.5 font-medium">
                 {{ t('api.paramType') }}
               </th>
-              <th class="px-4 py-2.5 font-medium">
+              <th class="whitespace-nowrap px-4 py-2.5 font-medium">
                 {{ t('api.paramLocation') }}
               </th>
-              <th class="px-4 py-2.5 font-medium">
+              <th class="whitespace-nowrap px-4 py-2.5 font-medium">
                 {{ t('api.paramRequired') }}
               </th>
               <th class="px-4 py-2.5 font-medium">
@@ -64,20 +71,20 @@ const { t } = useI18n()
               :key="param.name"
               class="border-b border-default last:border-b-0"
             >
-              <td class="px-4 py-2.5 font-mono text-xs">
+              <td class="whitespace-nowrap px-4 py-2.5 font-mono text-xs">
                 {{ param.name }}
                 <span
                   v-if="param.required"
                   class="text-error"
                 >*</span>
               </td>
-              <td class="px-4 py-2.5 text-muted">
+              <td class="whitespace-nowrap px-4 py-2.5 text-muted">
                 {{ param.type }}
               </td>
-              <td class="px-4 py-2.5 text-muted">
+              <td class="whitespace-nowrap px-4 py-2.5 text-muted">
                 {{ param.location }}
               </td>
-              <td class="px-4 py-2.5">
+              <td class="whitespace-nowrap px-4 py-2.5">
                 <UBadge
                   :color="param.required ? 'primary' : 'neutral'"
                   variant="subtle"
@@ -86,7 +93,7 @@ const { t } = useI18n()
                   {{ param.required ? t('api.required') : t('api.optional') }}
                 </UBadge>
               </td>
-              <td class="px-4 py-2.5 text-muted">
+              <td class="px-4 py-2.5 leading-relaxed text-muted break-words">
                 {{ t(param.descriptionKey) }}
               </td>
             </tr>

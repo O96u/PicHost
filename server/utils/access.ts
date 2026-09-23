@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { findUserByApiToken } from './db'
+import { findUserByApiToken, getPrimaryAdminUserId } from './db'
 import { getAdminSecret, getApiUploadToken } from './env'
 import { createApiError } from './api-error'
 import {
@@ -85,10 +85,29 @@ export function verifyGlobalApiUploadToken(event: H3Event): boolean {
   return timingSafeEqual(token, expected)
 }
 
-export function resolveUserIdFromApiToken(event: H3Event): number | null {
-  const token = extractApiToken(event)
-  if (!token) return null
-  return findUserByApiToken(token)?.id ?? null
+function resolveUserIdFromTokenValue(token: string): number | null {
+  const trimmed = token.trim()
+  if (!trimmed) return null
+  return findUserByApiToken(trimmed)?.id ?? null
+}
+
+/** 从 Auth-Token 请求头或表单 token 解析个人 API Token 对应用户（非全站 Token） */
+export function resolveUserIdFromApiToken(
+  event: H3Event,
+  extraToken?: string
+): number | null {
+  const headerToken = extractApiToken(event)
+  if (headerToken) {
+    const fromHeader = resolveUserIdFromTokenValue(headerToken)
+    if (fromHeader !== null) return fromHeader
+  }
+
+  if (extraToken) {
+    const fromForm = resolveUserIdFromTokenValue(extraToken)
+    if (fromForm !== null) return fromForm
+  }
+
+  return null
 }
 
 export function verifyApiUploadToken(event: H3Event): boolean {
@@ -222,20 +241,48 @@ export function resolveActivitySource(event: H3Event): 'api' | 'web' {
   return verifyApiUploadToken(event) ? 'api' : 'web'
 }
 
-export async function getUploadUserId(event: H3Event): Promise<number | null> {
+function resolveUploadOwnerFromGlobalToken(
+  event: H3Event,
+  formToken?: string
+): number | null {
+  const expected = getApiUploadToken(event)
+  if (!expected) return null
+
+  const headerToken = extractApiToken(event)
+  if (headerToken && timingSafeEqual(headerToken, expected)) {
+    return getPrimaryAdminUserId()
+  }
+
+  const trimmedForm = formToken?.trim()
+  if (trimmedForm && timingSafeEqual(trimmedForm, expected)) {
+    return getPrimaryAdminUserId()
+  }
+
+  return null
+}
+
+export async function getUploadUserId(
+  event: H3Event,
+  formToken?: string
+): Promise<number | null> {
   if (devBypass(event)) {
     return null
   }
 
-  const userIdFromToken = resolveUserIdFromApiToken(event)
+  const userIdFromToken = resolveUserIdFromApiToken(event, formToken)
   if (userIdFromToken !== null) {
     return userIdFromToken
   }
 
-  if (verifyGlobalApiUploadToken(event)) {
-    return null
+  const user = await getCurrentUser(event)
+  if (user) {
+    return user.id
   }
 
-  const user = await getCurrentUser(event)
-  return user?.id ?? null
+  const globalOwnerId = resolveUploadOwnerFromGlobalToken(event, formToken)
+  if (globalOwnerId !== null) {
+    return globalOwnerId
+  }
+
+  return null
 }

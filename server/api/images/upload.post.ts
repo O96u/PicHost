@@ -14,7 +14,6 @@ import { createApiError } from '../../utils/api-error'
 import { checkUploadRateLimit } from '../../utils/rate-limit'
 import { readMultipartFormFieldValues } from '../../utils/multipart-form'
 import {
-  parseTagIdsParam,
   parseTagNamesParam,
   resolveUploadTagIds
 } from '../../utils/tags'
@@ -34,13 +33,11 @@ export default defineEventHandler(async (event) => {
   checkUploadRateLimit(event, formToken)
 
   const source = verifyApiUploadToken(event) ? 'api' : 'web'
-  const uploadUserId = await getUploadUserId(event)
+  const uploadUserId = await getUploadUserId(event, formToken)
 
-  const tagIdsRaw = readMultipartFormFieldValues(formData, 'tagIds')
   const tagNamesRaw = readMultipartFormFieldValues(formData, 'tagNames')
-  const uploadTagIdsInput = parseTagIdsParam(tagIdsRaw.length === 1 ? tagIdsRaw[0] : tagIdsRaw)
   const uploadTagNames = parseTagNamesParam(tagNamesRaw.length === 1 ? tagNamesRaw[0] : tagNamesRaw)
-  const resolvedTags = resolveUploadTagIds(uploadUserId, uploadTagIdsInput, uploadTagNames)
+  const resolvedTags = resolveUploadTagIds(uploadUserId, uploadTagNames)
   if ('message' in resolvedTags) {
     createApiError(event, 'INVALID_REQUEST', resolvedTags.message, 400)
   }

@@ -196,6 +196,7 @@
     "colName": "Tag name",
     "colImageCount": "Images",
     "colLastUsed": "Last used",
+    "colCreatedAt": "Created",
     "neverUsed": "Never used",
     "colActions": "Actions",
     "mergeIntoAction": "Merge into…",
@@ -824,13 +825,13 @@
     "pagePlaceholder": "Page"
   },
   "api": {
-    "tokenTitle": "API Token",
+    "tokenTitle": "API token",
     "envOverrideTitle": "Token overridden by environment",
     "envOverrideDesc": "Restart after changing API_UPLOAD_TOKEN; cannot regenerate in UI.",
     "personalTitle": "Personal API token",
     "personalDesc": "For your scripts only; uploads belong to your account.",
     "notConfiguredTitle": "No token configured",
-    "notConfiguredDesc": "Click Regenerate to create a token for Auth-Token on all endpoints below.",
+    "notConfiguredDesc": "A token is created automatically on first visit, or click Regenerate.",
     "regenerate": "Regenerate",
     "tokenSourceEnv": "Source: API_UPLOAD_TOKEN environment variable",
     "tokenSourceDb": "Source: generated in app (can regenerate)",
@@ -879,8 +880,7 @@
         "file": "Compatibility field, single file",
         "files": "Compatibility field, multiple files",
         "token": "Twikoo protocol form token",
-        "tagIds": "Optional JSON array or repeated fields; tag images by ID after upload",
-        "tagNames": "Optional JSON array or comma-separated names; creates missing tags, reuses existing"
+        "tagNames": "Optional JSON array or comma-separated names; creates or reuses tags"
       },
       "list": {
         "limit": "Page size, default 20, max 100",

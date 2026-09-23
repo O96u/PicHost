@@ -1,5 +1,6 @@
 import { getDb } from './db'
 import { getImageIndexRow } from './image-index'
+import { toCanonicalImageKey } from './image-key'
 
 export const TAG_COLOR_PRESETS = [
   '#22c55e',
@@ -310,17 +311,65 @@ function assertTagsOwnedByUser(userId: number, tagIds: number[]): void {
   }
 }
 
-function resolveImageOwnerUserId(key: string): number | null {
-  const row = getImageIndexRow(key)
-  return row?.user_id ?? null
+function resolveIndexedImageKey(key: string): string | null {
+  if (getImageIndexRow(key)) return key
+  const canonical = toCanonicalImageKey(key)
+  if (canonical && getImageIndexRow(canonical)) return canonical
+  return null
+}
+
+/** 打标时标签归属的用户：无上传者的索引图用操作者自己的标签 */
+function resolveTagOwnerUserId(
+  imageOwnerUserId: number | null,
+  actorUserId: number
+): number {
+  return imageOwnerUserId ?? actorUserId
+}
+
+/**
+ * 管理员给他人图片打标时，将操作者选中的 tagId 按名称映射到图片所有者的标签。
+ */
+export function resolveTagIdsForImageTagging(
+  actorUserId: number,
+  tagIds: number[],
+  imageOwnerUserId: number | null,
+  isAdmin: boolean
+): number[] {
+  const tagOwnerUserId = resolveTagOwnerUserId(imageOwnerUserId, actorUserId)
+  const unique = [...new Set(tagIds)]
+  if (!unique.length) return []
+
+  if (tagOwnerUserId === actorUserId || !isAdmin) {
+    assertTagsOwnedByUser(tagOwnerUserId, unique)
+    return unique
+  }
+
+  const resolved: number[] = []
+  for (const tagId of unique) {
+    const row = getTagById(tagId)
+    if (!row) {
+      throw new Error('TAG_NOT_FOUND')
+    }
+    if (row.user_id === tagOwnerUserId) {
+      resolved.push(tagId)
+      continue
+    }
+    if (row.user_id === actorUserId) {
+      resolved.push(findOrCreateTagByName(tagOwnerUserId, row.name).id)
+      continue
+    }
+    throw new Error('TAG_NOT_FOUND')
+  }
+  return [...new Set(resolved)]
 }
 
 export function assertCanTagImage(key: string, actorUserId: number, isAdmin: boolean): void {
-  const ownerId = resolveImageOwnerUserId(key)
-  if (ownerId == null) {
+  const indexedKey = resolveIndexedImageKey(key)
+  if (!indexedKey) {
     throw new Error('IMAGE_NOT_FOUND')
   }
-  if (!isAdmin && ownerId !== actorUserId) {
+  const ownerId = getImageIndexRow(indexedKey)!.user_id
+  if (!isAdmin && (ownerId === null || ownerId !== actorUserId)) {
     throw new Error('FORBIDDEN')
   }
 }
@@ -332,19 +381,27 @@ export function addTagsToImage(
   isAdmin: boolean
 ): TagItem[] {
   ensureTagSchema()
-  assertCanTagImage(key, actorUserId, isAdmin)
-  const ownerId = resolveImageOwnerUserId(key)!
-  const uniqueTagIds = [...new Set(tagIds)]
-  assertTagsOwnedByUser(ownerId, uniqueTagIds)
+  const indexedKey = resolveIndexedImageKey(key)
+  if (!indexedKey) {
+    throw new Error('IMAGE_NOT_FOUND')
+  }
+  assertCanTagImage(indexedKey, actorUserId, isAdmin)
+  const imageOwnerUserId = getImageIndexRow(indexedKey)!.user_id
+  const uniqueTagIds = resolveTagIdsForImageTagging(
+    actorUserId,
+    tagIds,
+    imageOwnerUserId,
+    isAdmin
+  )
 
   const insert = getDb().prepare(`
     INSERT OR IGNORE INTO image_tags (image_key, tag_id) VALUES (?, ?)
   `)
   for (const tagId of uniqueTagIds) {
-    insert.run(key, tagId)
+    insert.run(indexedKey, tagId)
   }
 
-  return getTagsForImageKeys([key]).get(key) ?? []
+  return getTagsForImageKeys([indexedKey]).get(indexedKey) ?? []
 }
 
 export function removeTagFromImage(
@@ -354,15 +411,27 @@ export function removeTagFromImage(
   isAdmin: boolean
 ): TagItem[] {
   ensureTagSchema()
-  assertCanTagImage(key, actorUserId, isAdmin)
-  const ownerId = resolveImageOwnerUserId(key)!
-  assertTagsOwnedByUser(ownerId, [tagId])
+  const indexedKey = resolveIndexedImageKey(key)
+  if (!indexedKey) {
+    throw new Error('IMAGE_NOT_FOUND')
+  }
+  assertCanTagImage(indexedKey, actorUserId, isAdmin)
+  const imageOwnerUserId = getImageIndexRow(indexedKey)!.user_id
+  const [resolvedTagId] = resolveTagIdsForImageTagging(
+    actorUserId,
+    [tagId],
+    imageOwnerUserId,
+    isAdmin
+  )
+  if (resolvedTagId == null) {
+    return getTagsForImageKeys([indexedKey]).get(indexedKey) ?? []
+  }
 
   getDb().prepare(`
     DELETE FROM image_tags WHERE image_key = ? AND tag_id = ?
-  `).run(key, tagId)
+  `).run(indexedKey, resolvedTagId)
 
-  return getTagsForImageKeys([key]).get(key) ?? []
+  return getTagsForImageKeys([indexedKey]).get(indexedKey) ?? []
 }
 
 export function setImageTags(
@@ -372,20 +441,28 @@ export function setImageTags(
   isAdmin: boolean
 ): TagItem[] {
   ensureTagSchema()
-  assertCanTagImage(key, actorUserId, isAdmin)
-  const ownerId = resolveImageOwnerUserId(key)!
-  const uniqueTagIds = [...new Set(tagIds)]
-  assertTagsOwnedByUser(ownerId, uniqueTagIds)
+  const indexedKey = resolveIndexedImageKey(key)
+  if (!indexedKey) {
+    throw new Error('IMAGE_NOT_FOUND')
+  }
+  assertCanTagImage(indexedKey, actorUserId, isAdmin)
+  const imageOwnerUserId = getImageIndexRow(indexedKey)!.user_id
+  const uniqueTagIds = resolveTagIdsForImageTagging(
+    actorUserId,
+    tagIds,
+    imageOwnerUserId,
+    isAdmin
+  )
 
   const db = getDb()
   db.exec('BEGIN')
   try {
-    db.prepare('DELETE FROM image_tags WHERE image_key = ?').run(key)
+    db.prepare('DELETE FROM image_tags WHERE image_key = ?').run(indexedKey)
     const insert = db.prepare(`
       INSERT INTO image_tags (image_key, tag_id) VALUES (?, ?)
     `)
     for (const tagId of uniqueTagIds) {
-      insert.run(key, tagId)
+      insert.run(indexedKey, tagId)
     }
     db.exec('COMMIT')
   } catch (error) {
@@ -393,7 +470,7 @@ export function setImageTags(
     throw error
   }
 
-  return getTagsForImageKeys([key]).get(key) ?? []
+  return getTagsForImageKeys([indexedKey]).get(indexedKey) ?? []
 }
 
 export function attachTagsAfterUpload(
@@ -529,22 +606,20 @@ export function resolveTagIdsFromNames(userId: number, names: readonly string[])
 
 export function resolveUploadTagIds(
   userId: number | null,
-  tagIds: number[],
   tagNames: string[]
 ): { tagIds: number[] } | { message: string } {
-  if (!tagIds.length && !tagNames.length) {
+  if (!tagNames.length) {
     return { tagIds: [] }
   }
 
   if (userId == null) {
     return {
-      message: '打标签需要登录或使用绑定用户的 API Token'
+      message: '使用 tagNames 时请登录或通过 Auth-Token / 表单 token 提供有效 API Token'
     }
   }
 
   try {
-    const fromNames = tagNames.length ? resolveTagIdsFromNames(userId, tagNames) : []
-    return { tagIds: [...new Set([...tagIds, ...fromNames])] }
+    return { tagIds: resolveTagIdsFromNames(userId, tagNames) }
   } catch (error) {
     if (error instanceof Error) {
       switch (error.message) {

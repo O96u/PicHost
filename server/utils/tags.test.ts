@@ -67,14 +67,11 @@ describe('parseTagNamesParam', () => {
 
 describe('resolveUploadTagIds', () => {
   it('returns empty when no tags requested', () => {
-    expect(resolveUploadTagIds(1, [], [])).toEqual({ tagIds: [] })
+    expect(resolveUploadTagIds(1, [])).toEqual({ tagIds: [] })
   })
 
-  it('requires user when tags are requested', () => {
-    expect(resolveUploadTagIds(null, [1], [])).toMatchObject({
-      message: expect.stringContaining('API Token')
-    })
-    expect(resolveUploadTagIds(null, [], ['博客'])).toMatchObject({
+  it('requires user when tag names are requested', () => {
+    expect(resolveUploadTagIds(null, ['博客'])).toMatchObject({
       message: expect.stringContaining('API Token')
     })
   })

@@ -414,6 +414,14 @@ export function listAdminUserIds(): Set<number> {
   return new Set(rows.map(row => row.id))
 }
 
+/** 首个管理员（按 id），用于遗留全站 Token 上传归属 */
+export function getPrimaryAdminUserId(): number | null {
+  const row = getDb().prepare(`
+    SELECT id FROM users WHERE role = 'admin' ORDER BY id ASC LIMIT 1
+  `).get() as { id: number } | undefined
+  return row?.id ?? null
+}
+
 export function setUserAutoDeleteDays(userId: number, days: number): void {
   setUserAutoDeletePolicy(userId, days)
 }

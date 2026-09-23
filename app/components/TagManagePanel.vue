@@ -8,12 +8,15 @@ import {
   TAG_COLOR_EDIT_CANDIDATE_COUNT
 } from '~/utils/tag-colors'
 
-const props = withDefaults(defineProps<{
-  tags: ImageTag[]
-  embedded?: boolean
-}>(), {
-  embedded: false
-})
+const props = withDefaults(
+  defineProps<{
+    tags: ImageTag[]
+    embedded?: boolean
+  }>(),
+  {
+    embedded: false
+  }
+)
 
 const emit = defineEmits<{
   changed: []
@@ -27,7 +30,9 @@ const { createTag, updateTag, deleteTag, mergeTags } = useTags()
 const creating = ref(false)
 const newName = ref('')
 const newColorCandidates = ref<string[]>(pickTagColorCandidates([]))
-const newColor = ref(pickDefaultTagColorFromCandidates(newColorCandidates.value, []))
+const newColor = ref(
+  pickDefaultTagColorFromCandidates(newColorCandidates.value, [])
+)
 const search = ref('')
 const statusFilter = ref<'all' | 'used' | 'unused'>('all')
 const selectedIds = ref<Set<number>>(new Set())
@@ -46,6 +51,10 @@ const deleteTarget = ref<ImageTag | null>(null)
 const saving = ref(false)
 const page = ref(1)
 const pageSize = ref(10)
+
+type TagSortKey = 'imageCount' | 'lastUsedAt'
+const sortKey = ref<TagSortKey>('imageCount')
+const sortDir = ref<'asc' | 'desc'>('desc')
 
 const stats = computed(() => {
   const now = Date.now()
@@ -71,15 +80,31 @@ const stats = computed(() => {
 
 const filteredTags = computed(() => {
   const q = search.value.trim().toLowerCase()
-  return props.tags.filter((tag) => {
-    if (statusFilter.value === 'used' && (tag.imageCount ?? 0) === 0) return false
-    if (statusFilter.value === 'unused' && (tag.imageCount ?? 0) > 0) return false
+  const list = props.tags.filter((tag) => {
+    if (statusFilter.value === 'used' && (tag.imageCount ?? 0) === 0)
+      return false
+    if (statusFilter.value === 'unused' && (tag.imageCount ?? 0) > 0)
+      return false
     if (q && !tag.name.toLowerCase().includes(q)) return false
     return true
-  }).sort((a, b) => (b.imageCount ?? 0) - (a.imageCount ?? 0) || a.name.localeCompare(b.name))
+  })
+
+  const dir = sortDir.value === 'asc' ? 1 : -1
+  return list.sort((a, b) => {
+    let cmp = 0
+    if (sortKey.value === 'imageCount') {
+      cmp = (a.imageCount ?? 0) - (b.imageCount ?? 0)
+    } else {
+      cmp = lastUsedSortTime(a) - lastUsedSortTime(b)
+    }
+    if (cmp !== 0) return cmp * dir
+    return a.name.localeCompare(b.name)
+  })
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredTags.value.length / pageSize.value)))
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(filteredTags.value.length / pageSize.value))
+)
 
 const paginatedTags = computed(() => {
   const start = (page.value - 1) * pageSize.value
@@ -96,30 +121,37 @@ watch(filteredTags, (list) => {
   }
 })
 
-const selectedList = computed(() =>
-  [...selectedIds.value]
-    .map(id => props.tags.find(tag => tag.id === id))
-    .filter(Boolean) as ImageTag[]
+const selectedList = computed(
+  () =>
+    [...selectedIds.value]
+      .map(id => props.tags.find(tag => tag.id === id))
+      .filter(Boolean) as ImageTag[]
 )
 
 const selectedCount = computed(() => selectedIds.value.size)
 
-const allPageSelected = computed(() =>
-  paginatedTags.value.length > 0
-  && paginatedTags.value.every(tag => selectedIds.value.has(tag.id))
+const allPageSelected = computed(
+  () =>
+    paginatedTags.value.length > 0
+    && paginatedTags.value.every(tag => selectedIds.value.has(tag.id))
 )
 
-const mergeSourceTags = computed(() =>
-  mergeSourceIds.value
-    .map(id => props.tags.find(tag => tag.id === id))
-    .filter(Boolean) as ImageTag[]
+const mergeSourceTags = computed(
+  () =>
+    mergeSourceIds.value
+      .map(id => props.tags.find(tag => tag.id === id))
+      .filter(Boolean) as ImageTag[]
 )
 
 const mergeTargetCandidates = computed(() => {
   const sourceSet = new Set(mergeSourceIds.value)
   return props.tags
     .filter(tag => !sourceSet.has(tag.id))
-    .sort((a, b) => (b.imageCount ?? 0) - (a.imageCount ?? 0) || a.name.localeCompare(b.name))
+    .sort(
+      (a, b) =>
+        (b.imageCount ?? 0) - (a.imageCount ?? 0)
+        || a.name.localeCompare(b.name)
+    )
 })
 
 const mergeTagsToDelete = computed(() => {
@@ -127,8 +159,8 @@ const mergeTagsToDelete = computed(() => {
   return mergeSourceTags.value.filter(tag => tag.id !== mergeTargetId.value)
 })
 
-const mergeKeepTag = computed(() =>
-  props.tags.find(tag => tag.id === mergeTargetId.value) ?? null
+const mergeKeepTag = computed(
+  () => props.tags.find(tag => tag.id === mergeTargetId.value) ?? null
 )
 
 const statusItems = computed(() => [
@@ -137,28 +169,71 @@ const statusItems = computed(() => [
   { label: t('tags.filterStatusUnused'), value: 'unused' }
 ])
 
-const statValueClass = computed(() =>
-  'mt-2 text-2xl font-semibold tabular-nums text-highlighted'
+function tagSortTime(iso: string | null | undefined): number {
+  if (!iso) return 0
+  const time = new Date(iso).getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
+function lastUsedSortTime(tag: ImageTag): number {
+  if ((tag.imageCount ?? 0) === 0) return 0
+  return tagSortTime(tag.lastUsedAt)
+}
+
+function toggleSort(key: TagSortKey) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortDir.value = 'desc'
+  }
+  page.value = 1
+}
+
+function sortIcon(key: TagSortKey): string {
+  if (sortKey.value !== key) return 'i-lucide-arrow-up-down'
+  return sortDir.value === 'asc' ? 'i-lucide-arrow-up' : 'i-lucide-arrow-down'
+}
+
+function sortIconClass(key: TagSortKey): string {
+  const base = 'size-3 shrink-0'
+  return sortKey.value === key
+    ? `${base} opacity-70`
+    : `${base} opacity-40`
+}
+
+const statValueClass = computed(
+  () => 'mt-2 text-2xl font-semibold tabular-nums text-highlighted'
 )
 
 const tableTextClass = computed(() => 'text-sm')
+
+const tagRowClass = 'flex items-center gap-x-3 px-3'
+
+const tagNameColClass = 'min-w-0 flex-1 basis-0 pr-8 sm:pr-12'
+
+const tagRightGroupClass
+  = 'ml-auto flex shrink-0 items-center gap-x-8 sm:gap-x-10'
+
+const tagCountColClass
+  = 'w-44 shrink-0 text-left tabular-nums whitespace-nowrap sm:w-48'
+
+const tagLastColClass
+  = 'w-[10.5rem] shrink-0 whitespace-nowrap text-xs text-muted'
+
+const tagActionsColClass = 'w-[9.5rem] shrink-0'
 
 function formatLastUsed(tag: ImageTag) {
   if (!tag.lastUsedAt || (tag.imageCount ?? 0) === 0) {
     return t('tags.neverUsed')
   }
-  const date = new Date(tag.lastUsedAt)
-  if (Number.isNaN(date.getTime())) {
+  try {
+    return new Date(tag.lastUsedAt).toLocaleString(locale.value, {
+      hour12: false
+    })
+  } catch {
     return t('tags.neverUsed')
   }
-  return date.toLocaleString(locale.value, {
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  })
 }
 
 function toggleSelect(id: number) {
@@ -191,7 +266,10 @@ function usedColorsExcept(tagId?: number) {
 function refreshNewTagColor() {
   const used = usedColorsExcept()
   newColorCandidates.value = pickTagColorCandidates(used)
-  newColor.value = pickDefaultTagColorFromCandidates(newColorCandidates.value, used)
+  newColor.value = pickDefaultTagColorFromCandidates(
+    newColorCandidates.value,
+    used
+  )
 }
 
 function toggleCreating() {
@@ -303,7 +381,10 @@ async function confirmDelete() {
     selectedIds.value.delete(tag.id)
     selectedIds.value = new Set(selectedIds.value)
     emit('changed')
-    toast.add({ title: t('tags.deleted', { name: tag.name }), color: 'success' })
+    toast.add({
+      title: t('tags.deleted', { name: tag.name }),
+      color: 'success'
+    })
   } catch {
     toast.add({ title: t('tags.deleteFailed'), color: 'error' })
   } finally {
@@ -318,7 +399,9 @@ function openBatchMerge() {
   }
   mergeMode.value = 'batch'
   mergeSourceIds.value = [...selectedIds.value]
-  const sorted = selectedList.value.sort((a, b) => (b.imageCount ?? 0) - (a.imageCount ?? 0))
+  const sorted = selectedList.value.sort(
+    (a, b) => (b.imageCount ?? 0) - (a.imageCount ?? 0)
+  )
   mergeTargetId.value = sorted[0]?.id ?? null
   mergeOpen.value = true
 }
@@ -335,14 +418,18 @@ function openSingleMerge(tag: ImageTag) {
 
 function requestMergeConfirm() {
   if (!mergeTargetId.value) return
-  const sourceIds = mergeSourceIds.value.filter(id => id !== mergeTargetId.value)
+  const sourceIds = mergeSourceIds.value.filter(
+    id => id !== mergeTargetId.value
+  )
   if (!sourceIds.length) return
   mergeConfirmOpen.value = true
 }
 
 async function confirmMerge() {
   if (!mergeTargetId.value || saving.value) return
-  const sourceIds = mergeSourceIds.value.filter(id => id !== mergeTargetId.value)
+  const sourceIds = mergeSourceIds.value.filter(
+    id => id !== mergeTargetId.value
+  )
   if (!sourceIds.length) return
   saving.value = true
   try {
@@ -365,13 +452,15 @@ async function confirmMerge() {
     <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <div class="rounded-xl border border-default bg-elevated p-4">
         <div class="flex items-center gap-2 text-xs text-muted">
-          <span class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <span
+            class="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary"
+          >
             <UIcon
               name="i-lucide-tags"
               class="size-4"
             />
           </span>
-          {{ t('tags.statTotal') }}
+          {{ t("tags.statTotal") }}
         </div>
         <p :class="statValueClass">
           {{ stats.total }}
@@ -379,13 +468,15 @@ async function confirmMerge() {
       </div>
       <div class="rounded-xl border border-default bg-elevated p-4">
         <div class="flex items-center gap-2 text-xs text-muted">
-          <span class="flex size-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+          <span
+            class="flex size-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400"
+          >
             <UIcon
               name="i-lucide-image"
               class="size-4"
             />
           </span>
-          {{ t('tags.statUsed') }}
+          {{ t("tags.statUsed") }}
         </div>
         <p :class="statValueClass">
           {{ stats.used }}
@@ -393,13 +484,15 @@ async function confirmMerge() {
       </div>
       <div class="rounded-xl border border-default bg-elevated p-4">
         <div class="flex items-center gap-2 text-xs text-muted">
-          <span class="flex size-7 items-center justify-center rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400">
+          <span
+            class="flex size-7 items-center justify-center rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400"
+          >
             <UIcon
               name="i-lucide-tag"
               class="size-4"
             />
           </span>
-          {{ t('tags.statUnused') }}
+          {{ t("tags.statUnused") }}
         </div>
         <p :class="statValueClass">
           {{ stats.unused }}
@@ -407,13 +500,15 @@ async function confirmMerge() {
       </div>
       <div class="rounded-xl border border-default bg-elevated p-4">
         <div class="flex items-center gap-2 text-xs text-muted">
-          <span class="flex size-7 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
+          <span
+            class="flex size-7 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400"
+          >
             <UIcon
               name="i-lucide-trending-up"
               class="size-4"
             />
           </span>
-          {{ t('tags.statNew7d') }}
+          {{ t("tags.statNew7d") }}
         </div>
         <p :class="statValueClass">
           {{ stats.newIn7Days }}
@@ -443,7 +538,7 @@ async function confirmMerge() {
           icon="i-lucide-plus"
           @click="toggleCreating"
         >
-          {{ t('tags.addTag') }}
+          {{ t("tags.addTag") }}
         </UButton>
         <UButton
           type="button"
@@ -454,7 +549,7 @@ async function confirmMerge() {
           :disabled="selectedCount < 2"
           @click="openBatchMerge"
         >
-          {{ t('tags.mergeTags') }}
+          {{ t("tags.mergeTags") }}
         </UButton>
       </div>
     </div>
@@ -464,7 +559,7 @@ async function confirmMerge() {
       class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2"
     >
       <span class="text-xs font-medium text-highlighted">
-        {{ t('tags.mergeSelected', { n: selectedCount }) }}
+        {{ t("tags.mergeSelected", { n: selectedCount }) }}
       </span>
       <UButton
         size="xs"
@@ -472,7 +567,7 @@ async function confirmMerge() {
         color="neutral"
         @click="clearSelection"
       >
-        {{ t('tags.mergeClear') }}
+        {{ t("tags.mergeClear") }}
       </UButton>
     </div>
 
@@ -498,11 +593,9 @@ async function confirmMerge() {
           class="shrink-0 pt-1"
         >
           <p class="mb-1.5 text-xs text-muted">
-            {{ t('tags.preview') }}
+            {{ t("tags.preview") }}
           </p>
-          <TagBadge
-            :tag="{ id: 0, name: newName.trim(), color: newColor }"
-          />
+          <TagBadge :tag="{ id: 0, name: newName.trim(), color: newColor }" />
         </div>
       </div>
       <div class="flex justify-end gap-2 border-t border-default pt-3">
@@ -510,9 +603,13 @@ async function confirmMerge() {
           size="sm"
           variant="ghost"
           color="neutral"
-          @click="() => { creating = false }"
+          @click="
+            () => {
+              creating = false;
+            }
+          "
         >
-          {{ t('common.cancel') }}
+          {{ t("common.cancel") }}
         </UButton>
         <UButton
           size="sm"
@@ -521,59 +618,73 @@ async function confirmMerge() {
           :disabled="!newName.trim()"
           @click="handleCreate"
         >
-          {{ t('common.save') }}
+          {{ t("common.save") }}
         </UButton>
       </div>
     </div>
 
     <div class="overflow-hidden rounded-xl border border-default">
-      <div class="overflow-x-auto">
-        <table
-          class="min-w-full"
-          :class="tableTextClass"
-        >
-          <thead class="border-b border-default bg-elevated/60 text-xs text-muted">
-            <tr>
-              <th class="w-10 px-3 py-3">
-                <UCheckbox
-                  :model-value="allPageSelected"
-                  :disabled="!paginatedTags.length"
-                  @update:model-value="toggleSelectAll"
-                />
-              </th>
-              <th class="px-3 py-3 text-left font-medium">
-                {{ t('tags.colName') }}
-              </th>
-              <th class="px-3 py-3 text-left font-medium">
-                {{ t('tags.colImageCount') }}
-              </th>
-              <th class="px-3 py-3 text-left font-medium">
-                {{ t('tags.colLastUsed') }}
-              </th>
-              <th class="px-3 py-3 text-right font-medium">
-                {{ t('tags.colActions') }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="tag in paginatedTags"
-              :key="tag.id"
-              class="border-b border-default last:border-b-0"
-              :class="selectedIds.has(tag.id) ? 'bg-primary/5' : 'hover:bg-elevated/40'"
+      <div
+        v-if="!paginatedTags.length"
+        class="px-3 py-12 text-center text-sm text-muted"
+      >
+        {{ tags.length ? t("tags.noMatch") : t("tags.emptyHint") }}
+      </div>
+
+      <!-- 手机：卡片列表 -->
+      <template v-else>
+        <div class="sm:hidden">
+          <div
+            class="flex items-center gap-2 border-b border-default bg-elevated/60 px-3 py-2.5 text-xs text-muted"
+          >
+            <UCheckbox
+              :model-value="allPageSelected"
+              :disabled="!paginatedTags.length"
+              @update:model-value="toggleSelectAll"
+            />
+            <span class="min-w-0 flex-1 font-medium">{{ t("tags.colName") }}</span>
+            <button
+              type="button"
+              class="inline-flex shrink-0 items-center gap-0.5 font-medium text-inherit"
+              @click="toggleSort('imageCount')"
             >
-              <td class="px-3 py-3 align-middle">
-                <UCheckbox
-                  :model-value="selectedIds.has(tag.id)"
-                  @update:model-value="toggleSelect(tag.id)"
-                />
-              </td>
-              <td class="px-3 py-3 align-middle">
+              {{ t("tags.colImageCount") }}
+              <UIcon
+                :name="sortIcon('imageCount')"
+                :class="sortIconClass('imageCount')"
+              />
+            </button>
+            <button
+              type="button"
+              class="inline-flex shrink-0 items-center gap-0.5 font-medium text-inherit"
+              @click="toggleSort('lastUsedAt')"
+            >
+              {{ t("tags.colLastUsed") }}
+              <UIcon
+                :name="sortIcon('lastUsedAt')"
+                :class="sortIconClass('lastUsedAt')"
+              />
+            </button>
+          </div>
+
+          <article
+            v-for="tag in paginatedTags"
+            :key="`mobile-${tag.id}`"
+            class="border-b border-default px-3 py-3 last:border-b-0"
+            :class="selectedIds.has(tag.id) ? 'bg-primary/5' : ''"
+          >
+            <div class="flex items-start gap-2">
+              <UCheckbox
+                class="mt-0.5"
+                :model-value="selectedIds.has(tag.id)"
+                @update:model-value="toggleSelect(tag.id)"
+              />
+              <div class="min-w-0 flex-1">
                 <UInput
                   v-if="renamingId === tag.id"
                   v-model="renameValue"
                   size="sm"
-                  class="max-w-xs"
+                  class="w-full max-w-none"
                   autofocus
                   @keydown.enter.prevent="finishRename(tag.id)"
                   @keydown.esc.prevent="cancelRename"
@@ -583,94 +694,262 @@ async function confirmMerge() {
                   v-else
                   :tag="tag"
                   size="sm"
+                  class="max-w-full truncate"
                 />
-              </td>
-              <td class="px-3 py-3 align-middle tabular-nums text-muted">
-                {{ tag.imageCount ?? 0 }}
-              </td>
-              <td class="px-3 py-3 align-middle text-muted">
-                {{ formatLastUsed(tag) }}
-              </td>
-              <td class="px-3 py-3 align-middle">
-                <div class="flex items-center justify-end gap-0.5">
-                  <UButton
-                    type="button"
-                    size="xs"
-                    variant="ghost"
-                    color="primary"
-                    icon="i-lucide-pencil"
-                    :aria-label="t('common.edit')"
-                    @click="startRename(tag)"
-                  />
-                  <UPopover
-                    :open="colorPickerId === tag.id"
-                    :content="{ side: 'bottom', align: 'end' }"
-                    @update:open="(open) => { colorPickerId = open ? tag.id : null }"
-                  >
-                    <UButton
-                      type="button"
-                      size="xs"
-                      variant="ghost"
-                      color="primary"
-                      icon="i-lucide-palette"
-                      :aria-label="t('tags.pickColor')"
-                      @click="() => openColorPicker(tag)"
-                    />
-                    <template #content>
-                      <div
-                        class="flex items-center gap-2 p-2"
-                        @click.stop
-                      >
-                        <TagColorPicker
-                          v-model="colorValue"
-                          :candidates="editColorCandidates"
-                          compact
-                        />
-                        <UButton
-                          icon="i-lucide-check"
-                          size="sm"
-                          color="primary"
-                          class="shrink-0"
-                          :aria-label="t('common.save')"
-                          :loading="saving"
-                          @click="saveColor(tag.id)"
-                        />
-                      </div>
-                    </template>
-                  </UPopover>
-                  <UButton
-                    type="button"
-                    size="xs"
-                    variant="ghost"
-                    color="primary"
-                    icon="i-lucide-merge"
-                    :aria-label="t('tags.mergeIntoAction')"
-                    :disabled="tags.length < 2"
-                    @click="openSingleMerge(tag)"
-                  />
-                  <UButton
-                    type="button"
-                    size="xs"
-                    variant="ghost"
-                    color="error"
-                    icon="i-lucide-trash-2"
-                    :aria-label="t('common.delete')"
-                    @click="openDeleteConfirm(tag)"
-                  />
+                <div
+                  class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted"
+                >
+                  <span class="tabular-nums">
+                    {{ t("tags.colImageCount") }} {{ tag.imageCount ?? 0 }}
+                  </span>
+                  <span class="min-w-0 break-all">
+                    {{ formatLastUsed(tag) }}
+                  </span>
                 </div>
-              </td>
-            </tr>
-            <tr v-if="!paginatedTags.length">
-              <td
-                colspan="5"
-                class="px-3 py-12 text-center text-sm text-muted"
+              </div>
+            </div>
+            <div class="mt-2 flex flex-wrap justify-end gap-0.5">
+              <UButton
+                type="button"
+                size="xs"
+                variant="ghost"
+                color="primary"
+                icon="i-lucide-pencil"
+                :aria-label="t('common.edit')"
+                @click="startRename(tag)"
+              />
+              <UPopover
+                :open="colorPickerId === tag.id"
+                :content="{ side: 'bottom', align: 'end' }"
+                @update:open="
+                  (open) => {
+                    colorPickerId = open ? tag.id : null;
+                  }
+                "
               >
-                {{ tags.length ? t('tags.noMatch') : t('tags.emptyHint') }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                <UButton
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  color="primary"
+                  icon="i-lucide-palette"
+                  :aria-label="t('tags.pickColor')"
+                  @click="() => openColorPicker(tag)"
+                />
+                <template #content>
+                  <div
+                    class="flex items-center gap-2 p-2"
+                    @click.stop
+                  >
+                    <TagColorPicker
+                      v-model="colorValue"
+                      :candidates="editColorCandidates"
+                      compact
+                    />
+                    <UButton
+                      icon="i-lucide-check"
+                      size="sm"
+                      color="primary"
+                      class="shrink-0"
+                      :aria-label="t('common.save')"
+                      :loading="saving"
+                      @click="saveColor(tag.id)"
+                    />
+                  </div>
+                </template>
+              </UPopover>
+              <UButton
+                type="button"
+                size="xs"
+                variant="ghost"
+                color="primary"
+                icon="i-lucide-merge"
+                :aria-label="t('tags.mergeIntoAction')"
+                :disabled="tags.length < 2"
+                @click="openSingleMerge(tag)"
+              />
+              <UButton
+                type="button"
+                size="xs"
+                variant="ghost"
+                color="error"
+                icon="i-lucide-trash-2"
+                :aria-label="t('common.delete')"
+                @click="openDeleteConfirm(tag)"
+              />
+            </div>
+          </article>
+        </div>
+
+        <!-- 桌面：表格 -->
+        <div class="hidden sm:block">
+          <div
+            class="border-b border-default bg-elevated/60 text-xs text-muted"
+            :class="[tagRowClass, tableTextClass, 'py-2.5']"
+          >
+            <div class="flex w-10 shrink-0 justify-center">
+              <UCheckbox
+                :model-value="allPageSelected"
+                :disabled="!paginatedTags.length"
+                @update:model-value="toggleSelectAll"
+              />
+            </div>
+            <div :class="[tagNameColClass, 'font-medium']">
+              {{ t("tags.colName") }}
+            </div>
+            <div :class="tagRightGroupClass">
+              <div :class="[tagCountColClass, 'font-medium']">
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-0.5 font-medium text-inherit"
+                  @click="toggleSort('imageCount')"
+                >
+                  {{ t("tags.colImageCount") }}
+                  <UIcon
+                    :name="sortIcon('imageCount')"
+                    :class="sortIconClass('imageCount')"
+                  />
+                </button>
+              </div>
+              <div :class="[tagLastColClass, 'font-medium text-muted']">
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-0.5 font-medium text-inherit"
+                  @click="toggleSort('lastUsedAt')"
+                >
+                  {{ t("tags.colLastUsed") }}
+                  <UIcon
+                    :name="sortIcon('lastUsedAt')"
+                    :class="sortIconClass('lastUsedAt')"
+                  />
+                </button>
+              </div>
+              <div :class="[tagActionsColClass, 'text-right font-medium']">
+                {{ t("tags.colActions") }}
+              </div>
+            </div>
+          </div>
+
+          <div
+            v-for="tag in paginatedTags"
+            :key="tag.id"
+            class="border-b border-default last:border-b-0"
+            :class="[
+              tagRowClass,
+              tableTextClass,
+              'py-0',
+              selectedIds.has(tag.id) ? 'bg-primary/5' : 'hover:bg-elevated/40'
+            ]"
+          >
+            <div class="flex w-10 shrink-0 justify-center py-3">
+              <UCheckbox
+                :model-value="selectedIds.has(tag.id)"
+                @update:model-value="toggleSelect(tag.id)"
+              />
+            </div>
+            <div :class="[tagNameColClass, 'py-3']">
+              <UInput
+                v-if="renamingId === tag.id"
+                v-model="renameValue"
+                size="sm"
+                class="max-w-xs"
+                autofocus
+                @keydown.enter.prevent="finishRename(tag.id)"
+                @keydown.esc.prevent="cancelRename"
+                @blur="onRenameBlur(tag.id)"
+              />
+              <TagBadge
+                v-else
+                :tag="tag"
+                size="sm"
+              />
+            </div>
+            <div :class="[tagRightGroupClass, 'py-3']">
+              <div :class="[tagCountColClass, 'text-muted']">
+                {{ tag.imageCount ?? 0 }}
+              </div>
+              <div :class="tagLastColClass">
+                {{ formatLastUsed(tag) }}
+              </div>
+              <div
+                :class="[
+                  tagActionsColClass,
+                  'flex items-center justify-end gap-0.5'
+                ]"
+              >
+                <UButton
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  color="primary"
+                  icon="i-lucide-pencil"
+                  :aria-label="t('common.edit')"
+                  @click="startRename(tag)"
+                />
+                <UPopover
+                  :open="colorPickerId === tag.id"
+                  :content="{ side: 'bottom', align: 'end' }"
+                  @update:open="
+                    (open) => {
+                      colorPickerId = open ? tag.id : null;
+                    }
+                  "
+                >
+                  <UButton
+                    type="button"
+                    size="xs"
+                    variant="ghost"
+                    color="primary"
+                    icon="i-lucide-palette"
+                    :aria-label="t('tags.pickColor')"
+                    @click="() => openColorPicker(tag)"
+                  />
+                  <template #content>
+                    <div
+                      class="flex items-center gap-2 p-2"
+                      @click.stop
+                    >
+                      <TagColorPicker
+                        v-model="colorValue"
+                        :candidates="editColorCandidates"
+                        compact
+                      />
+                      <UButton
+                        icon="i-lucide-check"
+                        size="sm"
+                        color="primary"
+                        class="shrink-0"
+                        :aria-label="t('common.save')"
+                        :loading="saving"
+                        @click="saveColor(tag.id)"
+                      />
+                    </div>
+                  </template>
+                </UPopover>
+                <UButton
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  color="primary"
+                  icon="i-lucide-merge"
+                  :aria-label="t('tags.mergeIntoAction')"
+                  :disabled="tags.length < 2"
+                  @click="openSingleMerge(tag)"
+                />
+                <UButton
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  color="error"
+                  icon="i-lucide-trash-2"
+                  :aria-label="t('common.delete')"
+                  @click="openDeleteConfirm(tag)"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
 
     <PaginationBar
@@ -680,28 +959,46 @@ async function confirmMerge() {
       :total="filteredTags.length"
       :page-size="pageSize"
       :page-size-options="[10, 20, 30, 50]"
-      @update:page="(value) => { page = value }"
-      @update:page-size="(value) => { pageSize = value }"
+      @update:page="
+        (value) => {
+          page = value;
+        }
+      "
+      @update:page-size="
+        (value) => {
+          pageSize = value;
+        }
+      "
     />
 
     <UModal
       v-model:open="mergeOpen"
-      :title="mergeMode === 'single' ? t('tags.mergeIntoTitle') : t('tags.mergeTitle')"
-      :description="mergeMode === 'single'
-        ? t('tags.mergeIntoSubtitle', { name: mergeSourceTags[0]?.name ?? '' })
-        : t('tags.mergeSubtitle')"
+      :title="
+        mergeMode === 'single' ? t('tags.mergeIntoTitle') : t('tags.mergeTitle')
+      "
+      :description="
+        mergeMode === 'single'
+          ? t('tags.mergeIntoSubtitle', {
+            name: mergeSourceTags[0]?.name ?? ''
+          })
+          : t('tags.mergeSubtitle')
+      "
     >
       <template #body>
         <template v-if="mergeMode === 'batch'">
           <p class="mb-2 text-sm text-muted">
-            {{ t('tags.mergeChooseTarget') }}
+            {{ t("tags.mergeChooseTarget") }}
           </p>
           <div class="merge-tag-list max-h-[16.5rem] space-y-2 overflow-y-auto">
             <label
               v-for="tag in mergeSourceTags"
               :key="tag.id"
               class="flex cursor-pointer items-center gap-3 rounded-lg border border-default px-3 py-2.5 transition-colors"
-              :class="mergeTargetId === tag.id ? 'border-primary/40 bg-primary/5' : 'hover:bg-elevated'"
+              :class="
+                mergeTargetId === tag.id
+                  ? 'border-primary/40 bg-primary/5'
+                  : 'hover:bg-elevated'
+              "
             >
               <input
                 v-model="mergeTargetId"
@@ -711,7 +1008,7 @@ async function confirmMerge() {
               >
               <TagBadge :tag="tag" />
               <span class="ml-auto text-sm text-muted">
-                {{ t('common.countImages', { count: tag.imageCount ?? 0 }) }}
+                {{ t("common.countImages", { count: tag.imageCount ?? 0 }) }}
               </span>
             </label>
           </div>
@@ -719,14 +1016,18 @@ async function confirmMerge() {
 
         <template v-else>
           <p class="mb-2 text-sm text-muted">
-            {{ t('tags.mergeIntoChoose') }}
+            {{ t("tags.mergeIntoChoose") }}
           </p>
           <div class="merge-tag-list max-h-[16.5rem] space-y-2 overflow-y-auto">
             <label
               v-for="tag in mergeTargetCandidates"
               :key="tag.id"
               class="flex cursor-pointer items-center gap-3 rounded-lg border border-default px-3 py-2.5 transition-colors"
-              :class="mergeTargetId === tag.id ? 'border-primary/40 bg-primary/5' : 'hover:bg-elevated'"
+              :class="
+                mergeTargetId === tag.id
+                  ? 'border-primary/40 bg-primary/5'
+                  : 'hover:bg-elevated'
+              "
             >
               <input
                 v-model="mergeTargetId"
@@ -736,7 +1037,7 @@ async function confirmMerge() {
               >
               <TagBadge :tag="tag" />
               <span class="ml-auto text-sm text-muted">
-                {{ t('common.countImages', { count: tag.imageCount ?? 0 }) }}
+                {{ t("common.countImages", { count: tag.imageCount ?? 0 }) }}
               </span>
             </label>
           </div>
@@ -748,9 +1049,13 @@ async function confirmMerge() {
           <UButton
             variant="outline"
             color="neutral"
-            @click="() => { mergeOpen = false }"
+            @click="
+              () => {
+                mergeOpen = false;
+              }
+            "
           >
-            {{ t('common.cancel') }}
+            {{ t("common.cancel") }}
           </UButton>
           <UButton
             color="primary"
@@ -758,7 +1063,7 @@ async function confirmMerge() {
             :disabled="!mergeTargetId"
             @click="requestMergeConfirm"
           >
-            {{ t('tags.mergeConfirm') }}
+            {{ t("tags.mergeConfirm") }}
           </UButton>
         </div>
       </template>
@@ -772,12 +1077,14 @@ async function confirmMerge() {
       <template #body>
         <div class="space-y-3 text-sm">
           <p v-if="mergeKeepTag">
-            {{ t('tags.mergeConfirmKeep', { name: mergeKeepTag.name }) }}
+            {{ t("tags.mergeConfirmKeep", { name: mergeKeepTag.name }) }}
           </p>
           <p v-if="mergeTagsToDelete.length">
-            {{ t('tags.mergeWillDelete', {
-              names: mergeTagsToDelete.map(tag => tag.name).join('、')
-            }) }}
+            {{
+              t("tags.mergeWillDelete", {
+                names: mergeTagsToDelete.map((tag) => tag.name).join("、")
+              })
+            }}
           </p>
         </div>
       </template>
@@ -787,9 +1094,13 @@ async function confirmMerge() {
           <UButton
             variant="outline"
             color="neutral"
-            @click="() => { mergeConfirmOpen = false }"
+            @click="
+              () => {
+                mergeConfirmOpen = false;
+              }
+            "
           >
-            {{ t('common.cancel') }}
+            {{ t("common.cancel") }}
           </UButton>
           <UButton
             color="primary"
@@ -797,7 +1108,7 @@ async function confirmMerge() {
             :loading="saving"
             @click="confirmMerge"
           >
-            {{ t('tags.mergeConfirm') }}
+            {{ t("tags.mergeConfirm") }}
           </UButton>
         </div>
       </template>
@@ -806,16 +1117,24 @@ async function confirmMerge() {
     <UModal
       v-model:open="deleteOpen"
       :title="t('tags.deleteConfirmTitle')"
-      :description="deleteTarget ? t('tags.deleteConfirmDesc', { name: deleteTarget.name }) : ''"
+      :description="
+        deleteTarget
+          ? t('tags.deleteConfirmDesc', { name: deleteTarget.name })
+          : ''
+      "
     >
       <template #footer>
         <div class="flex w-full justify-end gap-2">
           <UButton
             variant="outline"
             color="neutral"
-            @click="() => { deleteOpen = false }"
+            @click="
+              () => {
+                deleteOpen = false;
+              }
+            "
           >
-            {{ t('common.cancel') }}
+            {{ t("common.cancel") }}
           </UButton>
           <UButton
             color="error"
@@ -823,7 +1142,7 @@ async function confirmMerge() {
             :loading="saving"
             @click="confirmDelete"
           >
-            {{ t('common.delete') }}
+            {{ t("common.delete") }}
           </UButton>
         </div>
       </template>

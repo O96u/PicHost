@@ -75,13 +75,6 @@ export function buildApiDocs(ctx: ApiDocsContext): ApiDocEndpoint[] {
           descriptionKey: 'api.params.upload.token'
         },
         {
-          name: 'tagIds',
-          type: 'string',
-          location: 'form-data',
-          required: false,
-          descriptionKey: 'api.params.upload.tagIds'
-        },
-        {
           name: 'tagNames',
           type: 'string',
           location: 'form-data',

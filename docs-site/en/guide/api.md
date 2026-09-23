@@ -12,10 +12,10 @@ All REST calls use:
 Auth-Token: YOUR_TOKEN
 ```
 
-| Token type | How to obtain | Notes |
-| ---------- | ------------- | ----- |
-| **Global** | Admin **API** page or `API_UPLOAD_TOKEN` env | Env wins and blocks UI regenerate |
-| **Personal** | Each user’s **API** page | Uploads belong to that user |
+| Token | How to obtain | Notes |
+| ----- | ------------- | ----- |
+| **API token** | **API** page after sign-in (one per account, auto-created) | `Auth-Token` header; uploads and tagNames belong to that account |
+| **Legacy site token** | `API_UPLOAD_TOKEN` env or old admin setting | Still accepted; uploads belong to the **first admin**. Twikoo form `token` also accepts each user’s API token |
 
 Form uploads may use field `token` (Twikoo protocol).
 
@@ -31,10 +31,10 @@ Upload one or more images via `image`; also accepts `file`, `files`. Stored unde
 curl -X POST "https://admin.example.com/api/images/upload" \
   -H "Auth-Token: YOUR_TOKEN" \
   -F "image=@./demo.png" \
-  -F 'tagIds=[1,2]'
+  -F 'tagNames=["blog","screenshot"]'
 ```
 
-Optional form field `tagIds`: JSON array string or repeated fields. Tags do **not** change storage paths under `images/`.
+Optional form field `tagNames`: JSON array or comma-separated names. Tags apply to the user bound to the token (**global token cannot tag**). Tags do **not** change storage paths under `images/`.
 
 ### 2. List images
 

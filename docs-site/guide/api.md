@@ -12,10 +12,10 @@ PicHost 提供 REST 接口与 Twikoo 兼容端点。登录后打开顶栏 **API*
 Auth-Token: YOUR_TOKEN
 ```
 
-| Token 类型 | 获取方式 | 说明 |
-| ---------- | -------- | ---- |
-| **全局 Token** | 管理员 **API** 页生成；或 `API_UPLOAD_TOKEN` 环境变量 | 环境变量优先且锁定后台重新生成 |
-| **个人 Token** | 各用户 **API** 页 | 仅用于该用户脚本，上传归属本人 |
+| Token | 获取方式 | 说明 |
+| ----- | -------- | ---- |
+| **API Token** | 登录后 **API** 页（每账号一个，自动生成） | 请求头 `Auth-Token`；上传与 tagNames 归属该账号 |
+| **遗留全站 Token** | 环境变量 `API_UPLOAD_TOKEN` 或旧版后台配置 | 仍可用；上传归属**首个管理员**账号。Twikoo 表单 `token` 亦支持各账号 API Token |
 
 表单上传仍可使用字段 `token`（Twikoo 协议）。
 
@@ -31,10 +31,10 @@ Auth-Token: YOUR_TOKEN
 curl -X POST "https://admin.example.com/api/images/upload" \
   -H "Auth-Token: YOUR_TOKEN" \
   -F "image=@./demo.png" \
-  -F 'tagIds=[1,2]'
+  -F 'tagNames=["博客","截图"]'
 ```
 
-可选表单字段 `tagIds`：JSON 数组字符串（如 `[1,2]`）或重复字段，上传成功后自动打标。存储路径仍为 `images/年/月/id.webp`，**不会**因标签创建子目录。
+可选表单字段 `tagNames`：JSON 数组或逗号分隔名称；上传成功后自动打标。存储路径仍为 `images/年/月/id.webp`，**不会**因标签创建子目录。
 
 ### 2. 获取图片列表
 

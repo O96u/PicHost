@@ -13,8 +13,7 @@ PicHost 使用基于角色的访问控制（RBAC）：**管理员（admin）** �
 | 系统设置（`/settings`） | ✓ | — |
 | 开放注册开关 | ✓ | — |
 | 登录人机验证方式（滑块 / Turnstile / Cap） | ✓ | — |
-| 全局 API Token 管理 | ✓ | — |
-| 个人 API Token | ✓ | ✓ |
+| API Token（每账号一个） | ✓ | ✓ |
 | 图库统计概览（含注册用户数） | ✓ | 部分 |
 | 标签管理（设置 → 标签管理） | ✓ | — |
 | 操作日志（设置 → 操作日志） | ✓ | — |
@@ -26,9 +25,8 @@ PicHost 使用基于角色的访问控制（RBAC）：**管理员（admin）** �
 | 场景 | 鉴权方式 | 图片归属 / 可见范围 |
 | ---- | -------- | ------------------- |
 | 网页上传 | Session Cookie | 当前登录用户 |
-| API 上传 + **个人 Token** | `Auth-Token` 头 | Token 所属用户 |
-| API 上传 + **全局 Token** | `Auth-Token` 头 | 管理员（`userId` 为空） |
-| Twikoo `POST /api/index.php` | 表单 `token` | 与全局 Token 相同 |
+| API 上传 | `Auth-Token` 或表单 `token` | Token 对应账号（遗留 `API_UPLOAD_TOKEN` 归属首个管理员） |
+| Twikoo `POST /api/index.php` | 表单 `token` | 同上 |
 | 图库列表 / 搜索 / 删除 | Session 或 Token | 普通用户仅自己；管理员全部 |
 | 图片直链 `GET /images/...` | 无（Referer 防盗链） | 知道 URL 即可访问 |
 
@@ -59,14 +57,11 @@ PicHost 使用基于角色的访问控制（RBAC）：**管理员（admin）** �
 - **上传偏好**：管理员在 **设置 → 基础设置** 配置客户端预压缩、自动复制链接等；普通用户可在首页上传卡片背面调整个人偏好
 - **自动删除**：管理员可设全局策略；用户可设个人策略。启用后仅影响 **之后新上传** 的图片
 
-## API Token 说明
+## API Token
 
-| 类型 | 谁管理 | 上传归属 | 典型用途 |
-| ---- | ------ | -------- | -------- |
-| **全局 Token** | 管理员（API 页） | 管理员账号 | Twikoo、站点级脚本 |
-| **个人 Token** | 各用户（API 页） | 该用户 | 个人博客、私有脚本 |
-
-若设置了环境变量 `API_UPLOAD_TOKEN`，则全局 Token 被锁定，见 [环境变量](./configuration.md)。
+- **每个账号一个 Token**（含管理员），在 **API** 页查看或重新生成；首次打开会自动创建
+- 上传、`tagNames` 打标、图库接口均归属 **该 Token 所属账号**
+- 环境变量 **`API_UPLOAD_TOKEN`**（旧部署）仍可作为鉴权密钥，上传归属 **首个管理员**，见 [环境变量](./configuration.md)
 
 ## 相关
 
