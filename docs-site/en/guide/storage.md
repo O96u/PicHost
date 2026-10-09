@@ -1,6 +1,6 @@
 # Storage
 
-PicHost supports **local disk** and **S3-compatible object storage** (Cloudflare R2, Tencent COS, Alibaba OSS, AWS S3, etc.). Admins manage backends at **Storage** (`/storage`); new uploads go to the **default** backend. The page shows a **storage overview** (total, used, remaining, usage rate, capacity chart) plus per-backend cards and supported backend types.
+PicHost supports **local disk**, **S3-compatible object storage** (Cloudflare R2, Tencent COS, Alibaba OSS, AWS S3, etc.), and a **Telegram channel or group**. Admins manage backends at **Storage** (`/storage`); new uploads go to the **default** backend. The page shows a **storage overview** (total, used, remaining, usage rate, capacity chart) plus per-backend cards and supported backend types.
 
 ![Storage management](/screenshots/storage.png)
 
@@ -23,11 +23,11 @@ All **keys** start with `images/`. The upload API does **not** accept a `folder`
 ## Adding a backend
 
 1. Sign in as admin → **Storage** → **Add backend**.
-2. Choose **local disk** or **S3-compatible** (R2 / COS / OSS presets).
-3. Enter connection details (bucket, endpoint, keys).
+2. Choose **local disk**, **S3-compatible** (R2 / COS / OSS presets), or **Telegram channel**.
+3. Enter connection details (bucket, endpoint, keys, or Bot Token / Chat ID).
 4. **Set as default** so new uploads use it.
 
-New object-storage backends get an auto-generated **storage ID** prefix: `local` for disk; `r2-*` for R2; `cos-*` for COS; `oss-*` for OSS; `s3-*` for AWS S3 and custom S3-compatible endpoints (immutable after creation; the image index references this ID).
+New backends get an auto-generated **storage ID** prefix: `local` for disk; `r2-*` for R2; `cos-*` for COS; `oss-*` for OSS; `s3-*` for AWS S3 and custom S3-compatible endpoints; `tg-*` for Telegram (immutable after creation; the image index references this ID).
 
 ### Cloudflare R2
 
@@ -39,6 +39,23 @@ New object-storage backends get an auto-generated **storage ID** prefix: `local`
 | Keys | R2 API token access / secret |
 
 The **cloudflare** branch streamlines R2-only deploys; see branch notes on the [docs overview](./index.md).
+
+### Telegram channel or group
+
+A bot posts each image into a channel or group (private chats work). Visitors still load PicHost URLs; the app never redirects to a Telegram file URL.
+
+1. Create a bot with [@BotFather](https://t.me/BotFather) and copy the token.
+2. Make the bot an admin of the channel or group (post messages; also grant delete messages if gallery deletes should remove the Telegram post).
+3. On the Storage page choose **Telegram channel**, then enter the Chat ID (supergroups and channels are usually `-100…`), the bot token, and a quota.
+4. If the server cannot reach `api.telegram.org` directly, set an optional HTTP/HTTPS API proxy (for example `http://127.0.0.1:7890`).
+
+Limits and behavior:
+
+- Practical per-file cap is about **20MB** (the smaller of this and the site upload limit applies)
+- About **20 messages per minute** per chat; faster batches fail with a retry hint
+- Serving mode is always **proxy**
+- Gallery delete tries to delete the Telegram message. If an upload reaches the chat but PicHost cannot store a file id, that message is removed when possible
+- Full backups download files through the bot and are subject to the rate limit. Packages do not include the bot token; enter it again after restore. Restoring onto a default Telegram backend re-uploads images into the chat
 
 ### Environment variables (optional)
 

@@ -106,7 +106,11 @@ export default defineEventHandler(async (event) => {
           ? {
               id: row.backend_id,
               name: row.backend_name ?? row.backend_id,
-              type: (row.backend_type === 'local' ? 'local' : 's3') as 'local' | 's3'
+              type: (row.backend_type === 'local'
+                ? 'local'
+                : row.backend_type === 'telegram'
+                  ? 'telegram'
+                  : 's3') as 'local' | 's3' | 'telegram'
             }
           : null,
         ipAddress: row.ip_address,

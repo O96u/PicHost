@@ -2,9 +2,10 @@
 import type { QuotaUnit } from '~/composables/useFileSize'
 import type { StorageBackendItem } from '~/types/storage'
 
-type StorageProvider = 'r2' | 'cos' | 'oss' | 'aws' | 'custom'
+type StorageProvider = 'r2' | 'cos' | 'oss' | 'aws' | 'custom' | 'telegram'
 
 export interface StorageFormPayload {
+  backendType: 's3' | 'telegram'
   name: string
   provider: StorageProvider
   config: {
@@ -13,10 +14,13 @@ export interface StorageFormPayload {
     bucket: string
     prefix?: string
     forcePathStyle: boolean
+    chatId?: string
+    apiProxyUrl?: string
   }
   secrets: {
     accessKeyId: string
     secretAccessKey: string
+    botToken: string
   }
   servingMode: 'proxy' | 'public'
   publicUrl: string
@@ -47,10 +51,17 @@ const prefix = ref('')
 const forcePathStyle = ref(false)
 const accessKeyId = ref('')
 const secretAccessKey = ref('')
+const chatId = ref('')
+const botToken = ref('')
+const apiProxyUrl = ref('')
 const servingMode = ref<'proxy' | 'public'>('proxy')
 const publicUrl = ref('')
 const quotaValue = ref('')
 const quotaUnit = ref<QuotaUnit>('GB')
+
+const isTelegram = computed(() =>
+  provider.value === 'telegram' || props.backend?.type === 'telegram'
+)
 
 const quotaUnitOptions = computed(() =>
   QUOTA_UNITS.map(unit => ({ label: unit, value: unit }))
@@ -61,7 +72,8 @@ const providerOptions = computed(() => [
   { label: t('storage.providerCos'), value: 'cos' as const },
   { label: t('storage.providerOss'), value: 'oss' as const },
   { label: t('storage.providerAws'), value: 'aws' as const },
-  { label: t('storage.providerCustom'), value: 'custom' as const }
+  { label: t('storage.providerCustom'), value: 'custom' as const },
+  { label: t('storage.providerTelegram'), value: 'telegram' as const }
 ])
 
 const servingModeOptions = computed(() => [
@@ -78,6 +90,10 @@ function applyProviderTemplate(value: StorageProvider) {
   if (!props.createMode && props.backend) return
   if (props.createMode) {
     name.value = providerLabel(value)
+  }
+  if (value === 'telegram') {
+    servingMode.value = 'proxy'
+    return
   }
   switch (value) {
     case 'r2':
@@ -114,21 +130,44 @@ function detectProvider(config: StorageBackendItem['config']): StorageProvider {
   return 'custom'
 }
 
+function resetCreateDefaults() {
+  name.value = ''
+  provider.value = 'r2'
+  applyProviderTemplate('r2')
+  bucket.value = ''
+  prefix.value = ''
+  accessKeyId.value = ''
+  secretAccessKey.value = ''
+  chatId.value = ''
+  botToken.value = ''
+  apiProxyUrl.value = ''
+  servingMode.value = 'proxy'
+  publicUrl.value = ''
+  quotaValue.value = ''
+  quotaUnit.value = 'GB'
+}
+
 function loadBackend(backend: StorageBackendItem | null | undefined) {
-  if (!backend || backend.type !== 's3') {
-    if (props.createMode) {
-      name.value = ''
-      provider.value = 'r2'
-      applyProviderTemplate('r2')
-      bucket.value = ''
-      prefix.value = ''
-      accessKeyId.value = ''
-      secretAccessKey.value = ''
-      servingMode.value = 'proxy'
-      publicUrl.value = ''
-      quotaValue.value = ''
-      quotaUnit.value = 'GB'
-    }
+  if (!backend) {
+    if (props.createMode) resetCreateDefaults()
+    return
+  }
+
+  if (backend.type === 'telegram') {
+    name.value = backend.name
+    provider.value = 'telegram'
+    chatId.value = backend.config.chatId ?? ''
+    apiProxyUrl.value = backend.config.apiProxyUrl ?? ''
+    botToken.value = ''
+    const quota = bytesToQuotaInput(backend.quotaBytes)
+    quotaValue.value = quota.value
+    quotaUnit.value = quota.unit
+    servingMode.value = 'proxy'
+    return
+  }
+
+  if (backend.type !== 's3') {
+    if (props.createMode) resetCreateDefaults()
     return
   }
 
@@ -157,7 +196,9 @@ watch(provider, (value) => {
 })
 
 function handleSubmit() {
+  const backendType = isTelegram.value ? 'telegram' : 's3'
   emit('submit', {
+    backendType,
     name: name.value.trim() || providerLabel(provider.value),
     provider: provider.value,
     config: {
@@ -165,13 +206,16 @@ function handleSubmit() {
       region: region.value.trim() || 'auto',
       bucket: bucket.value.trim(),
       prefix: prefix.value.trim() || undefined,
-      forcePathStyle: forcePathStyle.value
+      forcePathStyle: forcePathStyle.value,
+      chatId: chatId.value.trim() || undefined,
+      apiProxyUrl: apiProxyUrl.value.trim() || undefined
     },
     secrets: {
       accessKeyId: accessKeyId.value.trim(),
-      secretAccessKey: secretAccessKey.value.trim()
+      secretAccessKey: secretAccessKey.value.trim(),
+      botToken: botToken.value.trim()
     },
-    servingMode: servingMode.value,
+    servingMode: isTelegram.value ? 'proxy' : servingMode.value,
     publicUrl: publicUrl.value.trim(),
     quotaValue: String(quotaValue.value ?? '').trim(),
     quotaUnit: quotaUnit.value
@@ -190,6 +234,7 @@ function handleSubmit() {
         v-model="provider"
         :items="providerOptions"
         class="w-full"
+        :disabled="!createMode && backend?.type === 'telegram'"
       />
     </div>
 
@@ -201,105 +246,158 @@ function handleSubmit() {
       />
     </div>
 
-    <div class="space-y-2">
-      <label class="text-sm">{{ t('storage.endpoint') }}</label>
-      <UInput
-        v-model="endpoint"
-        class="w-full font-mono text-sm"
-      />
-    </div>
-
-    <div class="grid gap-3 sm:grid-cols-2">
-      <div class="space-y-2">
-        <label class="text-sm">{{ t('storage.region') }}</label>
-        <UInput
-          v-model="region"
-          class="w-full font-mono text-sm"
-        />
-      </div>
+    <template v-if="isTelegram">
       <div class="space-y-2">
         <label class="text-sm">
-          {{ t('storage.bucket') }}
+          {{ t('storage.telegramChatId') }}
           <span class="text-error">*</span>
         </label>
         <UInput
-          v-model="bucket"
+          v-model="chatId"
+          :placeholder="t('storage.telegramChatIdPlaceholder')"
           class="w-full font-mono text-sm"
           required
         />
+        <p class="text-xs text-muted">
+          {{ t('storage.telegramChatIdHint') }}
+        </p>
       </div>
-    </div>
 
-    <div class="space-y-2">
-      <label class="text-sm">{{ t('storage.prefix') }}</label>
-      <UInput
-        v-model="prefix"
-        :placeholder="t('storage.prefixPlaceholder')"
-        class="w-full font-mono text-sm"
-      />
-    </div>
-
-    <label class="flex cursor-pointer items-center gap-2">
-      <UCheckbox v-model="forcePathStyle" />
-      <span class="text-sm">{{ t('storage.forcePathStyle') }}</span>
-    </label>
-
-    <div class="grid gap-3 sm:grid-cols-2">
       <div class="space-y-2">
         <label class="text-sm">
-          {{ t('storage.accessKey') }}
+          {{ t('storage.telegramBotToken') }}
           <span
             v-if="createMode"
             class="text-error"
           >*</span>
         </label>
         <UInput
-          v-model="accessKeyId"
-          :placeholder="backend?.secretsMasked.accessKeyId || ''"
-          class="w-full font-mono text-sm"
-          :required="createMode"
-        />
-      </div>
-      <div class="space-y-2">
-        <label class="text-sm">
-          {{ t('storage.secretKey') }}
-          <span
-            v-if="createMode"
-            class="text-error"
-          >*</span>
-        </label>
-        <UInput
-          v-model="secretAccessKey"
+          v-model="botToken"
           type="password"
-          :placeholder="backend?.secretsMasked.secretAccessKey || ''"
+          :placeholder="backend?.secretsMasked.botToken || ''"
           class="w-full font-mono text-sm"
           :required="createMode"
         />
       </div>
-    </div>
 
-    <div class="space-y-2">
-      <label class="text-sm">{{ t('storage.servingMode') }}</label>
-      <URadioGroup
-        v-model="servingMode"
-        :items="servingModeOptions"
-      />
+      <div class="space-y-2">
+        <label class="text-sm">{{ t('storage.telegramApiProxy') }}</label>
+        <UInput
+          v-model="apiProxyUrl"
+          :placeholder="t('storage.telegramApiProxyPlaceholder')"
+          class="w-full font-mono text-sm"
+        />
+        <p class="text-xs text-muted">
+          {{ t('storage.telegramApiProxyHint') }}
+        </p>
+      </div>
+
       <p class="text-xs text-muted">
-        {{ t('storage.servingHint') }}
+        {{ t('storage.telegramServingHint') }}
       </p>
-    </div>
+    </template>
 
-    <div
-      v-if="servingMode === 'public'"
-      class="space-y-2"
-    >
-      <label class="text-sm">{{ t('storage.publicUrl') }}</label>
-      <UInput
-        v-model="publicUrl"
-        :placeholder="t('storage.publicUrlPlaceholder')"
-        class="w-full font-mono text-sm"
-      />
-    </div>
+    <template v-else>
+      <div class="space-y-2">
+        <label class="text-sm">{{ t('storage.endpoint') }}</label>
+        <UInput
+          v-model="endpoint"
+          class="w-full font-mono text-sm"
+        />
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div class="space-y-2">
+          <label class="text-sm">{{ t('storage.region') }}</label>
+          <UInput
+            v-model="region"
+            class="w-full font-mono text-sm"
+          />
+        </div>
+        <div class="space-y-2">
+          <label class="text-sm">
+            {{ t('storage.bucket') }}
+            <span class="text-error">*</span>
+          </label>
+          <UInput
+            v-model="bucket"
+            class="w-full font-mono text-sm"
+            required
+          />
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-sm">{{ t('storage.prefix') }}</label>
+        <UInput
+          v-model="prefix"
+          :placeholder="t('storage.prefixPlaceholder')"
+          class="w-full font-mono text-sm"
+        />
+      </div>
+
+      <label class="flex cursor-pointer items-center gap-2">
+        <UCheckbox v-model="forcePathStyle" />
+        <span class="text-sm">{{ t('storage.forcePathStyle') }}</span>
+      </label>
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div class="space-y-2">
+          <label class="text-sm">
+            {{ t('storage.accessKey') }}
+            <span
+              v-if="createMode"
+              class="text-error"
+            >*</span>
+          </label>
+          <UInput
+            v-model="accessKeyId"
+            :placeholder="backend?.secretsMasked.accessKeyId || ''"
+            class="w-full font-mono text-sm"
+            :required="createMode"
+          />
+        </div>
+        <div class="space-y-2">
+          <label class="text-sm">
+            {{ t('storage.secretKey') }}
+            <span
+              v-if="createMode"
+              class="text-error"
+            >*</span>
+          </label>
+          <UInput
+            v-model="secretAccessKey"
+            type="password"
+            :placeholder="backend?.secretsMasked.secretAccessKey || ''"
+            class="w-full font-mono text-sm"
+            :required="createMode"
+          />
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-sm">{{ t('storage.servingMode') }}</label>
+        <URadioGroup
+          v-model="servingMode"
+          :items="servingModeOptions"
+        />
+        <p class="text-xs text-muted">
+          {{ t('storage.servingHint') }}
+        </p>
+      </div>
+
+      <div
+        v-if="servingMode === 'public'"
+        class="space-y-2"
+      >
+        <label class="text-sm">{{ t('storage.publicUrl') }}</label>
+        <UInput
+          v-model="publicUrl"
+          :placeholder="t('storage.publicUrlPlaceholder')"
+          class="w-full font-mono text-sm"
+        />
+      </div>
+    </template>
 
     <div class="space-y-2">
       <label class="text-sm">
@@ -324,7 +422,7 @@ function handleSubmit() {
         />
       </div>
       <p class="text-xs text-muted">
-        {{ t('storage.quotaHint') }}
+        {{ isTelegram ? t('storage.telegramQuotaHint') : t('storage.quotaHint') }}
       </p>
     </div>
 

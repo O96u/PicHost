@@ -1,28 +1,99 @@
 import type { DatabaseSync } from 'node:sqlite'
 import { getDb } from './db'
 import { LocalStorageBackend } from './storage/local'
+import { deleteStorageObjectRefsForBackend } from './storage/storage-object-refs'
 import {
   parseS3Config,
   parseS3Secrets,
   S3StorageBackend
 } from './storage/s3'
+import {
+  parseTelegramConfig,
+  parseTelegramSecrets,
+  TelegramStorageBackend
+} from './storage/telegram'
 import type {
   S3BackendConfig,
   ServingMode,
   StorageBackendInfo,
   StorageBackendRow,
-  StorageBackendType
+  StorageBackendType,
+  TelegramBackendConfig,
+  TelegramBackendSecrets
 } from './storage/types'
 
 export const LOCAL_BACKEND_ID = 'local'
 export const S3_BACKEND_ID = 's3-primary'
+
+const STORAGE_SCHEMA_TELEGRAM_KEY = 'storage_schema_telegram_v1'
+
+function migrateStorageBackendTelegramType(database: DatabaseSync): void {
+  const flag = database.prepare(`
+    SELECT value FROM settings WHERE key = ?
+  `).get(STORAGE_SCHEMA_TELEGRAM_KEY) as { value?: string } | undefined
+  if (flag?.value === '1') {
+    return
+  }
+
+  const tableRow = database.prepare(`
+    SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'storage_backends'
+  `).get() as { sql?: string } | undefined
+
+  const needsRebuild = Boolean(
+    tableRow?.sql && !tableRow.sql.includes('telegram')
+  )
+
+  if (!needsRebuild) {
+    database.prepare(`
+      INSERT OR REPLACE INTO settings (key, value, updated_at)
+      VALUES (?, '1', ?)
+    `).run(STORAGE_SCHEMA_TELEGRAM_KEY, new Date().toISOString())
+    return
+  }
+
+  database.exec('PRAGMA foreign_keys = OFF')
+  database.exec('BEGIN')
+  try {
+    database.exec(`
+      CREATE TABLE storage_backends_new (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('local', 's3', 'telegram')),
+        config_json TEXT NOT NULL DEFAULT '{}',
+        secret_json TEXT NOT NULL DEFAULT '{}',
+        serving_mode TEXT NOT NULL DEFAULT 'proxy' CHECK(serving_mode IN ('proxy', 'public')),
+        public_url TEXT NOT NULL DEFAULT '',
+        quota_bytes INTEGER,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        is_default INTEGER NOT NULL DEFAULT 0,
+        sort_order INTEGER NOT NULL DEFAULT 0
+      )
+    `)
+    database.exec(`
+      INSERT INTO storage_backends_new
+      SELECT * FROM storage_backends
+    `)
+    database.exec('DROP TABLE storage_backends')
+    database.exec('ALTER TABLE storage_backends_new RENAME TO storage_backends')
+    database.prepare(`
+      INSERT OR REPLACE INTO settings (key, value, updated_at)
+      VALUES (?, '1', ?)
+    `).run(STORAGE_SCHEMA_TELEGRAM_KEY, new Date().toISOString())
+    database.exec('COMMIT')
+  } catch (error) {
+    database.exec('ROLLBACK')
+    throw error
+  } finally {
+    database.exec('PRAGMA foreign_keys = ON')
+  }
+}
 
 function migrateStorageTables(database: DatabaseSync): void {
   database.exec(`
     CREATE TABLE IF NOT EXISTS storage_backends (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
-      type TEXT NOT NULL CHECK(type IN ('local', 's3')),
+      type TEXT NOT NULL CHECK(type IN ('local', 's3', 'telegram')),
       config_json TEXT NOT NULL DEFAULT '{}',
       secret_json TEXT NOT NULL DEFAULT '{}',
       serving_mode TEXT NOT NULL DEFAULT 'proxy' CHECK(serving_mode IN ('proxy', 'public')),
@@ -47,7 +118,15 @@ function migrateStorageTables(database: DatabaseSync): void {
     CREATE INDEX IF NOT EXISTS idx_images_backend_id ON images(backend_id);
     CREATE INDEX IF NOT EXISTS idx_images_user_id ON images(user_id);
     CREATE INDEX IF NOT EXISTS idx_images_folder ON images(folder);
+    CREATE TABLE IF NOT EXISTS storage_object_refs (
+      backend_id TEXT NOT NULL,
+      key TEXT NOT NULL,
+      ref_json TEXT NOT NULL,
+      PRIMARY KEY (backend_id, key),
+      FOREIGN KEY (backend_id) REFERENCES storage_backends(id)
+    );
   `)
+  migrateStorageBackendTelegramType(database)
 }
 
 export function ensureStorageSchema(): void {
@@ -109,7 +188,9 @@ function rowToInfo(row: StorageBackendRow, _maskSecrets = true): StorageBackendI
 } {
   const config = row.type === 's3'
     ? (parseS3Config(row.config_json) ?? {})
-    : {}
+    : row.type === 'telegram'
+      ? (parseTelegramConfig(row.config_json) ?? {})
+      : {}
   let secretsMasked: Record<string, string> = {}
   if (row.type === 's3') {
     const secrets = parseS3Secrets(row.secret_json)
@@ -120,6 +201,11 @@ function rowToInfo(row: StorageBackendRow, _maskSecrets = true): StorageBackendI
       secretAccessKey: secrets?.secretAccessKey
         ? maskSecret(secrets.secretAccessKey)
         : ''
+    }
+  } else if (row.type === 'telegram') {
+    const secrets = parseTelegramSecrets(row.secret_json)
+    secretsMasked = {
+      botToken: secrets?.botToken ? maskSecret(secrets.botToken) : ''
     }
   }
 
@@ -213,7 +299,11 @@ export function setDefaultBackend(id: string): void {
 export interface StorageBackendPatch {
   name?: string
   config?: Record<string, unknown>
-  secrets?: { accessKeyId?: string, secretAccessKey?: string }
+  secrets?: {
+    accessKeyId?: string
+    secretAccessKey?: string
+    botToken?: string
+  }
   servingMode?: ServingMode
   publicUrl?: string
   quotaBytes?: number | null
@@ -234,7 +324,9 @@ export function updateStorageBackend(id: string, patch: StorageBackendPatch): vo
   if (patch.config !== undefined) {
     const current = row.type === 's3'
       ? (parseS3Config(row.config_json) ?? {})
-      : {}
+      : row.type === 'telegram'
+        ? (parseTelegramConfig(row.config_json) ?? { chatId: '' })
+        : {}
     configJson = JSON.stringify({ ...current, ...patch.config })
   }
 
@@ -254,7 +346,20 @@ export function updateStorageBackend(id: string, patch: StorageBackendPatch): vo
     secretJson = JSON.stringify(next)
   }
 
-  const servingMode = patch.servingMode ?? row.serving_mode
+  if (patch.secrets !== undefined && row.type === 'telegram') {
+    const current = parseTelegramSecrets(row.secret_json) ?? { botToken: '' }
+    const next = {
+      botToken: patch.secrets.botToken?.trim()
+        ? patch.secrets.botToken.trim()
+        : current.botToken
+    }
+    secretJson = JSON.stringify(next)
+  }
+
+  let servingMode = patch.servingMode ?? row.serving_mode
+  if (row.type === 'telegram') {
+    servingMode = 'proxy'
+  }
   const publicUrl = patch.publicUrl ?? row.public_url
   const quotaBytes = patch.quotaBytes !== undefined
     ? patch.quotaBytes
@@ -323,6 +428,15 @@ export function createBackendInstance(row: StorageBackendRow) {
     )
   }
 
+  if (row.type === 'telegram') {
+    const config = parseTelegramConfig(row.config_json)
+    const secrets = parseTelegramSecrets(row.secret_json)
+    if (!config || !secrets) {
+      throw new Error(`Invalid Telegram configuration for backend ${row.id}`)
+    }
+    return new TelegramStorageBackend(row.id, config, secrets)
+  }
+
   const config = parseS3Config(row.config_json)
   const secrets = parseS3Secrets(row.secret_json)
   if (!config || !secrets) {
@@ -368,7 +482,7 @@ function getNextSortOrder(): number {
   return row.max_order + 1
 }
 
-export type ObjectStorageIdPrefix = 'r2' | 'cos' | 'oss' | 's3'
+export type ObjectStorageIdPrefix = 'r2' | 'cos' | 'oss' | 's3' | 'tg'
 
 /** 根据表单预设或 endpoint 推断新建后端的 id 前缀 */
 export function resolveObjectStorageIdPrefix(
@@ -438,6 +552,41 @@ export function insertStorageBackend(input: {
   return id
 }
 
+export function insertTelegramBackend(input: {
+  id?: string
+  name: string
+  config: TelegramBackendConfig
+  secrets: TelegramBackendSecrets
+  quotaBytes?: number | null
+  enabled?: boolean
+  isDefault?: boolean
+}): string {
+  ensureDefaultBackends()
+  const id = input.id ?? generateStorageBackendId('tg')
+  const sortOrder = getNextSortOrder()
+
+  getDb().prepare(`
+    INSERT INTO storage_backends
+      (id, name, type, config_json, secret_json, serving_mode, public_url,
+       quota_bytes, enabled, is_default, sort_order)
+    VALUES (?, ?, 'telegram', ?, ?, 'proxy', '', ?, ?, 0, ?)
+  `).run(
+    id,
+    input.name,
+    JSON.stringify(input.config),
+    JSON.stringify(input.secrets),
+    input.quotaBytes ?? null,
+    input.enabled === false ? 0 : 1,
+    sortOrder
+  )
+
+  if (input.isDefault) {
+    setDefaultBackend(id)
+  }
+
+  return id
+}
+
 export function deleteStorageBackend(id: string): void {
   if (id === LOCAL_BACKEND_ID) {
     throw new Error('Cannot delete local backend')
@@ -457,5 +606,6 @@ export function deleteStorageBackend(id: string): void {
     throw new Error('Cannot delete the default backend')
   }
 
+  deleteStorageObjectRefsForBackend(id)
   getDb().prepare('DELETE FROM storage_backends WHERE id = ?').run(id)
 }

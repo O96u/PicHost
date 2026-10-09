@@ -21,13 +21,17 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const typeIcon = computed(() =>
-  props.backend.type === 'local' ? 'i-lucide-hard-drive' : 'i-lucide-cloud'
-)
+const typeIcon = computed(() => {
+  if (props.backend.type === 'local') return 'i-lucide-hard-drive'
+  if (props.backend.type === 'telegram') return 'i-lucide-send'
+  return 'i-lucide-cloud'
+})
 
-const typeLabel = computed(() =>
-  props.backend.type === 'local' ? t('storage.backendLocal') : t('storage.backendCloud')
-)
+const typeLabel = computed(() => {
+  if (props.backend.type === 'local') return t('storage.backendLocal')
+  if (props.backend.type === 'telegram') return t('storage.backendTelegram')
+  return t('storage.backendCloud')
+})
 
 const actionsDisabled = computed(() => props.envOverride || props.busy)
 
@@ -38,7 +42,7 @@ function canSetDefault() {
 }
 
 function canEdit() {
-  return props.backend.type === 's3'
+  return props.backend.type === 's3' || props.backend.type === 'telegram'
 }
 
 function canToggle() {

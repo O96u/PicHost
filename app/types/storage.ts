@@ -11,17 +11,20 @@ export interface StorageCapacity {
 export interface StorageBackendItem {
   id: string
   name: string
-  type: 'local' | 's3'
+  type: 'local' | 's3' | 'telegram'
   config: {
     endpoint?: string
     region?: string
     bucket?: string
     prefix?: string
     forcePathStyle?: boolean
+    chatId?: string
+    apiProxyUrl?: string
   }
   secretsMasked: {
     accessKeyId?: string
     secretAccessKey?: string
+    botToken?: string
   }
   servingMode: ServingMode
   publicUrl: string

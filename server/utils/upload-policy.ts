@@ -3,6 +3,8 @@ import {
   type AllowedMimeType
 } from './constants'
 import { getSetting, setSetting } from './db'
+import { getActiveBackendRow } from './storage/resolver'
+import { TELEGRAM_MAX_FILE_BYTES } from './storage/telegram'
 
 export const SETTINGS_UPLOAD_MAX_FILE_SIZE_MB = 'upload_max_file_size_mb'
 export const SETTINGS_ALLOWED_MIME_TYPES = 'allowed_mime_types'
@@ -180,6 +182,15 @@ export function getMaxFileSizeBytes(): number {
   return getUploadMaxFileSizeMb() * 1024 * 1024
 }
 
+export function getEffectiveMaxFileSizeBytes(): number {
+  const configured = getMaxFileSizeBytes()
+  const row = getActiveBackendRow()
+  if (row?.type === 'telegram') {
+    return Math.min(configured, TELEGRAM_MAX_FILE_BYTES)
+  }
+  return configured
+}
+
 export function getAllowedMimeTypesList(): AllowedMimeType[] {
   const dbRaw = getSetting(SETTINGS_ALLOWED_MIME_TYPES)
   if (dbRaw !== null) {
@@ -277,6 +288,19 @@ export function getLoginRateLimitSettings(): {
 
 export function formatMaxFileSizeMessage(): string {
   return `图片大小不能超过 ${getUploadMaxFileSizeMb()} MB`
+}
+
+export function formatEffectiveMaxFileSizeMessage(): string {
+  const row = getActiveBackendRow()
+  if (row?.type === 'telegram') {
+    const mb = TELEGRAM_MAX_FILE_BYTES / (1024 * 1024)
+    const siteMb = getUploadMaxFileSizeMb()
+    if (siteMb * 1024 * 1024 <= TELEGRAM_MAX_FILE_BYTES) {
+      return formatMaxFileSizeMessage()
+    }
+    return `图片大小不能超过 ${mb} MB（Telegram 存储上限）`
+  }
+  return formatMaxFileSizeMessage()
 }
 
 export function getUploadPolicySettingsPayload() {

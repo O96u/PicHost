@@ -51,11 +51,11 @@ function buildQuotaCapacity(quotaBytes: number, indexBytes: number): StorageCapa
 
 export async function buildBackendCapacity(
   backendId: string,
-  backendType: 'local' | 's3',
+  backendType: 'local' | 's3' | 'telegram',
   indexBytes: number,
   quotaBytes: number | null
 ): Promise<StorageCapacity> {
-  if (backendType === 's3') {
+  if (backendType === 's3' || backendType === 'telegram') {
     if (quotaBytes && quotaBytes > 0) {
       return buildQuotaCapacity(quotaBytes, indexBytes)
     }

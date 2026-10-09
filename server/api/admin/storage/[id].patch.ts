@@ -9,6 +9,11 @@ import {
   type StorageBackendPatch
 } from '../../../utils/storage-backends'
 import { parseS3Config, validateS3Config } from '../../../utils/storage/s3'
+import {
+  parseTelegramConfig,
+  validateTelegramConfig,
+  validateApiProxyUrl
+} from '../../../utils/storage/telegram'
 import { parseQuotaBytes } from '../../../utils/storage-capacity'
 import type { ServingMode } from '../../../utils/storage/types'
 
@@ -20,10 +25,13 @@ interface StoragePatchBody {
     bucket?: string
     prefix?: string
     forcePathStyle?: boolean
+    chatId?: string
+    apiProxyUrl?: string
   }
   secrets?: {
     accessKeyId?: string
     secretAccessKey?: string
+    botToken?: string
   }
   servingMode?: ServingMode
   publicUrl?: string
@@ -63,6 +71,26 @@ export default defineEventHandler(async (event) => {
     patch.name = body.name.trim() || row.name
   }
 
+  if (body.config !== undefined && row.type === 'telegram') {
+    const current = parseTelegramConfig(row.config_json) ?? { chatId: '' }
+    const apiProxyUrl = body.config.apiProxyUrl?.trim() ?? current.apiProxyUrl ?? ''
+    const next = {
+      chatId: body.config.chatId?.trim() ?? current.chatId,
+      apiProxyUrl: apiProxyUrl || undefined
+    }
+    const error = validateTelegramConfig(next)
+    if (error) {
+      createApiError(event, 'INVALID_REQUEST', error, 400)
+    }
+    if (apiProxyUrl) {
+      const proxyError = validateApiProxyUrl(apiProxyUrl)
+      if (proxyError) {
+        createApiError(event, 'INVALID_REQUEST', proxyError, 400)
+      }
+    }
+    patch.config = next
+  }
+
   if (body.config !== undefined && row.type === 's3') {
     const current = parseS3Config(row.config_json) ?? {
       endpoint: '',
@@ -87,7 +115,11 @@ export default defineEventHandler(async (event) => {
     patch.secrets = body.secrets
   }
 
-  if (body.servingMode !== undefined) {
+  if (body.secrets !== undefined && row.type === 'telegram') {
+    patch.secrets = body.secrets
+  }
+
+  if (body.servingMode !== undefined && row.type !== 'telegram') {
     if (body.servingMode !== 'proxy' && body.servingMode !== 'public') {
       createApiError(event, 'INVALID_REQUEST', '访问方式无效', 400)
     }
@@ -99,7 +131,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (body.quotaBytes !== undefined) {
-    if (row.type === 's3') {
+    if (row.type === 's3' || row.type === 'telegram') {
       const quotaBytes = parseQuotaBytes(body.quotaBytes)
       if (!quotaBytes) {
         createApiError(event, 'INVALID_REQUEST', '请填写有效的存储套餐总量', 400)

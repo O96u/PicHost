@@ -55,7 +55,7 @@
 
 - **Drag, click, or Ctrl+V paste** — server-side WebP, Referer hotlink protection
 - **Multi-user** — login with slider, Turnstile, or Cap verification; optional registration; users see only their images
-- **Multi-backend storage** — local disk + S3-compatible (R2 / COS / OSS / AWS); hybrid `proxy` / `public` URLs
+- **Multi-backend storage** — local disk + S3-compatible (R2 / COS / OSS / AWS) + Telegram channel/group; hybrid `proxy` / `public` URLs
 - **Gallery** — browse, search, filter by storage/source/tags, grid/list views, batch delete and batch tagging; stats overview and source breakdown; image detail modal with link formats
 - **Tags** — per-user colored tags; tag on upload (single or batch); manage in Settings (create, recolor, merge, delete); API supports `tagIds` and batch tagging
 - **Backup & migration** — full-site export/restore (`.phost.tar.gz`), cross-backend sync; restore from backup on uninitialized `/setup`
@@ -70,7 +70,7 @@
 | Backend | [Nitro](https://nitro.build) (`node-server`) · REST API |
 | Data | SQLite · local `data/pichost.db` |
 | Images | [sharp](https://sharp.pixelplumbing.com) (server-side WebP) |
-| Storage | Local disk · S3-compatible ([AWS SDK](https://aws.amazon.com/sdk-for-javascript/) · R2 / COS / OSS, etc.) |
+| Storage | Local disk · S3-compatible ([AWS SDK](https://aws.amazon.com/sdk-for-javascript/) · R2 / COS / OSS, etc.) · Telegram channel/group |
 | i18n | [@nuxtjs/i18n](https://i18n.nuxtjs.org) (zh-CN / English) |
 | Quality & docs | [Vitest](https://vitest.dev) · [VitePress](https://vitepress.dev) docs site |
 | Deploy | Docker · Node.js 22 |

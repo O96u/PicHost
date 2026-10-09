@@ -55,7 +55,7 @@
 
 - **拖拽 / 点击 / Ctrl+V 粘贴**上传；服务端 WebP 压缩、Referer 防盗链
 - **多用户**：账号密码登录（滑块 / Turnstile / Cap 人机验证）、可选开放注册；普通用户仅见自己的图片
-- **多后端存储**：本地磁盘 + S3 兼容（R2 / COS / OSS / AWS）；混合直链 `proxy` / `public`
+- **多后端存储**：本地磁盘 + S3 兼容（R2 / COS / OSS / AWS）+ Telegram 频道/群组；混合直链 `proxy` / `public`
 - **图库**：浏览、搜索、按存储/来源/标签筛选、网格/列表切换、批量删除与批量打标；统计概览与来源分布；点击图片查看详情与多格式链接
 - **标签**：每用户独立标签、彩色标记；上传后单张/批量打标；设置页管理（新建、改色、合并、删除）；API 支持 `tagIds` 与批量打标
 - **备份与迁移**：整站导出/恢复（`.phost.tar.gz`）、跨后端同步；setup 未初始化时可从备份恢复
@@ -70,7 +70,7 @@
 | 后端 | [Nitro](https://nitro.build)（`node-server`）· REST API |
 | 数据 | SQLite · 本地 `data/pichost.db` |
 | 图片处理 | [sharp](https://sharp.pixelplumbing.com)（服务端 WebP 压缩） |
-| 存储 | 本地磁盘 · S3 兼容（[AWS SDK](https://aws.amazon.com/sdk-for-javascript/) · R2 / COS / OSS 等） |
+| 存储 | 本地磁盘 · S3 兼容（[AWS SDK](https://aws.amazon.com/sdk-for-javascript/) · R2 / COS / OSS 等）· Telegram 频道/群组 |
 | 国际化 | [@nuxtjs/i18n](https://i18n.nuxtjs.org)（简体中文 / English） |
 | 质量与文档 | [Vitest](https://vitest.dev) · [VitePress](https://vitepress.dev) 文档站 |
 | 部署 | Docker · Node.js 22 |

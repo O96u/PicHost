@@ -12,8 +12,8 @@ import { generateImageKey } from './image-key'
 import { buildImageItem, sanitizeOriginalName } from './image-response'
 import { getStorageLayout, getWebpQuality } from './env'
 import {
-  formatMaxFileSizeMessage,
-  getMaxFileSizeBytes,
+  formatEffectiveMaxFileSizeMessage,
+  getEffectiveMaxFileSizeBytes,
   isMimeTypeAllowed,
   isPreserveOriginalUpload
 } from './upload-policy'
@@ -73,13 +73,13 @@ export async function processSingleImageUpload(
   const originalName = sanitizeOriginalName(input.filename ?? 'image')
   const bytes = input.bytes
 
-  if (bytes.byteLength > getMaxFileSizeBytes()) {
+  if (bytes.byteLength > getEffectiveMaxFileSizeBytes()) {
     return {
       error: {
         name: originalName,
         error: {
           code: 'FILE_TOO_LARGE',
-          message: formatMaxFileSizeMessage()
+          message: formatEffectiveMaxFileSizeMessage()
         }
       }
     }
@@ -144,12 +144,16 @@ export async function processSingleImageUpload(
       name: originalName,
       source: input.source ?? 'web'
     })
+    const detail = error instanceof Error ? error.message.trim() : ''
+    const message = detail.startsWith('Telegram') || detail.includes('群组')
+      ? detail
+      : '上传失败，请稍后重试'
     return {
       error: {
         name: originalName,
         error: {
           code: 'UPLOAD_FAILED',
-          message: '上传失败，请稍后重试'
+          message
         }
       }
     }

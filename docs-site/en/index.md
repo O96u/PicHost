@@ -20,7 +20,7 @@ features:
   - title: Drag, click, paste
     details: Server-side WebP compression and Referer hotlink protection.
   - title: Multi-backend storage
-    details: Local disk plus S3-compatible backends (R2 / COS / OSS / AWS); proxy or public URLs.
+    details: Local disk, S3-compatible backends (R2 / COS / OSS / AWS), and Telegram; proxy or public URLs.
   - title: Users & RBAC
     details: Admin and regular users; global and per-user API tokens; gallery scoped by owner.
   - title: Zero-config Docker

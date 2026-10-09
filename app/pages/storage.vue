@@ -93,16 +93,42 @@ const { quotaToBytes } = useFileSize()
 
 function buildPatchBody(payload: StorageFormPayload) {
   const quotaBytes = quotaToBytes(payload.quotaValue, payload.quotaUnit)
+  if (payload.backendType === 'telegram') {
+    const body: Record<string, unknown> = {
+      type: 'telegram',
+      name: payload.name,
+      quotaBytes,
+      config: {
+        chatId: payload.config.chatId,
+        apiProxyUrl: payload.config.apiProxyUrl
+      }
+    }
+    if (payload.secrets.botToken) {
+      body.secrets = { botToken: payload.secrets.botToken }
+    }
+    return body
+  }
+
   const body: Record<string, unknown> = {
+    type: 's3',
     name: payload.name,
     provider: payload.provider,
     servingMode: payload.servingMode,
     publicUrl: payload.publicUrl,
     quotaBytes,
-    config: payload.config
+    config: {
+      endpoint: payload.config.endpoint,
+      region: payload.config.region,
+      bucket: payload.config.bucket,
+      prefix: payload.config.prefix,
+      forcePathStyle: payload.config.forcePathStyle
+    }
   }
   if (payload.secrets.accessKeyId || payload.secrets.secretAccessKey) {
-    body.secrets = payload.secrets
+    body.secrets = {
+      accessKeyId: payload.secrets.accessKeyId,
+      secretAccessKey: payload.secrets.secretAccessKey
+    }
   }
   return body
 }
@@ -128,7 +154,12 @@ async function onFormSubmit(payload: StorageFormPayload) {
   }
 
   if (formMode.value === 'create') {
-    if (!payload.secrets.accessKeyId || !payload.secrets.secretAccessKey) {
+    if (payload.backendType === 'telegram') {
+      if (!payload.secrets.botToken || !payload.config.chatId) {
+        toast.add({ title: t('storage.telegramSecretsRequired'), color: 'warning' })
+        return
+      }
+    } else if (!payload.secrets.accessKeyId || !payload.secrets.secretAccessKey) {
       toast.add({ title: t('storage.secretsRequired'), color: 'warning' })
       return
     }

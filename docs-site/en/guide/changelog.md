@@ -4,6 +4,12 @@ Version history and notable changes. The full log is also in the repo root [CHAN
 
 ---
 
+## [1.4.3] — 2026-10-09
+
+### Added
+
+- **Telegram storage backend**: store images in a channel or group; public URLs stay on PicHost; optional API proxy
+
 ## [1.4.2] — 2026-09-23
 
 ### Fixed

@@ -40,7 +40,7 @@ export interface ImageItem {
   storage?: {
     id: string
     name: string
-    type: 'local' | 's3'
+    type: 'local' | 's3' | 'telegram'
   }
   /** 上传来源：网页或 API（来自活动日志） */
   uploadSource?: 'web' | 'api'

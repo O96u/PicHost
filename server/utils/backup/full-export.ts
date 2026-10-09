@@ -7,6 +7,7 @@ import {
   listStorageBackendRows
 } from '../storage-backends'
 import { parseS3Config } from '../storage/s3'
+import { parseTelegramConfig } from '../storage/telegram'
 import { createImageStream } from '../storage'
 import { copyDatabaseSnapshot } from './db-snapshot'
 import { markJobDone, markJobFailed, updateBackupJob } from './jobs'
@@ -27,7 +28,11 @@ function buildStorageBackendsMeta(): StorageBackendMetaExport[] {
     id: row.id,
     name: row.name,
     type: row.type,
-    config: row.type === 's3' ? (parseS3Config(row.config_json) ?? {}) : {},
+    config: row.type === 's3'
+      ? (parseS3Config(row.config_json) ?? {})
+      : row.type === 'telegram'
+        ? (parseTelegramConfig(row.config_json) ?? {})
+        : {},
     servingMode: row.serving_mode,
     publicUrl: row.public_url,
     quotaBytes: row.quota_bytes,

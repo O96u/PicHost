@@ -22,6 +22,13 @@ const items = computed(() => [
     boxClass: 'border-blue-500/20 bg-blue-500/5',
     title: t('storage.supportedS3Title'),
     desc: t('storage.supportedS3Desc')
+  },
+  {
+    icon: 'i-lucide-send',
+    iconClass: 'text-sky-500',
+    boxClass: 'border-sky-500/20 bg-sky-500/5',
+    title: t('storage.backendTelegram'),
+    desc: t('storage.supportedTelegramDesc')
   }
 ])
 </script>

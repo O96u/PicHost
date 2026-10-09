@@ -28,7 +28,7 @@ export interface FolderStorageStat {
   bytes: number
 }
 
-export type StorageBackendType = 'local' | 's3'
+export type StorageBackendType = 'local' | 's3' | 'telegram'
 export type ServingMode = 'proxy' | 'public'
 
 export interface S3BackendConfig {
@@ -42,6 +42,21 @@ export interface S3BackendConfig {
 export interface S3BackendSecrets {
   accessKeyId: string
   secretAccessKey: string
+}
+
+export interface TelegramBackendConfig {
+  chatId: string
+  apiProxyUrl?: string
+}
+
+export interface TelegramBackendSecrets {
+  botToken: string
+}
+
+export interface TelegramObjectRef {
+  fileId: string
+  fileUniqueId?: string
+  messageId?: number
 }
 
 export interface StorageBackendRow {
@@ -62,7 +77,7 @@ export interface StorageBackendInfo {
   id: string
   name: string
   type: StorageBackendType
-  config: S3BackendConfig | Record<string, never>
+  config: S3BackendConfig | TelegramBackendConfig | Record<string, never>
   servingMode: ServingMode
   publicUrl: string
   quotaBytes: number | null
