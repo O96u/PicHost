@@ -1,4 +1,8 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { describe, expect, it, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest'
+import { closeDb } from '../db'
 import {
   parseTelegramConfig,
   parseTelegramSecrets,
@@ -57,6 +61,23 @@ describe('telegram config', () => {
 describe('TelegramStorageBackend', () => {
   const backendId = 'tg-test'
   const key = 'images/2026/01/test.webp'
+  const tempDir = mkdtempSync(join(tmpdir(), 'pichost-tg-'))
+  const previousDataDir = process.env.DATA_DIR
+
+  beforeAll(() => {
+    process.env.DATA_DIR = tempDir
+    closeDb()
+  })
+
+  afterAll(() => {
+    closeDb()
+    if (previousDataDir === undefined) {
+      delete process.env.DATA_DIR
+    } else {
+      process.env.DATA_DIR = previousDataDir
+    }
+    rmSync(tempDir, { recursive: true, force: true })
+  })
 
   beforeEach(() => {
     ensureStorageSchema()
@@ -75,7 +96,11 @@ describe('TelegramStorageBackend', () => {
   })
 
   afterEach(() => {
-    deleteStorageObjectRef(backendId, key)
+    try {
+      deleteStorageObjectRef(backendId, key)
+    } catch {
+      // schema setup may have failed before the ref table existed
+    }
     vi.unstubAllGlobals()
   })
 
