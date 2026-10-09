@@ -131,7 +131,8 @@ describe('shouldBlockSiteHostImageRequest', () => {
       siteHost,
       requestHost: siteHost,
       method: 'GET',
-      pathname: '/'
+      pathname: '/',
+      hideFolder: false
     })).toBe(false)
   })
 
