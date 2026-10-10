@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import 'cap-widget'
-
 const props = defineProps<{
   apiEndpoint: string
 }>()
@@ -13,6 +11,19 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const widgetRef = ref<HTMLElement | null>(null)
+const ready = ref(false)
+
+onMounted(async () => {
+  const capWindow = window as Window & {
+    CAP_CUSTOM_WASM_URL?: string
+    CAP_CUSTOM_HASHWX_URL?: string
+  }
+  // SHA-256 与 hashwx 的求解器都放在本站 /cap，避免组件去 jsDelivr 拉 wasm。
+  capWindow.CAP_CUSTOM_WASM_URL = '/cap/cap_wasm_bg.wasm'
+  capWindow.CAP_CUSTOM_HASHWX_URL = '/cap/hashwx.wasm'
+  await import('cap-widget')
+  ready.value = true
+})
 
 function onSolve(event: Event) {
   const token = (event as CustomEvent<{ token: string }>).detail?.token
@@ -37,6 +48,7 @@ defineExpose({ reset })
 <template>
   <ClientOnly>
     <cap-widget
+      v-if="ready"
       ref="widgetRef"
       :data-cap-api-endpoint="props.apiEndpoint"
       :data-cap-i18n-initial-state="t('auth.capInitialState')"

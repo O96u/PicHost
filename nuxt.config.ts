@@ -50,6 +50,13 @@ export default defineNuxtConfig({
 
   nitro: {
     preset: 'node-server',
+    publicAssets: [
+      {
+        baseURL: '/cap',
+        dir: join(rootDir, 'node_modules/@cap.js/wasm/browser'),
+        maxAge: 60 * 60 * 24 * 30
+      }
+    ],
     scheduledTasks: {
       '0 3 * * *': ['auto-delete']
     }

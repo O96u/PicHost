@@ -4,6 +4,12 @@ Version history and notable changes. The full log is also in the repo root [CHAN
 
 ---
 
+## [1.4.4] — 2026-10-10
+
+### Fixed
+
+- Cap login verification supports hashwx challenges and still accepts older SHA-256 site keys
+
 ## [1.4.3] — 2026-10-09
 
 ### Added
