@@ -4,6 +4,12 @@ Version history and notable changes. The full log is also in the repo root [CHAN
 
 ---
 
+## [1.4.5] — 2026-10-23
+
+### Improved
+
+- **Gallery**: searchable tag filter dropdown; top search matches tag names on images
+
 ## [1.4.4] — 2026-10-10
 
 ### Fixed

@@ -62,7 +62,7 @@ function viewButtonClass(active: boolean) {
     <UInput
       :model-value="searchQuery"
       icon="i-lucide-search"
-      :placeholder="t('stats.searchPlaceholder')"
+      :placeholder="t('stats.searchPlaceholderWide')"
       class="w-40 shrink-0 sm:w-48"
       size="sm"
       :disabled="loading"

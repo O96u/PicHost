@@ -177,6 +177,7 @@
     "updateFailed": "更新标签失败",
     "filterAll": "全部标签",
     "filterSelected": "已选 {n} 个",
+    "filterNoMatch": "无匹配标签",
     "filterTitle": "按标签筛选",
     "manage": "管理",
     "manageTitle": "管理标签",

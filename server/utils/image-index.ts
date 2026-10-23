@@ -4,7 +4,7 @@ import { getDb, getUploadSourcesForKeys } from './db'
 import { getDataDir } from './data-dir'
 import { contentTypeFromKey } from './content-type'
 import { DEFAULT_FOLDER, toCanonicalImageKey, validateImageKey } from './image-key'
-import { buildTagFilterSql, type TagFilterInput } from './tags'
+import { buildTagFilterSql, getTagsForImageKeys, type TagFilterInput } from './tags'
 import { isBareImageFilename, isHiddenImageDatePath } from './image-public-path'
 import {
   ensureDefaultBackends,
@@ -517,10 +517,18 @@ export async function searchImages(options: {
     ORDER BY uploaded_at DESC, key DESC
   `).all(...params) as unknown as ImageIndexRow[]
 
+  const tagMap = needle
+    ? getTagsForImageKeys(rows.map(row => row.key))
+    : null
+
   const matches = rows.filter((row) => {
     if (!needle) return true
-    return row.key.toLowerCase().includes(needle)
-      || row.original_name.toLowerCase().includes(needle)
+    if (row.key.toLowerCase().includes(needle)
+      || row.original_name.toLowerCase().includes(needle)) {
+      return true
+    }
+    const tags = tagMap?.get(row.key) ?? []
+    return tags.some(tag => tag.name.toLowerCase().includes(needle))
   })
 
   const filtered = filterImageRows(matches, {

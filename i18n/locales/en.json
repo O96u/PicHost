@@ -177,6 +177,7 @@
     "updateFailed": "Failed to update tags",
     "filterAll": "All tags",
     "filterSelected": "{n} selected",
+    "filterNoMatch": "No matching tags",
     "filterTitle": "Filter by tag",
     "manage": "Manage",
     "manageTitle": "Manage tags",

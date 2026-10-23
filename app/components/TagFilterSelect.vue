@@ -20,6 +20,11 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
+const open = ref(false)
+const tagQuery = ref('')
+
+const selectedTagIds = computed(() => new Set(props.modelValue))
+
 const selectedTags = computed(() =>
   props.tags.filter(tag => props.modelValue.includes(tag.id))
 )
@@ -31,12 +36,25 @@ const buttonLabel = computed(() => {
   return t('tags.filterSelected', { n: selectedTags.value.length })
 })
 
+const filteredTags = computed(() => {
+  const q = tagQuery.value.trim().toLowerCase()
+  if (!q) return props.tags
+  const selected = selectedTagIds.value
+  return props.tags.filter(tag =>
+    selected.has(tag.id) || tag.name.toLowerCase().includes(q)
+  )
+})
+
 const tagItems = computed(() =>
-  props.tags.map(tag => ({
+  filteredTags.value.map(tag => ({
     label: tag.name,
     value: tag.id
   }))
 )
+
+watch(open, (isOpen) => {
+  if (!isOpen) tagQuery.value = ''
+})
 
 const selectValue = computed({
   get: () => (props.untaggedOnly ? [] : props.modelValue),
@@ -64,16 +82,17 @@ function clearFilter() {
 <template>
   <USelect
     v-model="selectValue"
+    v-model:open="open"
     multiple
     :items="tagItems"
-    class="w-28 shrink-0"
+    class="w-32 shrink-0 sm:w-36"
     size="sm"
     :disabled="disabled"
     value-key="value"
     :content="{ align: 'start', sideOffset: 4 }"
     :ui="{
       content: 'w-72 max-w-[calc(100vw-2rem)]',
-      viewport: 'max-h-44 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden',
+      viewport: 'max-h-52 overflow-y-auto',
       item: 'text-xs',
       itemLabel: 'text-xs',
       itemTrailingIcon: 'size-3.5 text-primary',
@@ -139,6 +158,24 @@ function clearFilter() {
             {{ t('tags.untagged') }}
           </button>
         </div>
+
+        <UInput
+          v-model="tagQuery"
+          size="sm"
+          icon="i-lucide-search"
+          :placeholder="t('tags.search')"
+          :disabled="disabled"
+          class="mt-1"
+          @click.stop
+          @keydown.stop
+        />
+
+        <p
+          v-if="tagQuery.trim() && !tagItems.length"
+          class="px-0.5 pt-1 text-[11px] text-muted"
+        >
+          {{ t('tags.filterNoMatch') }}
+        </p>
       </div>
     </template>
 
