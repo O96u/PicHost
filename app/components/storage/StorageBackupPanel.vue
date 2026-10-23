@@ -33,7 +33,9 @@ const {
   startSync,
   retryJob,
   cancelJob,
-  downloadUrl
+  downloadUrl,
+  restoreWatchSession,
+  pollWatchedJob
 } = useBackup()
 
 const syncDraft = ref<SyncDraft | null>(null)
@@ -48,7 +50,15 @@ const syncBusy = computed(() => activeJob.value?.type === 'backend_sync')
 const anyJobBusy = computed(() => Boolean(activeJob.value))
 
 onMounted(async () => {
-  await Promise.all([loadJobs(), loadEstimate()])
+  restoreWatchSession()
+  try {
+    await Promise.all([loadJobs(), loadEstimate()])
+  } catch {
+    await pollWatchedJob().catch(() => {})
+  }
+  if (!hasActiveJob()) {
+    await pollWatchedJob().catch(() => {})
+  }
   if (hasActiveJob()) {
     startPolling()
   }

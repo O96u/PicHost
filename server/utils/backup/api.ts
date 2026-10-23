@@ -1,6 +1,12 @@
 import type { BackupJob } from '../../utils/backup/jobs'
 import { BACKUP_ARCHIVE_EXT } from '../../utils/backup/paths'
 
+function sanitizeJobPayload(payload: Record<string, unknown>): Record<string, unknown> {
+  if (!payload.watchToken) return payload
+  const { watchToken: _removed, ...next } = payload
+  return next
+}
+
 export function serializeBackupJob(job: BackupJob) {
   const archiveName = job.outputPath
     ? job.outputPath.split(/[/\\]/).pop()
@@ -15,7 +21,7 @@ export function serializeBackupJob(job: BackupJob) {
     progress: job.progress,
     total: job.total,
     message: job.message,
-    payload: job.payload,
+    payload: sanitizeJobPayload(job.payload),
     outputPath: job.outputPath,
     archiveName,
     downloadable: Boolean(

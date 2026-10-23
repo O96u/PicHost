@@ -10,6 +10,10 @@ Version history and notable changes. The full log is also in the repo root [CHAN
 
 - **Gallery**: searchable tag filter dropdown; top search matches tag names on images
 
+### Fixed
+
+- **Storage / backup**: live full-restore progress; redirect home to sign in when done
+
 ## [1.4.4] — 2026-10-10
 
 ### Fixed

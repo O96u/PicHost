@@ -263,11 +263,15 @@ export function markJobDone(id: string, patch?: {
   outputPath?: string | null
   payload?: Record<string, unknown>
 }): void {
+  const current = getBackupJob(id)
+  const payload = patch?.payload && current
+    ? { ...current.payload, ...patch.payload }
+    : patch?.payload ?? current?.payload
   updateBackupJob(id, {
     status: 'done',
     message: patch?.message ?? '',
     outputPath: patch?.outputPath,
-    payload: patch?.payload,
+    payload,
     finishedAt: new Date().toISOString(),
     error: null
   })

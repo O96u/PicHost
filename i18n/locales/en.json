@@ -602,6 +602,7 @@
       "restoreOverwriteWarning": "Overwrite mode replaces conflicting images and the database. Ensure you have a current backup.",
       "restoreSelectRequired": "Select or upload a backup file",
       "restoreStarted": "Restore job started",
+      "restoreRelogin": "Restore finished. Sign in again with the admin account from the backup.",
       "restoreFailed": "Restore failed",
       "conflictMode": "Conflict policy",
       "conflictSkip": "Skip existing images",

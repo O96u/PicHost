@@ -4,6 +4,7 @@ import { createApiError } from '../../../utils/api-error'
 import { serializeBackupJob } from '../../../utils/backup/api'
 import { previewFullRestore } from '../../../utils/backup/full-restore'
 import { startFullRestoreJob } from '../../../utils/backup/runner'
+import { issueBackupJobWatchToken } from '../../../utils/backup/watch-token'
 import {
   BACKUP_ARCHIVE_EXT,
   getBackupsDir,
@@ -98,7 +99,8 @@ export default defineEventHandler(async (event) => {
 
   try {
     const job = startFullRestoreJob(archivePath, conflictMode)
-    return { job: serializeBackupJob(job) }
+    const watchToken = issueBackupJobWatchToken(job.id)
+    return { job: serializeBackupJob(job), watchToken }
   } catch (error) {
     if (error instanceof Error && error.message === 'BACKUP_JOB_RUNNING') {
       createApiError(event, 'CONFLICT', '已有备份或迁移任务正在运行', 409)

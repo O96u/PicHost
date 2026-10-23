@@ -602,6 +602,7 @@
       "restoreOverwriteWarning": "覆盖模式将替换冲突图片与数据库，请确认已做好当前站点备份",
       "restoreSelectRequired": "请选择或上传备份文件",
       "restoreStarted": "恢复任务已开始",
+      "restoreRelogin": "恢复已完成，请使用备份中的管理员账号重新登录",
       "restoreFailed": "恢复失败",
       "conflictMode": "冲突策略",
       "conflictSkip": "跳过已存在图片",
